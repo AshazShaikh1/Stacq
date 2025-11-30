@@ -5,6 +5,53 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { CreateStackModal } from '@/components/stack/CreateStackModal';
+
+function CreateButton() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <>
+      <Button variant="primary" size="sm" onClick={() => setIsModalOpen(true)}>
+        Create
+      </Button>
+      <CreateStackModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+    </>
+  );
+}
+
+function ProfileButton({ user }: { user: any }) {
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUsername = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('users')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+      if (data) setUsername(data.username);
+    };
+    if (user) fetchUsername();
+  }, [user]);
+
+  if (!username) {
+    return (
+      <div className="w-10 h-10 rounded-full bg-gray-light animate-pulse" />
+    );
+  }
+
+  return (
+    <Link
+      href={`/profile/${username}`}
+      className="w-10 h-10 rounded-full bg-jet/20 flex items-center justify-center text-jet font-semibold hover:bg-jet/30 transition-colors"
+      aria-label="Profile"
+    >
+      {user.email?.charAt(0).toUpperCase() || 'U'}
+    </Link>
+  );
+}
 
 export function Header() {
   const router = useRouter();
@@ -38,55 +85,28 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-light">
       <div className="container mx-auto px-page">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="text-h2 font-bold text-jet-dark">
-            Stack
-          </Link>
+        <div className="flex items-center justify-between h-16 gap-4">
+          {/* Search Bar */}
+          <div className="flex-1 max-w-2xl">
+            <Link href="/search" className="block">
+              <div className="flex items-center gap-3 px-4 py-2 bg-gray-light rounded-full hover:bg-gray-light/80 transition-colors cursor-pointer">
+                <span className="text-gray-muted">🔍</span>
+                <span className="text-body text-gray-muted flex-1">
+                  Search stacks, cards, and stackers...
+                </span>
+              </div>
+            </Link>
+          </div>
 
-          {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            {user ? (
-              <>
-                <Link
-                  href="/feed"
-                  className="text-body text-jet-dark hover:text-jet transition-colors"
-                >
-                  Feed
-                </Link>
-                <Link
-                  href="/explore"
-                  className="text-body text-jet-dark hover:text-jet transition-colors"
-                >
-                  Explore
-                </Link>
-                <Link
-                  href={`/profile/${user.id}`}
-                  className="text-body text-jet-dark hover:text-jet transition-colors"
-                >
-                  Profile
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/explore"
-                  className="text-body text-jet-dark hover:text-jet transition-colors"
-                >
-                  Explore
-                </Link>
-              </>
-            )}
-          </nav>
-
-          {/* Auth Actions */}
+          {/* Right Actions */}
           <div className="flex items-center gap-4">
             {isLoading ? (
               <div className="w-20 h-10 bg-gray-light animate-pulse rounded-button" />
             ) : user ? (
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Sign out
-              </Button>
+              <>
+                <CreateButton />
+                <ProfileButton user={user} />
+              </>
             ) : (
               <>
                 <Link href="/login">

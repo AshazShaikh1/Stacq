@@ -133,16 +133,16 @@
 
 #### Sub-steps:
 
-- [ ] Implement user profiles (display_name, username, avatar, stats)
-- [ ] Build Stack creation flow (create/edit/delete, title, description, tags, cover image, visibility settings)
-- [ ] Implement Stack detail page (header with cover, title, desc, tags, action bar: Upvote, Save, Share, Clone)
-- [ ] Build Card creation flow (URL input, metadata fetching, manual override, thumbnail upload)
+- [x] Implement user profiles (display_name, username, avatar, stats)
+- [x] Build Stack creation flow (create/edit/delete, title, description, tags, cover image, visibility settings)
+- [x] Implement Stack detail page (header with cover, title, desc, tags, action bar: Upvote, Save, Share, Clone)
+- [x] Build Card creation flow (URL input, metadata fetching, manual override, thumbnail upload)
 - [ ] Implement metadata fetcher worker (Open Graph extraction, URL canonicalization, deduplication)
 - [ ] Create Stack-Card mapping system (many-to-many relationship)
-- [ ] Build masonry grid layout for feed, explore, and profile pages
-- [ ] Implement Feed page with personalized algorithm (tag-based boosting, trending)
-- [ ] Build Explore page (categories, trending stacks, top stackers, filters: Most Upvoted/Newest)
-- [ ] Create Profile page (created stacks, saved stacks, basic stats: views, upvotes)
+- [x] Build masonry grid layout for feed, explore, and profile pages
+- [x] Implement Feed page with personalized algorithm (tag-based boosting, trending)
+- [x] Build Explore page (categories, trending stacks, top stackers, filters: Most Upvoted/Newest)
+- [x] Create Profile page (created stacks, saved stacks, basic stats: views, upvotes)
 - [ ] Implement Upvote system (one per user, account age check 48h, real-time updates)
 - [ ] Build Comments system (threaded comments with 4-level nesting, real-time updates)
 - [ ] Implement Search functionality (Postgres full-text search + pg_trgm fuzzy matching)

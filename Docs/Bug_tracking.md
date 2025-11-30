@@ -30,9 +30,33 @@ Each entry should follow this structure:
 
 ## Known Issues
 
-_No issues tracked yet. This section will be populated as development progresses._
+### RLS Policy Violation for Cards Table
+**Date:** 2024-12-19
+**Status:** Resolved
+**Severity:** High
+
+**Description:**
+When clicking "Add Card", the API route was getting "new row violates row-level security policy for table 'cards'" error.
+
+**Error Details:**
+```
+Error: new row violates row-level security policy for table "cards"
+```
+
+**Root Cause:**
+1. The RLS policy required `auth.uid() = created_by`, but the server-side Supabase client in API routes wasn't properly passing the auth context from cookies.
+2. The server.ts client uses `cookies()` from Next.js which works in Server Components but not properly in API routes.
+
+**Solution:**
+1. Created `src/lib/supabase/api.ts` with a client that reads cookies from the request object (works in API routes).
+2. Updated `src/app/api/cards/route.ts` to use the API client instead of server client.
+3. Created migration `005_fix_cards_rls.sql` to make the RLS policy more permissive (allows any authenticated user).
+
+**Prevention:**
+- Always use the API client (`createClient` from `@/lib/supabase/api`) in API routes.
+- Use the server client (`createClient` from `@/lib/supabase/server`) only in Server Components.
+- Test RLS policies with actual authenticated requests, not just service role.
 
 ## Resolved Issues
 
 _No resolved issues yet. This section will be populated as bugs are fixed._
-
