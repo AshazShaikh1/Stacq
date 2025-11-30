@@ -10,34 +10,140 @@ export default async function ExplorePage({
 }) {
   const supabase = await createClient();
   const resolvedSearchParams = await searchParams;
-  const sort = resolvedSearchParams.sort || 'newest';
+  const sort = resolvedSearchParams.sort || 'trending';
 
-  let query = supabase
-    .from('stacks')
-    .select(`
-      id,
-      title,
-      description,
-      cover_image_url,
-      owner_id,
-      stats,
-      owner:users!stacks_owner_id_fkey (
-        username,
-        display_name,
-        avatar_url
-      )
-    `)
-    .eq('is_public', true)
-    .eq('is_hidden', false);
+  let stacks: any[] = [];
+  let error: any = null;
 
-  // Apply sorting
-  if (sort === 'upvoted') {
-    query = query.order('stats->upvotes', { ascending: false });
+  // Use explore_ranking materialized view for trending/default sort
+  if (sort === 'trending' || sort === 'newest') {
+    if (sort === 'trending') {
+      // Use materialized view for trending (ranked by score)
+      // First, get stack_ids from materialized view
+      const { data: rankingData, error: rankingError } = await supabase
+        .from('explore_ranking')
+        .select('stack_id, score')
+        .order('score', { ascending: false })
+        .limit(40);
+
+      if (!rankingError && rankingData && rankingData.length > 0) {
+        // Extract stack IDs
+        const stackIds = rankingData.map((item: any) => item.stack_id);
+        
+        // Fetch stacks with those IDs, maintaining order
+        const { data: stacksData, error: stacksError } = await supabase
+          .from('stacks')
+          .select(`
+            id,
+            title,
+            description,
+            cover_image_url,
+            owner_id,
+            stats,
+            owner:users!stacks_owner_id_fkey (
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .in('id', stackIds)
+          .eq('is_public', true)
+          .eq('is_hidden', false);
+
+        if (!stacksError && stacksData) {
+          // Maintain order from ranking
+          const stacksMap = new Map(stacksData.map((s: any) => [s.id, s]));
+          stacks = stackIds
+            .map((id: string) => stacksMap.get(id))
+            .filter(Boolean);
+        } else {
+          error = stacksError;
+        }
+      } else if (rankingError) {
+        // If materialized view doesn't exist or is empty, fallback to direct query
+        console.warn('Materialized view query failed, using fallback:', rankingError);
+        const { data: stacksData, error: stacksError } = await supabase
+          .from('stacks')
+          .select(`
+            id,
+            title,
+            description,
+            cover_image_url,
+            owner_id,
+            stats,
+            owner:users!stacks_owner_id_fkey (
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .eq('is_public', true)
+          .eq('is_hidden', false)
+          .order('created_at', { ascending: false })
+          .limit(40);
+
+        if (!stacksError) {
+          stacks = stacksData || [];
+        } else {
+          error = stacksError;
+        }
+      }
+    } else {
+      // Newest - fallback to direct query
+      const { data: stacksData, error: stacksError } = await supabase
+        .from('stacks')
+        .select(`
+          id,
+          title,
+          description,
+          cover_image_url,
+          owner_id,
+          stats,
+          owner:users!stacks_owner_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('is_public', true)
+        .eq('is_hidden', false)
+        .order('created_at', { ascending: false })
+        .limit(40);
+
+      if (!stacksError) {
+        stacks = stacksData || [];
+      } else {
+        error = stacksError;
+      }
+    }
   } else {
-    query = query.order('created_at', { ascending: false });
-  }
+    // Upvoted - use direct query
+    const { data: stacksData, error: stacksError } = await supabase
+      .from('stacks')
+      .select(`
+        id,
+        title,
+        description,
+        cover_image_url,
+        owner_id,
+        stats,
+        owner:users!stacks_owner_id_fkey (
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('is_public', true)
+      .eq('is_hidden', false)
+      .order('stats->upvotes', { ascending: false })
+      .limit(40);
 
-  const { data: stacks, error } = await query.limit(40);
+    if (!stacksError) {
+      stacks = stacksData || [];
+    } else {
+      error = stacksError;
+    }
+  }
 
   if (error) {
     console.error('Error fetching stacks:', error);
@@ -53,6 +159,14 @@ export default async function ExplorePage({
 
         {/* Filters */}
         <div className="flex gap-3">
+          <Link href="/explore?sort=trending">
+            <Button
+              variant={sort === 'trending' ? 'primary' : 'outline'}
+              size="sm"
+            >
+              Trending
+            </Button>
+          </Link>
           <Link href="/explore?sort=newest">
             <Button
               variant={sort === 'newest' ? 'primary' : 'outline'}

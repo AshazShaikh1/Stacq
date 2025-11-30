@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { CommentForm } from './CommentForm';
+import { ReportButton } from '@/components/report/ReportButton';
 import { useComments } from '@/hooks/useComments';
 
 interface Comment {
@@ -100,16 +101,22 @@ export function CommentItem({ comment, targetType, targetId, depth }: CommentIte
           </p>
 
           {/* Actions */}
-          {canReply && (
-            <div className="flex items-center gap-4 mt-2">
+          <div className="flex items-center gap-4 mt-2">
+            {canReply && (
               <button
                 onClick={() => setIsReplying(!isReplying)}
                 className="text-small text-gray-muted hover:text-jet transition-colors"
               >
                 {isReplying ? 'Cancel' : 'Reply'}
               </button>
-            </div>
-          )}
+            )}
+            <ReportButton
+              targetType="comment"
+              targetId={comment.id}
+              variant="ghost"
+              size="sm"
+            />
+          </div>
 
           {/* Reply Form */}
           {isReplying && canReply && (

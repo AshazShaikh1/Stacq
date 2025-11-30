@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 import { createServiceClient } from '@/lib/supabase/api-service';
+import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized - Please log in again' },
         { status: 401 }
+      );
+    }
+
+    // Rate limiting: 20 cards/day per user (PRD requirement)
+    const ipAddress = getIpAddress(request);
+    const identifier = getRateLimitIdentifier(user.id, ipAddress);
+    const rateLimitResult = await checkRateLimit(rateLimiters.cards, identifier);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. You can create up to 20 cards per day.',
+          limit: rateLimitResult.limit,
+          remaining: rateLimitResult.remaining,
+          reset: rateLimitResult.reset,
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          },
+        }
       );
     }
 

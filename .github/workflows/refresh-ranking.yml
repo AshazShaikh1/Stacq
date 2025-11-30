@@ -1,0 +1,51 @@
+name: Refresh Explore Ranking
+
+on:
+  schedule:
+    # Run every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh Explore Ranking
+        run: |
+          if [ -z "${{ secrets.APP_URL }}" ]; then
+            echo "Error: APP_URL secret is not set"
+            echo "Please set APP_URL in GitHub repository settings > Secrets"
+            exit 1
+          fi
+          
+          echo "Refreshing explore ranking..."
+          
+          # Build curl command with optional API key
+          CURL_CMD="curl -s -w \"\n%{http_code}\" -X POST"
+          
+          if [ -n "${{ secrets.RANKING_REFRESH_API_KEY }}" ]; then
+            CURL_CMD="$CURL_CMD -H \"x-api-key: ${{ secrets.RANKING_REFRESH_API_KEY }}\""
+            echo "Using API key authentication"
+          else
+            echo "Warning: RANKING_REFRESH_API_KEY not set, using user auth (may fail)"
+          fi
+          
+          CURL_CMD="$CURL_CMD \"${{ secrets.APP_URL }}/api/admin/refresh-ranking\""
+          
+          response=$(eval $CURL_CMD)
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          
+          echo "Response code: $http_code"
+          echo "Response body: $body"
+          
+          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
+            echo "✅ Ranking refreshed successfully"
+            exit 0
+          else
+            echo "❌ Failed to refresh ranking (HTTP $http_code)"
+            echo "Response: $body"
+            exit 1
+          fi
+

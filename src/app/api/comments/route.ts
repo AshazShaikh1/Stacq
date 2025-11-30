@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 import { createServiceClient } from '@/lib/supabase/api-service';
+import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
 
 // GET: Fetch comments for a target (stack or card)
 export async function GET(request: NextRequest) {
@@ -79,6 +80,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Rate limiting: 3 comments/min per user (PRD requirement)
+    const ipAddress = getIpAddress(request);
+    const identifier = getRateLimitIdentifier(user.id, ipAddress);
+    const rateLimitResult = await checkRateLimit(rateLimiters.comments, identifier);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. You can post up to 3 comments per minute.',
+          limit: rateLimitResult.limit,
+          remaining: rateLimitResult.remaining,
+          reset: rateLimitResult.reset,
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          },
+        }
       );
     }
 

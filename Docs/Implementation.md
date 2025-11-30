@@ -145,10 +145,10 @@
 - [x] Create Profile page (created stacks, saved stacks, basic stats: views, upvotes)
 - [x] Implement Upvote system (one per user, account age check 48h, real-time updates)
 - [x] Build Comments system (threaded comments with 4-level nesting, real-time updates)
-- [ ] Implement Search functionality (Postgres full-text search + pg_trgm fuzzy matching)
-- [ ] Create explore_ranking materialized view and refresh job (every 5-15 minutes)
-- [ ] Build basic admin UI for reports and moderation
-- [ ] Implement rate limiting for all APIs (card creation, extension saves, votes, comments, clones)
+- [x] Implement Search functionality (Postgres full-text search + pg_trgm fuzzy matching)
+- [x] Create explore_ranking materialized view and refresh job (every 5-15 minutes)
+- [x] Build basic admin UI for reports and moderation
+- [x] Implement rate limiting for all APIs (card creation, extension saves, votes, comments, clones)
 
 ### Stage 3: Advanced Features
 **Duration:** 2-3 weeks

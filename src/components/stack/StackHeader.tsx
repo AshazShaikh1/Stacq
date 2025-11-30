@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useVotes } from '@/hooks/useVotes';
+import { ReportButton } from '@/components/report/ReportButton';
 import { createClient } from '@/lib/supabase/client';
 
 interface StackHeaderProps {
@@ -185,25 +186,32 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
           Share
         </Button>
 
-        {!isOwner && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClone}
-            disabled={!user}
-          >
-            <span className="mr-2">📋</span>
-            Clone
-          </Button>
-        )}
 
-        {isOwner && (
+        {isOwner ? (
           <Link href={`/stack/${stack.id}/edit`}>
             <Button variant="outline" size="sm">
               <span className="mr-2">✏️</span>
               Edit
             </Button>
           </Link>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClone}
+              disabled={!user}
+            >
+              <span className="mr-2">📋</span>
+              Clone
+            </Button>
+            <ReportButton
+              targetType="stack"
+              targetId={stack.id}
+              variant="outline"
+              size="sm"
+            />
+          </>
         )}
 
         {/* Stats */}

@@ -88,14 +88,17 @@ export function Header() {
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl">
-            <Link href="/search" className="block">
-              <div className="flex items-center gap-3 px-4 py-2 bg-gray-light rounded-full hover:bg-gray-light/80 transition-colors cursor-pointer">
+            <form action="/search" method="get" className="w-full">
+              <div className="flex items-center gap-3 px-4 py-2 bg-gray-light rounded-full hover:bg-gray-light/80 transition-colors">
                 <span className="text-gray-muted">🔍</span>
-                <span className="text-body text-gray-muted flex-1">
-                  Search stacks, cards, and stackers...
-                </span>
+                <input
+                  type="text"
+                  name="q"
+                  placeholder="Search stacks, cards, and stackers..."
+                  className="flex-1 bg-transparent border-none outline-none text-body text-jet-dark placeholder:text-gray-muted"
+                />
               </div>
-            </Link>
+            </form>
           </div>
 
           {/* Right Actions */}
