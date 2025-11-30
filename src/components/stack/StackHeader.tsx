@@ -72,9 +72,41 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
   };
 
   const handleClone = async () => {
-    if (!user) return;
-    // TODO: Implement clone functionality
-    alert('Clone functionality coming soon!');
+    if (!user) {
+      alert('Please sign in to clone stacks');
+      return;
+    }
+
+    if (isOwner) {
+      alert('You cannot clone your own stack');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/stacks/${stack.id}/clone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to clone stack');
+      }
+
+      // Redirect to the cloned stack
+      if (data.stack?.id) {
+        window.location.href = `/stack/${data.stack.id}`;
+      } else {
+        alert('Stack cloned successfully!');
+        // Refresh the page to show updated state
+        window.location.reload();
+      }
+    } catch (error: any) {
+      alert(error.message || 'Failed to clone stack. Please try again.');
+    }
   };
 
   return (

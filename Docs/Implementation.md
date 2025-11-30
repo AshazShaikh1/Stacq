@@ -156,7 +156,7 @@
 
 #### Sub-steps:
 
-- [ ] Implement Clone feature (private clone of public stacks, 10/day limit, auto-cleanup after 7 days)
+- [x] Implement Clone feature (private clone of public stacks, 10/day limit, auto-cleanup after 7 days)
 - [ ] Build Browser Extension with Plasmo (popup UI, stack selection, quick save, authentication flow)
 - [ ] Create extension_saves queue processing worker
 - [ ] Implement Notifications system (real-time in-app notifications, unread counts, mark as read)

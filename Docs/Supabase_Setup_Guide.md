@@ -28,9 +28,26 @@ Complete guide to set up Supabase for the Stack MVP project.
    - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY` (keep this secret!)
 
-## Step 3: Run Database Migrations
+## Step 3: Enable pg_cron Extension
+
+pg_cron is used for automated scheduled tasks (refreshing rankings, cleaning up old data).
+
+1. Go to **Database** → **Extensions** in your Supabase dashboard
+2. Search for `pg_cron`
+3. Click **Enable**
+
+Alternatively, run in SQL Editor:
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+```
+
+See `Docs/pg_cron_Setup_Guide.md` for detailed pg_cron setup instructions.
+
+## Step 4: Run Database Migrations
 
 ### Option A: Using Supabase CLI (Recommended)
+
+**Note**: Make sure pg_cron is enabled (Step 3) before running migrations.
 
 1. Install Supabase CLI:
 ```bash
