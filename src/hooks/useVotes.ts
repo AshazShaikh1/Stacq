@@ -52,6 +52,16 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
   }, [targetType, targetId, fetchVoteCount]);
 
   const toggleVote = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      if (confirm('Please sign in to upvote. Would you like to sign in now?')) {
+        window.location.href = '/login';
+      }
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -68,6 +78,12 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
       const data = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          if (confirm('Please sign in to upvote. Would you like to sign in now?')) {
+            window.location.href = '/login';
+          }
+          return;
+        }
         throw new Error(data.error || 'Failed to vote');
       }
 

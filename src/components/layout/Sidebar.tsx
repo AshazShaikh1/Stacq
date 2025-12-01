@@ -4,12 +4,14 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
-import { HomeIcon, FeedIcon, ExploreIcon, CreateIcon, ProfileIcon } from '@/components/ui/Icons';
+import { HomeIcon, FeedIcon, ExploreIcon, CreateIcon, ProfileIcon, MyStacksIcon } from '@/components/ui/Icons';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { CreateOptionsModal } from '@/components/create/CreateOptionsModal';
 
 export function Sidebar() {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -29,9 +31,9 @@ export function Sidebar() {
 
   const navItems = [
     { href: '/', icon: HomeIcon, label: 'Home', auth: false },
-    { href: '/feed', icon: FeedIcon, label: 'Feed', auth: true },
     { href: '/explore', icon: ExploreIcon, label: 'Explore', auth: false },
-    { href: '/create', icon: CreateIcon, label: 'Create', auth: true },
+    { href: null, icon: CreateIcon, label: 'Create', auth: true, onClick: () => setIsCreateModalOpen(true) },
+    { href: '/my-stacks', icon: MyStacksIcon, label: 'Your Stacks', auth: true },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.auth || user);
@@ -47,13 +49,33 @@ export function Sidebar() {
 
       {/* Navigation Items */}
       <nav className="flex-1 flex flex-col gap-6">
-        {filteredNavItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+        {filteredNavItems.map((item, index) => {
+          const isActive = item.href ? (pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href))) : false;
           const IconComponent = item.icon;
+          
+          if (item.href === null && item.onClick) {
+            // Create button - show modal instead of link
+            return (
+              <Tooltip key={`create-${index}`} text={item.label} position="right">
+                <button
+                  onClick={item.onClick}
+                  className={`
+                    w-12 h-12 rounded-lg flex items-center justify-center
+                    transition-all duration-200
+                    text-gray-muted hover:bg-gray-light hover:text-jet
+                  `}
+                  aria-label={item.label}
+                >
+                  <IconComponent size={20} />
+                </button>
+              </Tooltip>
+            );
+          }
+          
           return (
-            <Tooltip key={item.href} text={item.label} position="right">
+            <Tooltip key={item.href || index} text={item.label} position="right">
               <Link
-                href={item.href}
+                href={item.href || '#'}
                 className={`
                   w-12 h-12 rounded-lg flex items-center justify-center
                   transition-all duration-200
@@ -70,6 +92,12 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Create Options Modal */}
+      <CreateOptionsModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+      />
 
       {/* Bottom Actions */}
       <div className="flex flex-col gap-4">

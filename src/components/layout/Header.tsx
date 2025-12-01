@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { CreateStackModal } from '@/components/stack/CreateStackModal';
 import { SearchIcon } from '@/components/ui/Icons';
+import { LoginModal } from '@/components/auth/LoginModal';
+import { SignupModal } from '@/components/auth/SignupModal';
 
 function CreateButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,6 +60,8 @@ export function Header() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignupOpen, setIsSignupOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -79,8 +83,8 @@ export function Header() {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    // Redirect to home page which will show landing page for signed out users
+    window.location.href = '/';
   };
 
   return (
@@ -113,21 +117,42 @@ export function Header() {
               </>
             ) : (
               <>
-                <Link href="/login">
-                  <Button variant="outline" size="sm">
-                    Sign in
-                  </Button>
-                </Link>
-                <Link href="/signup">
-                  <Button variant="primary" size="sm">
-                    Sign up
-                  </Button>
-                </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsLoginOpen(true)}
+                >
+                  Sign in
+                </Button>
+                <Button 
+                  variant="primary" 
+                  size="sm"
+                  onClick={() => setIsSignupOpen(true)}
+                >
+                  Sign up
+                </Button>
               </>
             )}
           </div>
         </div>
       </div>
+
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)}
+        onSwitchToSignup={() => {
+          setIsLoginOpen(false);
+          setIsSignupOpen(true);
+        }}
+      />
+      <SignupModal 
+        isOpen={isSignupOpen} 
+        onClose={() => setIsSignupOpen(false)}
+        onSwitchToLogin={() => {
+          setIsSignupOpen(false);
+          setIsLoginOpen(true);
+        }}
+      />
     </header>
   );
 }

@@ -54,6 +54,12 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
   }, []);
 
   const handleSave = async () => {
+    if (!user) {
+      if (confirm('Please sign in to save stacks. Would you like to sign in now?')) {
+        window.location.href = '/login';
+      }
+      return;
+    }
     // TODO: Implement save functionality
     alert('Save functionality coming soon!');
   };

@@ -1,153 +1,130 @@
 import { FeedGrid } from '@/components/feed/FeedGrid';
 import { createClient } from '@/lib/supabase/server';
-import { Button } from '@/components/ui/Button';
-import Link from 'next/link';
 
-export default async function ExplorePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ sort?: string; category?: string }>;
-}) {
+export default async function ExplorePage() {
   const supabase = await createClient();
-  const resolvedSearchParams = await searchParams;
-  const sort = resolvedSearchParams.sort || 'trending';
 
-  let stacks: any[] = [];
-  let error: any = null;
+  // Calculate date ranges
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const monthAgo = new Date(today);
+  monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-  // Use explore_ranking materialized view for trending/default sort
-  if (sort === 'trending' || sort === 'newest') {
-    if (sort === 'trending') {
-      // Use materialized view for trending (ranked by score)
-      // First, get stack_ids from materialized view
-      const { data: rankingData, error: rankingError } = await supabase
-        .from('explore_ranking')
-        .select('stack_id, score')
-        .order('score', { ascending: false })
-        .limit(40);
-
-      if (!rankingError && rankingData && rankingData.length > 0) {
-        // Extract stack IDs
-        const stackIds = rankingData.map((item: any) => item.stack_id);
-        
-        // Fetch stacks with those IDs, maintaining order
-        const { data: stacksData, error: stacksError } = await supabase
-          .from('stacks')
-          .select(`
-            id,
-            title,
-            description,
-            cover_image_url,
-            owner_id,
-            stats,
-            owner:users!stacks_owner_id_fkey (
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .in('id', stackIds)
-          .eq('is_public', true)
-          .eq('is_hidden', false);
-
-        if (!stacksError && stacksData) {
-          // Maintain order from ranking
-          const stacksMap = new Map(stacksData.map((s: any) => [s.id, s]));
-          stacks = stackIds
-            .map((id: string) => stacksMap.get(id))
-            .filter(Boolean);
-        } else {
-          error = stacksError;
-        }
-      } else if (rankingError) {
-        // If materialized view doesn't exist or is empty, fallback to direct query
-        console.warn('Materialized view query failed, using fallback:', rankingError);
-        const { data: stacksData, error: stacksError } = await supabase
-          .from('stacks')
-          .select(`
-            id,
-            title,
-            description,
-            cover_image_url,
-            owner_id,
-            stats,
-            owner:users!stacks_owner_id_fkey (
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .eq('is_public', true)
-          .eq('is_hidden', false)
-          .order('created_at', { ascending: false })
-          .limit(40);
-
-        if (!stacksError) {
-          stacks = stacksData || [];
-        } else {
-          error = stacksError;
-        }
-      }
-    } else {
-      // Newest - fallback to direct query
-      const { data: stacksData, error: stacksError } = await supabase
-        .from('stacks')
-        .select(`
+  // Fetch today's trending
+  const { data: todayStacks, error: todayError } = await supabase
+    .from('stacks')
+    .select(`
+      id,
+      title,
+      description,
+      cover_image_url,
+      owner_id,
+      stats,
+      created_at,
+      owner:users!stacks_owner_id_fkey (
+        username,
+        display_name,
+        avatar_url
+      ),
+      tags:stack_tags (
+        tag:tags (
           id,
-          title,
-          description,
-          cover_image_url,
-          owner_id,
-          stats,
-          owner:users!stacks_owner_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
-        .eq('is_public', true)
-        .eq('is_hidden', false)
-        .order('created_at', { ascending: false })
-        .limit(40);
-
-      if (!stacksError) {
-        stacks = stacksData || [];
-      } else {
-        error = stacksError;
-      }
-    }
-  } else {
-    // Upvoted - use direct query
-    const { data: stacksData, error: stacksError } = await supabase
-      .from('stacks')
-      .select(`
-        id,
-        title,
-        description,
-        cover_image_url,
-        owner_id,
-        stats,
-        owner:users!stacks_owner_id_fkey (
-          username,
-          display_name,
-          avatar_url
+          name
         )
-      `)
-      .eq('is_public', true)
-      .eq('is_hidden', false)
-      .order('stats->upvotes', { ascending: false })
-      .limit(40);
+      )
+    `)
+    .eq('is_public', true)
+    .eq('is_hidden', false)
+    .gte('created_at', today.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(20);
 
-    if (!stacksError) {
-      stacks = stacksData || [];
-    } else {
-      error = stacksError;
-    }
+  if (todayError) {
+    console.error('Error fetching today stacks:', todayError);
   }
 
-  if (error) {
-    console.error('Error fetching stacks:', error);
+  // Fetch last week's trending
+  const { data: weekStacks, error: weekError } = await supabase
+    .from('stacks')
+    .select(`
+      id,
+      title,
+      description,
+      cover_image_url,
+      owner_id,
+      stats,
+      created_at,
+      owner:users!stacks_owner_id_fkey (
+        username,
+        display_name,
+        avatar_url
+      ),
+      tags:stack_tags (
+        tag:tags (
+          id,
+          name
+        )
+      )
+    `)
+    .eq('is_public', true)
+    .eq('is_hidden', false)
+    .gte('created_at', weekAgo.toISOString())
+    .lt('created_at', today.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (weekError) {
+    console.error('Error fetching week stacks:', weekError);
   }
+
+  // Fetch this month's trending
+  const { data: monthStacks, error: monthError } = await supabase
+    .from('stacks')
+    .select(`
+      id,
+      title,
+      description,
+      cover_image_url,
+      owner_id,
+      stats,
+      created_at,
+      owner:users!stacks_owner_id_fkey (
+        username,
+        display_name,
+        avatar_url
+      ),
+      tags:stack_tags (
+        tag:tags (
+          id,
+          name
+        )
+      )
+    `)
+    .eq('is_public', true)
+    .eq('is_hidden', false)
+    .gte('created_at', monthAgo.toISOString())
+    .lt('created_at', weekAgo.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (monthError) {
+    console.error('Error fetching month stacks:', monthError);
+  }
+
+  // Sort by upvotes
+  const sortByUpvotes = (stacks: any[]) => {
+    return [...(stacks || [])].sort((a: any, b: any) => {
+      const aUpvotes = a.stats?.upvotes || 0;
+      const bUpvotes = b.stats?.upvotes || 0;
+      return bUpvotes - aUpvotes;
+    });
+  };
+
+  const sortedTodayStacks = sortByUpvotes(todayStacks || []);
+  const sortedWeekStacks = sortByUpvotes(weekStacks || []);
+  const sortedMonthStacks = sortByUpvotes(monthStacks || []);
 
   return (
     <div className="container mx-auto px-page py-section">
@@ -156,38 +133,40 @@ export default async function ExplorePage({
         <p className="text-body text-gray-muted mb-6">
           Discover trending stacks and top stackers
         </p>
-
-        {/* Filters */}
-        <div className="flex gap-3">
-          <Link href="/explore?sort=trending">
-            <Button
-              variant={sort === 'trending' ? 'primary' : 'outline'}
-              size="sm"
-            >
-              Trending
-            </Button>
-          </Link>
-          <Link href="/explore?sort=newest">
-            <Button
-              variant={sort === 'newest' ? 'primary' : 'outline'}
-              size="sm"
-            >
-              Newest
-            </Button>
-          </Link>
-          <Link href="/explore?sort=upvoted">
-            <Button
-              variant={sort === 'upvoted' ? 'primary' : 'outline'}
-              size="sm"
-            >
-              Most Upvoted
-            </Button>
-          </Link>
-        </div>
       </div>
 
-      <FeedGrid stacks={stacks || []} />
+      {/* Today Trending */}
+      {sortedTodayStacks.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-h2 font-semibold text-jet-dark mb-6">Today Trending</h2>
+          <FeedGrid stacks={sortedTodayStacks} />
+        </div>
+      )}
+
+      {/* Last Week Trending */}
+      {sortedWeekStacks.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-h2 font-semibold text-jet-dark mb-6">Last Week Trending</h2>
+          <FeedGrid stacks={sortedWeekStacks} />
+        </div>
+      )}
+
+      {/* This Month Trending */}
+      {sortedMonthStacks.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-h2 font-semibold text-jet-dark mb-6">This Month Trending</h2>
+          <FeedGrid stacks={sortedMonthStacks} />
+        </div>
+      )}
+
+      {/* Show message if no stacks */}
+      {sortedTodayStacks.length === 0 && sortedWeekStacks.length === 0 && sortedMonthStacks.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-body text-gray-muted">
+            No trending stacks found. Be the first to create one!
+          </p>
+        </div>
+      )}
     </div>
   );
 }
-

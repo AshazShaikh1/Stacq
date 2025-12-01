@@ -61,9 +61,11 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/signup', '/reset-password', '/explore']
+  const publicRoutes = ['/', '/login', '/signup', '/reset-password', '/explore', '/stack']
   const isPublicRoute = publicRoutes.some(route => 
-    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith('/explore')
+    request.nextUrl.pathname === route || 
+    request.nextUrl.pathname.startsWith('/explore') ||
+    request.nextUrl.pathname.startsWith('/stack/')
   )
 
   // Redirect authenticated users away from auth pages
@@ -73,7 +75,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/reset-password')
   )) {
     const url = request.nextUrl.clone()
-    url.pathname = '/feed'
+    url.pathname = '/'
     return NextResponse.redirect(url)
   }
 

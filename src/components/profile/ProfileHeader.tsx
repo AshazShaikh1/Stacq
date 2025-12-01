@@ -1,6 +1,8 @@
 'use client';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { useFollow } from '@/hooks/useFollow';
 
@@ -23,6 +25,7 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderProps) {
+  const router = useRouter();
   const stats = profile.stats || {
     stacks_created: 0,
     stacks_saved: 0,
@@ -45,6 +48,13 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
     initialFollowerCount: stats.followers || 0,
     initialFollowingCount: stats.following || 0,
   });
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    // Redirect to home page which will show landing page for signed out users
+    window.location.href = '/';
+  };
 
   return (
     <div className="mb-8">
@@ -85,6 +95,14 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
                 </Button>
                 <Button variant="outline" size="sm">
                   Edit profile
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="text-red-600 hover:text-red-700 hover:border-red-600"
+                >
+                  Sign out
                 </Button>
               </>
             ) : (
