@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stack - Quick Save</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="logo">
+          <div class="logo-mark">S</div>
+          <span class="logo-text">Stack</span>
+        </div>
+        <button id="close-btn" class="close-btn" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Fetching page info...</div>
+      </div>
+
+      <!-- Error State -->
+      <div id="error" class="error" style="display: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="error-text"></span>
+      </div>
+
+      <!-- Content -->
+      <div id="content" class="content" style="display: none;">
+        <!-- Preview Card -->
+        <div class="preview-card">
+          <div id="preview-image-container" class="preview-image-container" style="display: none;">
+            <img id="preview-image" class="preview-image" src="" alt="Preview" />
+          </div>
+          <div class="preview-content">
+            <div class="preview-header">
+              <img id="favicon" class="favicon" src="" alt="" />
+              <div class="preview-text">
+                <h3 id="preview-title" class="preview-title">Loading...</h3>
+                <p id="preview-url" class="preview-url">example.com</p>
+              </div>
+            </div>
+            <p id="preview-description" class="preview-description" style="display: none;"></p>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <a id="save-btn" href="#" target="_blank" class="btn btn-primary" role="button" tabindex="0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <span>Save to Stack</span>
+        </a>
+
+        <!-- Link Preview -->
+        <a id="link-preview" href="#" target="_blank" rel="noopener noreferrer" class="link-preview">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          <span id="link-text" class="link-text">View page</span>
+        </a>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
+

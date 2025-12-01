@@ -10,12 +10,13 @@ import { useRouter } from 'next/navigation';
 interface CreateCardModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialUrl?: string;
 }
 
 type CardType = 'link' | 'image' | 'docs' | null;
 type Step = 'type' | 'details' | 'stack';
 
-export function CreateCardModal({ isOpen, onClose }: CreateCardModalProps) {
+export function CreateCardModal({ isOpen, onClose, initialUrl }: CreateCardModalProps) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('type');
   const [cardType, setCardType] = useState<CardType>(null);
@@ -32,6 +33,43 @@ export function CreateCardModal({ isOpen, onClose }: CreateCardModalProps) {
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [isDraggingDocs, setIsDraggingDocs] = useState(false);
+
+  // Handle initial URL from extension
+  useEffect(() => {
+    if (isOpen && initialUrl) {
+      setUrl(initialUrl);
+      setCardType('link');
+      setStep('details');
+      // Auto-fetch metadata
+      const fetchInitialMetadata = async () => {
+        try {
+          new URL(initialUrl);
+        } catch {
+          return;
+        }
+
+        setIsFetchingMetadata(true);
+        try {
+          const response = await fetch('/api/cards/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: initialUrl }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.title) setTitle(data.title);
+            if (data.description) setDescription(data.description);
+          }
+        } catch (err) {
+          console.error('Error fetching metadata:', err);
+        } finally {
+          setIsFetchingMetadata(false);
+        }
+      };
+      fetchInitialMetadata();
+    }
+  }, [isOpen, initialUrl]);
 
   // Fetch user's stacks when modal opens
   useEffect(() => {
