@@ -182,6 +182,12 @@ export function CreateStackModal({ isOpen, onClose, fromCardCreation = false, on
         }
       }
 
+      // Track analytics
+      if (user) {
+        const { trackEvent } = await import('@/lib/analytics');
+        trackEvent.createStack(user.id, stack.id, visibility === 'public');
+      }
+
       // Reset form state
       setTitle('');
       setDescription('');

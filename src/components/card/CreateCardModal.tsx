@@ -8,6 +8,7 @@ import { CreateStackModal } from '@/components/stack/CreateStackModal';
 import { CardTypeSelector } from './CardTypeSelector';
 import { CardDetailsStep } from './CardDetailsStep';
 import { StackSelector } from './StackSelector';
+import { trackEvent } from '@/lib/analytics';
 import type { CardType, FileData } from '@/types';
 
 interface CreateCardModalProps {
@@ -319,6 +320,19 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
         setError(errorData.error || 'Failed to add card');
         setIsLoading(false);
         return;
+      }
+
+      const cardData = await response.json();
+      
+      // Track analytics
+      if (cardData.card) {
+        // Check if this is from extension (has initialUrl or initialFileData)
+        const isFromExtension = !!(initialUrl || initialFileData);
+        if (isFromExtension) {
+          trackEvent.extensionSave(user.id, cardData.card.id, selectedStackId, cardType || 'link');
+        } else {
+          trackEvent.addCard(user.id, cardData.card.id, selectedStackId, cardType || 'link');
+        }
       }
 
       handleClose();

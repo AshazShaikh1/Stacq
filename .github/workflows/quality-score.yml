@@ -1,0 +1,19 @@
+name: Quality Score Calculation
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  quality-score:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Calculate Quality Scores
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.WORKER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            ${{ secrets.APP_URL }}/api/workers/quality-score
+

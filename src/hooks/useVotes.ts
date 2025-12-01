@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/analytics';
 
 interface UseVotesOptions {
   targetType: 'stack' | 'card';
@@ -90,6 +91,11 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
       // Optimistic update
       setVoted(data.voted);
       setUpvotes(prev => data.voted ? prev + 1 : prev - 1);
+
+      // Track analytics
+      if (data.voted && user) {
+        trackEvent.upvote(user.id, targetType, targetId);
+      }
     } catch (err: any) {
       setError(err.message);
       // Revert optimistic update

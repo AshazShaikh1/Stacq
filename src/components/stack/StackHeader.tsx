@@ -10,6 +10,7 @@ import { EditStackModal } from '@/components/stack/EditStackModal';
 import { useVotes } from '@/hooks/useVotes';
 import { ReportButton } from '@/components/report/ReportButton';
 import { createClient } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/analytics';
 
 interface StackHeaderProps {
   stack: {
@@ -108,6 +109,11 @@ export function StackHeader({ stack, isOwner = false }: StackHeaderProps) {
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to clone stack');
+      }
+
+      // Track analytics
+      if (data.stack?.id && user) {
+        trackEvent.cloneStack(user.id, stack.id, data.stack.id);
       }
 
       // Redirect to the cloned stack

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Modal } from '@/components/ui/Modal';
+import { trackEvent } from '@/lib/analytics';
 import Image from 'next/image';
 
 interface SignupModalProps {
@@ -211,11 +212,15 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin }: SignupModalPro
         // Check if email confirmation is required
         if (authData.session) {
           // User is immediately signed in (email confirmation disabled)
+          // Track signup event
+          trackEvent.signup(authData.user.id, 'email');
           onClose();
           // Force a hard navigation to ensure the page updates immediately
           window.location.href = '/';
         } else {
           // Email confirmation required
+          // Track signup event (even if email confirmation is needed)
+          trackEvent.signup(authData.user.id, 'email');
           // Show success message
           setError('');
           alert('Account created! Please check your email to confirm your account before signing in.');

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 import { createServiceClient } from '@/lib/supabase/api-service';
 import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
+import { checkShadowban } from '@/lib/anti-abuse/fingerprinting';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +53,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'target_type must be "stack" or "card"' },
         { status: 400 }
+      );
+    }
+
+    // Check if user is shadowbanned
+    const serviceClient = createServiceClient();
+    const isShadowbanned = await checkShadowban(serviceClient, user.id);
+    if (isShadowbanned) {
+      return NextResponse.json(
+        { error: 'Action not allowed' },
+        { status: 403 }
       );
     }
 

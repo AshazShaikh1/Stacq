@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 import { createServiceClient } from '@/lib/supabase/api-service';
 import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
+import { checkUserCardLimit } from '@/lib/monitoring/alerts';
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +40,12 @@ export async function POST(request: NextRequest) {
         }
       );
     }
+
+    // Check for monitoring alerts (cards per user)
+    // This runs asynchronously and doesn't block the request
+    checkUserCardLimit(user.id, supabase).catch(err => {
+      console.error('Error checking user card limit:', err);
+    });
 
     // Use service client for card creation to bypass RLS if needed
     // This ensures card creation works even if RLS policy has issues

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 import { createServiceClient } from '@/lib/supabase/api-service';
 import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
+import { moderateComment } from '@/lib/moderation/comment-moderation';
+import { checkShadowban } from '@/lib/anti-abuse/fingerprinting';
 
 // GET: Fetch comments for a target (stack or card)
 export async function GET(request: NextRequest) {
@@ -25,8 +27,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get current user to check if they can see hidden comments
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    const isAdmin = currentUser ? await checkIsAdmin(supabase, currentUser.id) : false;
+
     // Fetch all comments for this target
-    const { data: comments, error } = await supabase
+    // Hide moderated comments from non-admins and non-authors
+    let query = supabase
       .from('comments')
       .select(`
         id,
@@ -36,6 +43,7 @@ export async function GET(request: NextRequest) {
         parent_id,
         content,
         deleted,
+        hidden,
         created_at,
         updated_at,
         user:users!comments_user_id_fkey (
@@ -47,8 +55,16 @@ export async function GET(request: NextRequest) {
       `)
       .eq('target_type', targetType)
       .eq('target_id', targetId)
-      .eq('deleted', false)
-      .order('created_at', { ascending: true });
+      .eq('deleted', false);
+
+    // Filter out hidden comments unless user is admin or comment author
+    if (!isAdmin && currentUser) {
+      query = query.or(`hidden.eq.false,user_id.eq.${currentUser.id}`);
+    } else if (!isAdmin && !currentUser) {
+      query = query.eq('hidden', false);
+    }
+
+    const { data: comments, error } = await query.order('created_at', { ascending: true });
 
     if (error) {
       return NextResponse.json(
@@ -80,6 +96,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Check if user is shadowbanned
+    const serviceClient = createServiceClient();
+    const isShadowbanned = await checkShadowban(serviceClient, user.id);
+    if (isShadowbanned) {
+      return NextResponse.json(
+        { error: 'Action not allowed' },
+        { status: 403 }
       );
     }
 
@@ -156,9 +182,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const serviceClient = createServiceClient();
-
-    // Create comment
+    // Moderate comment content
+    const moderationResult = await moderateComment(content.trim());
+    const shouldHide = moderationResult.shouldHide;
+    
+    // Create comment (with hidden flag if toxic)
     const { data: newComment, error: commentError } = await serviceClient
       .from('comments')
       .insert({
@@ -167,6 +195,12 @@ export async function POST(request: NextRequest) {
         target_id,
         parent_id: parent_id || null,
         content: content.trim(),
+        hidden: shouldHide,
+        moderation_metadata: {
+          toxicity_score: moderationResult.toxicityScore,
+          categories: moderationResult.categories,
+          moderated_at: new Date().toISOString(),
+        },
       })
       .select(`
         id,
@@ -257,6 +291,17 @@ async function getCommentDepth(supabase: any, commentId: string): Promise<number
   }
 
   return depth;
+}
+
+// Helper function to check if user is admin
+async function checkIsAdmin(supabase: any, userId: string): Promise<boolean> {
+  const { data: user } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  
+  return user?.role === 'admin';
 }
 
 // Helper function to update comment stats

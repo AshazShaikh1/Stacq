@@ -112,19 +112,19 @@
 
 - [x] Set up Next.js 14 project with TypeScript and App Router
 - [x] Configure Tailwind CSS with design system tokens (Jet color, spacing, typography)
-- [ ] Set up Supabase project and configure environment variables
-- [ ] Create database schema migrations (all tables: users, stacks, cards, stack_cards, tags, stack_tags, card_tags, votes, comments, notifications, clones, link_checks, reports, payments, explore_ranking materialized view)
-- [ ] Implement database constraints, indexes, and triggers (unique constraints, full-text search indexes, tsvector columns)
-- [ ] Set up Row-Level Security (RLS) policies for all tables
-- [ ] Configure Supabase Auth (email + OAuth providers: Google, GitHub)
-- [ ] Set up Supabase Storage buckets (thumbnails, cover-images, avatars)
-- [ ] Initialize Upstash Redis for rate limiting
+- [x] Set up Supabase project and configure environment variables
+- [x] Create database schema migrations (all tables: users, stacks, cards, stack_cards, tags, stack_tags, card_tags, votes, comments, notifications, clones, link_checks, reports, payments, explore_ranking materialized view)
+- [x] Implement database constraints, indexes, and triggers (unique constraints, full-text search indexes, tsvector columns)
+- [x] Set up Row-Level Security (RLS) policies for all tables
+- [x] Configure Supabase Auth (email + OAuth providers: Google, GitHub)
+- [x] Set up Supabase Storage buckets (thumbnails, cover-images, avatars)
+- [x] Initialize Upstash Redis for rate limiting
 - [ ] Set up Vercel project and configure environment variables
 - [x] Create project folder structure (components, app, lib, types, utils)
-- [ ] Set up TypeScript types for database schema
+- [x] Set up TypeScript types for database schema
 - [x] Configure ESLint, Prettier, and Git hooks
 - [ ] Set up Sentry for error monitoring
-- [ ] Set up Mixpanel for analytics tracking
+- [x] Set up Mixpanel for analytics tracking
 - [x] Create basic authentication pages (login, signup, password reset)
 
 ### Stage 2: Core Features
@@ -165,11 +165,11 @@
 - [x] Integrate Stripe Checkout for payments
 - [x] Build Stripe webhook handler for payment processing
 - [x] Implement link health checker worker (periodic checks, broken link notifications)
-- [ ] Create fraud detection worker (vote spikes, clone spikes, extension anomalies)
-- [ ] Implement comment moderation (OpenAI/Perspective API integration, auto-hide toxic comments)
-- [ ] Build reports system (user reporting, admin review queue)
-- [ ] Create quality_score calculation worker (periodic updates for users)
-- [ ] Implement anti-abuse controls (device fingerprinting, IP clustering, shadowbanning)
+- [x] Create fraud detection worker (vote spikes, clone spikes, extension anomalies) (IMPLEMENTED - worker endpoint with GitHub Actions scheduling)
+- [x] Implement comment moderation (OpenAI/Perspective API integration, auto-hide toxic comments) (IMPLEMENTED - Perspective API + OpenAI fallback, auto-hide toxic comments)
+- [x] Build reports system (user reporting, admin review queue) (IMPLEMENTED - full reporting system with admin review)
+- [x] Create quality_score calculation worker (periodic updates for users) (IMPLEMENTED - daily calculation worker with GitHub Actions)
+- [x] Implement anti-abuse controls (device fingerprinting, IP clustering, shadowbanning) (IMPLEMENTED - shadowbanning, device fingerprinting, quality score-based restrictions)
 
 ### Stage 4: Polish & Optimization
 **Duration:** 1-2 weeks
@@ -187,9 +187,9 @@
 - [x] Implement error boundaries and graceful error handling
 - [x] Add comprehensive error messages with user-friendly copy
 - [x] Create empty states with CTAs for all pages
-- [ ] Implement analytics events tracking (signup, create_stack, add_card, extension_save, clone_stack, upvote, comment, purchase_promotion)
-- [ ] Set up monitoring alerts (cards/day per user, votes surge, extension saves spike)
-- [ ] Conduct security audit (RLS policies, rate limiting, input validation)
+- [x] Implement analytics events tracking (signup, create_stack, add_card, extension_save, clone_stack, upvote, comment, purchase_promotion)
+- [x] Set up monitoring alerts (cards/day per user, votes surge, extension saves spike)
+- [x] Conduct security audit (RLS policies, rate limiting, input validation)
 - [ ] Prepare deployment configuration (environment variables, build settings)
 - [ ] Create deployment documentation and runbooks
 - [ ] Set up staging environment for testing

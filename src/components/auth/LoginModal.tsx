@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Modal } from '@/components/ui/Modal';
+import { trackEvent } from '@/lib/analytics';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -36,6 +37,12 @@ export function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginModalProp
         setError(signInError.message);
         setIsLoading(false);
         return;
+      }
+
+      // Get user ID for analytics
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        trackEvent.login(user.id, 'email');
       }
 
       // Success - close modal and force refresh

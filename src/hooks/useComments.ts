@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/analytics';
 
 interface Comment {
   id: string;
@@ -112,6 +113,13 @@ export function useComments({ targetType, targetId }: UseCommentsOptions) {
       fetchComments().catch(err => {
         console.error('Error refreshing comments:', err);
       });
+
+      // Track analytics
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && data.comment) {
+        trackEvent.comment(user.id, targetType, targetId, data.comment.id);
+      }
       
       return data.comment;
     } catch (err: any) {

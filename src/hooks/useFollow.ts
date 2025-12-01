@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { trackEvent } from '@/lib/analytics';
 
 interface UseFollowOptions {
   userId: string;
@@ -78,6 +79,13 @@ export function useFollow({
         // Optimistic update
         setIsFollowing(true);
         setFollowerCount(prev => prev + 1);
+
+        // Track analytics
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          trackEvent.follow(user.id, userId);
+        }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
