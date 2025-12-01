@@ -3,6 +3,8 @@
 import { useComments } from '@/hooks/useComments';
 import { CommentItem } from './CommentItem';
 import { CommentForm } from './CommentForm';
+import { CommentSkeleton } from '@/components/ui/Skeleton';
+import { EmptyCommentsState } from '@/components/ui/EmptyState';
 
 interface CommentsSectionProps {
   targetType: 'stack' | 'card';
@@ -19,7 +21,12 @@ export function CommentsSection({ targetType, targetId, stackOwnerId }: Comments
   if (isLoading) {
     return (
       <div className="py-8">
-        <div className="text-center text-gray-muted">Loading comments...</div>
+        <h2 className="text-h2 font-bold text-jet-dark mb-6">Comments</h2>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <CommentSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -27,7 +34,10 @@ export function CommentsSection({ targetType, targetId, stackOwnerId }: Comments
   if (error) {
     return (
       <div className="py-8">
-        <div className="text-center text-red-500">Error: {error}</div>
+        <div className="text-center text-red-500 bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="font-medium">Error loading comments</p>
+          <p className="text-sm mt-1">{error}</p>
+        </div>
       </div>
     );
   }
@@ -42,9 +52,7 @@ export function CommentsSection({ targetType, targetId, stackOwnerId }: Comments
 
       <div className="mt-8 space-y-6">
         {comments.length === 0 ? (
-          <div className="text-center text-gray-muted py-8">
-            No comments yet. Be the first to comment!
-          </div>
+          <EmptyCommentsState />
         ) : (
           comments.map((comment) => (
             <CommentItem

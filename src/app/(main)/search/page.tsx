@@ -3,6 +3,8 @@ import { StackCard } from '@/components/stack/StackCard';
 import { CardPreview } from '@/components/card/CardPreview';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { StackGridSkeleton } from '@/components/ui/Skeleton';
+import { EmptySearchState, EmptyState } from '@/components/ui/EmptyState';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Suspense } from 'react';
@@ -17,15 +19,11 @@ interface SearchPageProps {
 async function SearchResults({ query, type }: { query: string; type: string }) {
   if (!query || query.trim().length === 0) {
     return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">🔍</div>
-        <h2 className="text-h2 font-semibold text-jet-dark mb-2">
-          Start searching
-        </h2>
-        <p className="text-body text-gray-muted">
-          Search for stacks, cards, and stackers
-        </p>
-      </div>
+      <EmptyState
+        icon="🔍"
+        title="Start searching"
+        description="Search for stacks, cards, and stackers"
+      />
     );
   }
 
@@ -123,17 +121,7 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
   const totalResults = results.stacks.length + results.cards.length + results.users.length;
 
   if (totalResults === 0) {
-    return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">🔍</div>
-        <h2 className="text-h2 font-semibold text-jet-dark mb-2">
-          No results found
-        </h2>
-        <p className="text-body text-gray-muted">
-          Try different keywords or check your spelling
-        </p>
-      </div>
-    );
+    return <EmptySearchState query={query} />;
   }
 
   return (
@@ -292,7 +280,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       </div>
 
       {/* Search Results */}
-      <Suspense fallback={<div className="text-center py-16">Loading...</div>}>
+      <Suspense fallback={<StackGridSkeleton count={12} />}>
         <SearchResults query={query} type={type} />
       </Suspense>
     </div>

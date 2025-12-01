@@ -3,12 +3,55 @@ import { StackHeader } from '@/components/stack/StackHeader';
 import { CardPreview } from '@/components/card/CardPreview';
 import { AddCardButton } from '@/components/card/AddCardButton';
 import { CommentsSection } from '@/components/comments/CommentsSection';
+import { EmptyCardsState } from '@/components/ui/EmptyState';
+import { generateMetadata as generateSEOMetadata } from '@/lib/seo';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 
 interface StackPageProps {
   params: Promise<{
     id: string;
   }>;
+}
+
+export async function generateMetadata({ params }: StackPageProps): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  
+  // Try to fetch stack for metadata
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  
+  let stack: any = null;
+  if (isUUID) {
+    const { data } = await supabase
+      .from('stacks')
+      .select('title, description, cover_image_url, is_public, is_hidden')
+      .eq('id', id)
+      .maybeSingle();
+    stack = data;
+  } else {
+    const { data } = await supabase
+      .from('stacks')
+      .select('title, description, cover_image_url, is_public, is_hidden')
+      .eq('slug', id)
+      .maybeSingle();
+    stack = data;
+  }
+  
+  if (!stack || (!stack.is_public && stack.is_hidden)) {
+    return generateSEOMetadata({
+      title: 'Stack Not Found',
+      description: 'The stack you are looking for does not exist or is private',
+    });
+  }
+  
+  return generateSEOMetadata({
+    title: stack.title,
+    description: stack.description || `View ${stack.title} on Stack`,
+    image: stack.cover_image_url || undefined,
+    url: `/stack/${id}`,
+    type: 'article',
+  });
 }
 
 export default async function StackPage({ params }: StackPageProps) {
@@ -195,19 +238,12 @@ export default async function StackPage({ params }: StackPageProps) {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">📎</div>
-          <h3 className="text-h2 font-semibold text-jet-dark mb-2">
-            No cards yet
-          </h3>
-          <p className="text-body text-gray-muted mb-6">
-            {isOwner 
-              ? 'Start adding cards to your stack to share resources with others'
-              : 'This stack doesn\'t have any cards yet'
-            }
-          </p>
+        <div>
+          <EmptyCardsState />
           {isOwner && (
-            <AddCardButton stackId={stack.id} />
+            <div className="flex justify-center mt-4">
+              <AddCardButton stackId={stack.id} />
+            </div>
           )}
         </div>
       )}

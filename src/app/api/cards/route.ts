@@ -53,8 +53,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize URL (basic - use normalize-url library in production)
-    const normalizedUrl = new URL(url).href;
+    // Canonicalize URL using normalize-url library
+    const { canonicalizeUrl } = await import('@/lib/metadata/extractor');
+    const normalizedUrl = canonicalizeUrl(url);
 
     // Check if card already exists (use regular client for SELECT)
     let { data: existingCard } = await supabase
@@ -135,6 +136,23 @@ export async function POST(request: NextRequest) {
         { error: mappingError.message },
         { status: 400 }
       );
+    }
+
+    // Trigger metadata worker asynchronously (don't wait for it)
+    // This ensures cards get full metadata processing in the background
+    if (!existingCard) {
+      // Only trigger for new cards
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/workers/fetch-metadata`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.WORKER_API_KEY && { 'x-api-key': process.env.WORKER_API_KEY }),
+        },
+        body: JSON.stringify({ card_id: cardId }),
+      }).catch(err => {
+        // Silently fail - worker will pick it up later
+        console.error('Failed to trigger metadata worker:', err);
+      });
     }
 
     return NextResponse.json({ success: true, card_id: cardId });

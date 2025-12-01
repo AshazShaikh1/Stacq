@@ -137,7 +137,7 @@
 - [x] Build Stack creation flow (create/edit/delete, title, description, tags, cover image, visibility settings)
 - [x] Implement Stack detail page (header with cover, title, desc, tags, action bar: Upvote, Save, Share, Clone)
 - [x] Build Card creation flow (URL input, metadata fetching, manual override, thumbnail upload)
-- [ ] Implement metadata fetcher worker (Open Graph extraction, URL canonicalization, deduplication)
+- [x] Implement metadata fetcher worker (Open Graph extraction, URL canonicalization, deduplication)
 - [x] Create Stack-Card mapping system (many-to-many relationship) - Implemented via stack_cards table
 - [x] Build masonry grid layout for feed, explore, and profile pages
 - [x] Implement Feed page with personalized algorithm (tag-based boosting, trending)
@@ -177,16 +177,16 @@
 
 #### Sub-steps:
 
-- [x] Implement optimistic UI patterns for all real-time actions (votes, comments, saves) - Comments implemented
-- [ ] Add loading states and skeleton screens for all async operations
+- [x] Implement optimistic UI patterns for all real-time actions (votes, comments, saves) - Comments, votes, and follows implemented
+- [x] Add loading states and skeleton screens for all async operations
 - [ ] Optimize images (next/image, responsive sizes, CDN delivery)
-- [ ] Implement SEO optimization (metadata, Open Graph tags, sitemap, robots.txt)
+- [x] Implement SEO optimization (metadata, Open Graph tags, sitemap, robots.txt)
 - [ ] Add accessibility features (ARIA labels, keyboard navigation, focus management, prefers-reduced-motion)
 - [ ] Conduct comprehensive testing (unit tests, integration tests, E2E tests)
 - [ ] Performance optimization (code splitting, lazy loading, bundle size optimization)
-- [ ] Implement error boundaries and graceful error handling
-- [ ] Add comprehensive error messages with user-friendly copy
-- [ ] Create empty states with CTAs for all pages
+- [x] Implement error boundaries and graceful error handling
+- [x] Add comprehensive error messages with user-friendly copy
+- [x] Create empty states with CTAs for all pages
 - [ ] Implement analytics events tracking (signup, create_stack, add_card, extension_save, clone_stack, upvote, comment, purchase_promotion)
 - [ ] Set up monitoring alerts (cards/day per user, votes surge, extension saves spike)
 - [ ] Conduct security audit (RLS policies, rate limiting, input validation)

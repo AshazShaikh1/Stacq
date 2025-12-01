@@ -1,4 +1,5 @@
 import { FeedGrid } from '@/components/feed/FeedGrid';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function ExplorePage() {
@@ -161,11 +162,15 @@ export default async function ExplorePage() {
 
       {/* Show message if no stacks */}
       {sortedTodayStacks.length === 0 && sortedWeekStacks.length === 0 && sortedMonthStacks.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-body text-gray-muted">
-            No trending stacks found. Be the first to create one!
-          </p>
-        </div>
+        <EmptyState
+          icon="📊"
+          title="No trending stacks yet"
+          description="Be the first to create a stack and share it with the community"
+          action={{
+            label: "Create Stack",
+            href: "/",
+          }}
+        />
       )}
     </div>
   );

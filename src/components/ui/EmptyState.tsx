@@ -1,0 +1,148 @@
+'use client';
+
+import Link from 'next/link';
+import { Button } from './Button';
+
+interface EmptyStateProps {
+  icon?: React.ReactNode;
+  title: string;
+  description: string;
+  action?: {
+    label: string;
+    href?: string;
+    onClick?: () => void;
+  };
+  secondaryAction?: {
+    label: string;
+    href?: string;
+    onClick?: () => void;
+  };
+}
+
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  secondaryAction,
+}: EmptyStateProps) {
+  return (
+    <div className="text-center py-16 px-4">
+      {icon && (
+        <div className="text-6xl mb-6 flex justify-center">
+          {icon}
+        </div>
+      )}
+      <h3 className="text-h2 font-semibold text-jet-dark mb-2">
+        {title}
+      </h3>
+      <p className="text-body text-gray-muted mb-8 max-w-md mx-auto">
+        {description}
+      </p>
+      {(action || secondaryAction) && (
+        <div className="flex gap-3 justify-center">
+          {action && (
+            action.href ? (
+              <Link href={action.href}>
+                <Button variant="primary">
+                  {action.label}
+                </Button>
+              </Link>
+            ) : (
+              <Button variant="primary" onClick={action.onClick}>
+                {action.label}
+              </Button>
+            )
+          )}
+          {secondaryAction && (
+            secondaryAction.href ? (
+              <Link href={secondaryAction.href}>
+                <Button variant="outline">
+                  {secondaryAction.label}
+                </Button>
+              </Link>
+            ) : (
+              <Button variant="outline" onClick={secondaryAction.onClick}>
+                {secondaryAction.label}
+              </Button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Predefined empty states for common scenarios
+ */
+export function EmptyStacksState({ onCreateStack }: { onCreateStack?: () => void }) {
+  return (
+    <EmptyState
+      icon="📌"
+      title="No stacks yet"
+      description="Start by creating your first stack to organize and share your favorite resources"
+      action={{
+        label: "Create Stack",
+        onClick: onCreateStack,
+      }}
+      secondaryAction={{
+        label: "Explore Stacks",
+        href: "/explore",
+      }}
+    />
+  );
+}
+
+export function EmptyCardsState({ onAddCard }: { onAddCard?: () => void }) {
+  return (
+    <EmptyState
+      icon="🔗"
+      title="No cards yet"
+      description="Add your first card to this stack to get started"
+      action={{
+        label: "Add Card",
+        onClick: onAddCard,
+      }}
+    />
+  );
+}
+
+export function EmptyCommentsState() {
+  return (
+    <EmptyState
+      icon="💬"
+      title="No comments yet"
+      description="Be the first to share your thoughts"
+    />
+  );
+}
+
+export function EmptySearchState({ query }: { query: string }) {
+  return (
+    <EmptyState
+      icon="🔍"
+      title="No results found"
+      description={`We couldn't find anything matching "${query}". Try different keywords or explore trending content.`}
+      action={{
+        label: "Explore",
+        href: "/explore",
+      }}
+    />
+  );
+}
+
+export function EmptySavedStacksState() {
+  return (
+    <EmptyState
+      icon="💾"
+      title="No saved stacks"
+      description="Save stacks you like to find them easily later"
+      action={{
+        label: "Explore Stacks",
+        href: "/explore",
+      }}
+    />
+  );
+}
+

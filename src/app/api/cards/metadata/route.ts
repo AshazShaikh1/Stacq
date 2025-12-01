@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchMetadata } from '@/lib/metadata/extractor';
 
+/**
+ * POST /api/cards/metadata
+ * Quick metadata extraction for client-side preview
+ * Uses the same extractor as the worker but returns immediately
+ * For full processing, use the worker endpoint
+ */
 export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
@@ -11,42 +18,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Basic metadata extraction (simplified - in production, use a proper service)
-    // For MVP, we'll do a simple fetch and parse HTML
     try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; StackBot/1.0)',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch URL');
-      }
-
-      const html = await response.text();
+      const metadata = await fetchMetadata(url);
       
-      // Simple regex extraction (for MVP - use cheerio or similar in production)
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
-      const ogDescriptionMatch = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i);
-      const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i);
-
-      const title = ogTitleMatch?.[1] || titleMatch?.[1] || '';
-      const description = ogDescriptionMatch?.[1] || '';
-      const thumbnailUrl = ogImageMatch?.[1] || '';
-
       return NextResponse.json({
-        title: title.trim(),
-        description: description.trim(),
-        thumbnail_url: thumbnailUrl.trim() || null,
+        title: metadata.title,
+        description: metadata.description,
+        thumbnail_url: metadata.thumbnailUrl,
+        canonical_url: metadata.canonicalUrl,
       });
-    } catch (fetchError) {
-      // Return empty metadata if fetch fails
+    } catch (fetchError: any) {
+      // Return empty metadata if fetch fails (don't block user)
+      console.error('Error fetching metadata:', fetchError);
       return NextResponse.json({
         title: '',
         description: '',
         thumbnail_url: null,
+        canonical_url: url,
       });
     }
   } catch (error) {

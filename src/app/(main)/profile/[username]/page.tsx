@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { FeedGrid } from '@/components/feed/FeedGrid';
+import { generateMetadata as generateSEOMetadata } from '@/lib/seo';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 
 interface ProfilePageProps {
   params: Promise<{
@@ -10,6 +12,31 @@ interface ProfilePageProps {
   searchParams: Promise<{
     tab?: string;
   }>;
+}
+
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const { username } = await params;
+  const supabase = await createClient();
+  
+  const { data: profileUser } = await supabase
+    .from('users')
+    .select('display_name, avatar_url')
+    .eq('username', username)
+    .single();
+  
+  if (!profileUser) {
+    return generateSEOMetadata({
+      title: 'Profile Not Found',
+      description: 'The profile you are looking for does not exist',
+    });
+  }
+  
+  return generateSEOMetadata({
+    title: `${profileUser.display_name} (@${username})`,
+    description: `View ${profileUser.display_name}'s profile on Stack`,
+    image: profileUser.avatar_url || undefined,
+    url: `/profile/${username}`,
+  });
 }
 
 export default async function ProfilePage({ params, searchParams }: ProfilePageProps) {

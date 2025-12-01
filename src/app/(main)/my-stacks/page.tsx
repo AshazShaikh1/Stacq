@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { FeedGrid } from '@/components/feed/FeedGrid';
+import { EmptyStacksState } from '@/components/ui/EmptyState';
 import { redirect } from 'next/navigation';
 
 export default async function MyStacksPage() {
@@ -46,18 +47,7 @@ export default async function MyStacksPage() {
       {stacks && stacks.length > 0 ? (
         <FeedGrid stacks={stacks} />
       ) : (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">📚</div>
-          <h2 className="text-h2 font-semibold text-jet-dark mb-2">No stacks yet</h2>
-          <p className="text-body text-gray-muted mb-6">
-            Create your first stack to get started
-          </p>
-          <a href="/create" className="inline-block">
-            <button className="px-6 py-3 bg-jet text-white rounded-md hover:opacity-90 transition-opacity">
-              Create Stack
-            </button>
-          </a>
-        </div>
+        <EmptyStacksState />
       )}
     </div>
   );

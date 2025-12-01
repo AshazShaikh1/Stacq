@@ -1,0 +1,29 @@
+name: Fetch Metadata
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  fetch-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Metadata Worker
+        env:
+          APP_URL: ${{ secrets.APP_URL || 'https://your-domain.com' }}
+          WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
+        run: |
+          if [ -z "$WORKER_API_KEY" ]; then
+            echo "Warning: WORKER_API_KEY not set. Worker may require authentication."
+            curl -X POST $APP_URL/api/workers/fetch-metadata \
+              -H "Content-Type: application/json" \
+              -d '{"limit": 50}'
+          else
+            curl -X POST $APP_URL/api/workers/fetch-metadata \
+              -H "Content-Type: application/json" \
+              -H "x-api-key: $WORKER_API_KEY" \
+              -d '{"limit": 50}'
+          fi
+
