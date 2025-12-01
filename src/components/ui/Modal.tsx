@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { focusManagement } from '@/lib/accessibility';
 
 interface ModalProps {
   isOpen: boolean;
@@ -19,9 +20,14 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      // Store the previously focused element
+      previousActiveElement.current = document.activeElement as HTMLElement;
+      
       setShouldRender(true);
       document.body.style.overflow = 'hidden';
       // Small delay to ensure DOM is ready, then trigger animation
@@ -35,6 +41,10 @@ export const Modal: React.FC<ModalProps> = ({
       const timer = setTimeout(() => {
         setShouldRender(false);
         document.body.style.overflow = 'unset';
+        // Restore focus to previous element
+        if (previousActiveElement.current) {
+          previousActiveElement.current.focus();
+        }
       }, 200); // Match transition duration
       return () => clearTimeout(timer);
     }
@@ -55,11 +65,13 @@ export const Modal: React.FC<ModalProps> = ({
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
+      // Trap focus within modal
+      const cleanup = focusManagement.trapFocus(modalRef.current);
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+        if (cleanup) cleanup();
+      };
     }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
   }, [isOpen, onClose]);
 
   if (!shouldRender) return null;
@@ -92,6 +104,7 @@ export const Modal: React.FC<ModalProps> = ({
       >
         {/* Modal Content */}
         <div
+          ref={modalRef}
           className={`
             relative bg-white rounded-lg shadow-modal w-full ${sizeStyles[size]}
             max-h-[90vh] overflow-y-auto pointer-events-auto

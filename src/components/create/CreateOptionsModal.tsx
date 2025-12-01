@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { CreateStackModal } from '@/components/stack/CreateStackModal';
-import { CreateCardModal } from '@/components/card/CreateCardModal';
+import { Skeleton } from '@/components/ui/Skeleton';
+
+// Lazy load modals for better code splitting
+const CreateStackModal = lazy(() => import('@/components/stack/CreateStackModal').then(m => ({ default: m.CreateStackModal })));
+const CreateCardModal = lazy(() => import('@/components/card/CreateCardModal').then(m => ({ default: m.CreateCardModal })));
 
 interface CreateOptionsModalProps {
   isOpen: boolean;
@@ -35,6 +38,13 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
     setIsCardModalOpen(false);
     setSelectedOption(null);
   };
+
+  const ModalFallback = () => (
+    <div className="p-6">
+      <Skeleton variant="rectangular" height={200} className="w-full mb-4" />
+      <Skeleton variant="text" height={40} width="60%" />
+    </div>
+  );
 
   return (
     <>
@@ -106,8 +116,17 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
         </div>
       </Modal>
 
-      <CreateStackModal isOpen={isStackModalOpen} onClose={handleStackModalClose} />
-      <CreateCardModal isOpen={isCardModalOpen} onClose={handleCardModalClose} />
+      {isStackModalOpen && (
+        <Suspense fallback={<ModalFallback />}>
+          <CreateStackModal isOpen={isStackModalOpen} onClose={handleStackModalClose} />
+        </Suspense>
+      )}
+
+      {isCardModalOpen && (
+        <Suspense fallback={<ModalFallback />}>
+          <CreateCardModal isOpen={isCardModalOpen} onClose={handleCardModalClose} />
+        </Suspense>
+      )}
     </>
   );
 }

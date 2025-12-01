@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { SearchIcon } from '@/components/ui/Icons';
-import { LoginModal } from '@/components/auth/LoginModal';
-import { SignupModal } from '@/components/auth/SignupModal';
 import { AccountDropdown } from './AccountDropdown';
 import { NotificationDropdown } from './NotificationDropdown';
+
+// Lazy load modals - only load when needed
+const LoginModal = lazy(() => import('@/components/auth/LoginModal').then(m => ({ default: m.LoginModal })));
+const SignupModal = lazy(() => import('@/components/auth/SignupModal').then(m => ({ default: m.SignupModal })));
 
 export function Header() {
   const [user, setUser] = useState<any>(null);
@@ -83,22 +85,31 @@ export function Header() {
         </div>
       </div>
 
-      <LoginModal 
-        isOpen={isLoginOpen} 
-        onClose={() => setIsLoginOpen(false)}
-        onSwitchToSignup={() => {
-          setIsLoginOpen(false);
-          setIsSignupOpen(true);
-        }}
-      />
-      <SignupModal 
-        isOpen={isSignupOpen} 
-        onClose={() => setIsSignupOpen(false)}
-        onSwitchToLogin={() => {
-          setIsSignupOpen(false);
-          setIsLoginOpen(true);
-        }}
-      />
+      {isLoginOpen && (
+        <Suspense fallback={null}>
+          <LoginModal 
+            isOpen={isLoginOpen} 
+            onClose={() => setIsLoginOpen(false)}
+            onSwitchToSignup={() => {
+              setIsLoginOpen(false);
+              setIsSignupOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {isSignupOpen && (
+        <Suspense fallback={null}>
+          <SignupModal 
+            isOpen={isSignupOpen} 
+            onClose={() => setIsSignupOpen(false)}
+            onSwitchToLogin={() => {
+              setIsSignupOpen(false);
+              setIsLoginOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
     </header>
   );
 }

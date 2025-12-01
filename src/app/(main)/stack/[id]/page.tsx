@@ -2,11 +2,15 @@ import { createClient } from '@/lib/supabase/server';
 import { StackHeader } from '@/components/stack/StackHeader';
 import { CardPreview } from '@/components/card/CardPreview';
 import { AddCardButton } from '@/components/card/AddCardButton';
-import { CommentsSection } from '@/components/comments/CommentsSection';
 import { EmptyCardsState } from '@/components/ui/EmptyState';
 import { generateMetadata as generateSEOMetadata } from '@/lib/seo';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import { Suspense, lazy } from 'react';
+import { CommentSkeleton } from '@/components/ui/Skeleton';
+
+// Lazy load comments section - it's heavy and not always needed immediately
+const CommentsSection = lazy(() => import('@/components/comments/CommentsSection').then(m => ({ default: m.CommentsSection })));
 
 interface StackPageProps {
   params: Promise<{
@@ -249,7 +253,18 @@ export default async function StackPage({ params }: StackPageProps) {
       )}
 
       {/* Comments Section */}
-      <CommentsSection targetType="stack" targetId={stack.id} stackOwnerId={stack.owner_id} />
+      <Suspense fallback={
+        <div className="py-8">
+          <h2 className="text-h2 font-bold text-jet-dark mb-6">Comments</h2>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <CommentSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      }>
+        <CommentsSection targetType="stack" targetId={stack.id} stackOwnerId={stack.owner_id} />
+      </Suspense>
     </div>
   );
   } catch (error) {
