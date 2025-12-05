@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 
 // Lazy load modals for better code splitting
-const CreateStackModal = lazy(() => import('@/components/stack/CreateStackModal').then(m => ({ default: m.CreateStackModal })));
+const CreateCollectionModal = lazy(() => import('@/components/collection/CreateCollectionModal').then(m => ({ default: m.CreateCollectionModal })));
 const CreateCardModal = lazy(() => import('@/components/card/CreateCardModal').then(m => ({ default: m.CreateCardModal })));
 
 interface CreateOptionsModalProps {
@@ -14,23 +14,23 @@ interface CreateOptionsModalProps {
 }
 
 export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps) {
-  const [selectedOption, setSelectedOption] = useState<'stack' | 'card' | null>(null);
-  const [isStackModalOpen, setIsStackModalOpen] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<'collection' | 'card' | null>(null);
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
-  const handleOptionSelect = (option: 'stack' | 'card') => {
+  const handleOptionSelect = (option: 'collection' | 'card') => {
     setSelectedOption(option);
     onClose();
     
-    if (option === 'stack') {
-      setIsStackModalOpen(true);
+    if (option === 'collection') {
+      setIsCollectionModalOpen(true);
     } else if (option === 'card') {
       setIsCardModalOpen(true);
     }
   };
 
-  const handleStackModalClose = () => {
-    setIsStackModalOpen(false);
+  const handleCollectionModalClose = () => {
+    setIsCollectionModalOpen(false);
     setSelectedOption(null);
   };
 
@@ -53,9 +53,9 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
           <h2 className="text-h1 font-bold text-jet-dark mb-6">Create</h2>
           
           <div className="space-y-3">
-            {/* Stack Option */}
+            {/* Collection Option */}
             <button
-              onClick={() => handleOptionSelect('stack')}
+              onClick={() => handleOptionSelect('collection')}
               className="w-full p-4 rounded-lg border-2 border-gray-light hover:border-jet transition-all duration-200 text-left group"
             >
               <div className="flex items-start gap-4">
@@ -75,9 +75,9 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-h2 font-semibold text-jet-dark mb-1">Stack</h3>
+                  <h3 className="text-h2 font-semibold text-jet-dark mb-1">Collection</h3>
                   <p className="text-body text-gray-muted">
-                    Organise a collection of your favourite resources by creating a stack
+                    Organise a collection of your favourite resources by creating a collection
                   </p>
                 </div>
               </div>
@@ -107,7 +107,7 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
                 <div className="flex-1">
                   <h3 className="text-h2 font-semibold text-jet-dark mb-1">Card</h3>
                   <p className="text-body text-gray-muted">
-                    Add a resource link to an existing stack or create a new one
+                    Add a resource link to an existing collection or create a new one
                   </p>
                 </div>
               </div>
@@ -116,9 +116,9 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
         </div>
       </Modal>
 
-      {isStackModalOpen && (
+      {isCollectionModalOpen && (
         <Suspense fallback={<ModalFallback />}>
-          <CreateStackModal isOpen={isStackModalOpen} onClose={handleStackModalClose} />
+          <CreateCollectionModal isOpen={isCollectionModalOpen} onClose={handleCollectionModalClose} />
         </Suspense>
       )}
 

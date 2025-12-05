@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
+import { isFeatureEnabled } from '@/lib/feature-flags';
 
 /**
  * GET /api/feed
- * Returns mixed feed of cards and stacks based on ranking
+ * Returns mixed feed of cards and collections based on ranking
  * 
  * Query params:
- * - type: 'card' | 'stack' | 'both' (default: 'both')
- * - mix: 'cards:0.6,stacks:0.4' (default ratio)
+ * - type: 'card' | 'collection' | 'both' (default: 'both')
+ * - mix: 'cards:0.6,collections:0.4' (default ratio)
  * - limit: number (default: 50)
  * - offset: number (default: 0)
  */
@@ -16,8 +17,10 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     
-    const type = searchParams.get('type') || 'both';
-    const mixParam = searchParams.get('mix') || 'cards:0.6,stacks:0.4';
+    const typeParam = searchParams.get('type') || 'both';
+    // Support legacy 'stack' type, convert to 'collection'
+    const type = typeParam === 'stack' ? 'collection' : typeParam;
+    const mixParam = searchParams.get('mix') || 'cards:0.6,collections:0.4';
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -31,37 +34,62 @@ export async function GET(request: NextRequest) {
     });
 
     const cardsRatio = mixRatios.cards || 0.6;
-    const stacksRatio = mixRatios.stacks || 0.4;
-    const totalRatio = cardsRatio + stacksRatio;
+    const collectionsRatio = mixRatios.collections || mixRatios.stacks || 0.4; // Support legacy 'stacks'
+    const totalRatio = cardsRatio + collectionsRatio;
     
     // Normalize ratios
     const normalizedCardsRatio = cardsRatio / totalRatio;
-    const normalizedStacksRatio = stacksRatio / totalRatio;
+    const normalizedCollectionsRatio = collectionsRatio / totalRatio;
 
-    // Fetch a larger pool of items to ensure proper mixing by score
-    // We'll fetch 2x the limit to have enough items to mix properly
-    const fetchLimit = limit * 2;
-    const cardsLimit = type === 'both' ? Math.ceil(fetchLimit * normalizedCardsRatio) : (type === 'card' ? limit : 0);
-    const stacksLimit = type === 'both' ? Math.ceil(fetchLimit * normalizedStacksRatio) : (type === 'stack' ? limit : 0);
+    // Fetch items - use limit directly (no need to fetch 2x, that's wasteful and slow)
+    const cardsLimit = type === 'both' ? Math.ceil(limit * normalizedCardsRatio) : (type === 'card' ? limit : 0);
+    const collectionsLimit = type === 'both' ? Math.ceil(limit * normalizedCollectionsRatio) : (type === 'collection' ? limit : 0);
 
     const results: any[] = [];
 
+    // Check if new ranking system is enabled
+    const useNewRanking = isFeatureEnabled('ranking/final-algo');
+
     // Fetch ranked cards - fetch from the same offset range to ensure proper mixing
     if (type === 'card' || type === 'both') {
-      const { data: rankedItems, error: itemsError } = await supabase
-        .from('explore_ranking_items')
-        .select('item_id, norm_score')
-        .eq('item_type', 'card')
-        .order('norm_score', { ascending: false })
-        .range(0, cardsLimit - 1); // Start from 0 to get top-ranked cards
-
+      let rankedItems: any[] = [];
+      let itemsError: any = null;
       let cardIds: string[] = [];
       
-      if (!itemsError && rankedItems && rankedItems.length > 0) {
-        // Use ranked items if available
+      if (useNewRanking) {
+        // Use new ranking_scores table
+        const { data, error } = await supabase
+          .from('ranking_scores')
+          .select('item_id, norm_score, last_event_at')
+          .eq('item_type', 'card')
+          .not('norm_score', 'is', null)
+          .order('norm_score', { ascending: false })
+          .order('last_event_at', { ascending: false, nullsFirst: false })
+          .limit(cardsLimit);
+        
+        rankedItems = data || [];
+        itemsError = error;
         cardIds = rankedItems.map(item => item.item_id);
       } else {
-        // Fallback: get recent public cards if ranking table is empty
+        // Use legacy explore_ranking_items (fallback to recent cards if view doesn't exist)
+        const { data, error } = await supabase
+          .from('explore_ranking_items')
+          .select('item_id, norm_score')
+          .eq('item_type', 'card')
+          .order('norm_score', { ascending: false })
+          .range(0, cardsLimit - 1);
+        
+        rankedItems = data || [];
+        itemsError = error;
+        
+        // If error accessing view, it might not exist yet - fall through to recent cards
+        if (!itemsError && rankedItems && rankedItems.length > 0) {
+          cardIds = rankedItems.map(item => item.item_id);
+        }
+      }
+      
+      // Fallback: get recent public cards if ranking table is empty
+      if (cardIds.length === 0) {
         const { data: recentCards } = await supabase
           .from('cards')
           .select('id')
@@ -103,7 +131,61 @@ export async function GET(request: NextRequest) {
           .eq('is_public', true);
 
         // Fetch attributions separately
-        if (!cardsError && cards) {
+        if (!cardsError && cards && cards.length > 0) {
+          // Trust the stored counts from the database (triggers should keep them updated)
+          // Only fetch actual counts if stored counts are suspiciously 0 for many cards
+          // This avoids expensive batch queries on every feed load
+          const cardIds = cards.map(c => c.id);
+          const cardsWithZeroCounts = cards.filter(c => (!c.saves_count || c.saves_count === 0) && (!c.upvotes_count || c.upvotes_count === 0));
+          
+          // Only do expensive batch fetch if more than 50% of cards have zero counts (likely trigger issue)
+          if (cardsWithZeroCounts.length > cards.length * 0.5 && cardIds.length > 0) {
+            try {
+              // Batch fetch save counts (only for cards with zero counts)
+              const zeroCountCardIds = cardsWithZeroCounts.map(c => c.id);
+              const [savesResult, votesResult] = await Promise.all([
+                supabase
+                  .from('saves')
+                  .select('target_id')
+                  .eq('target_type', 'card')
+                  .in('target_id', zeroCountCardIds),
+                supabase
+                  .from('votes')
+                  .select('target_id')
+                  .eq('target_type', 'card')
+                  .in('target_id', zeroCountCardIds)
+              ]);
+              
+              const savesCountMap = new Map<string, number>();
+              const upvotesCountMap = new Map<string, number>();
+              
+              savesResult.data?.forEach(save => {
+                savesCountMap.set(save.target_id, (savesCountMap.get(save.target_id) || 0) + 1);
+              });
+              
+              votesResult.data?.forEach(vote => {
+                upvotesCountMap.set(vote.target_id, (upvotesCountMap.get(vote.target_id) || 0) + 1);
+              });
+              
+              // Update only cards with zero counts
+              cards.forEach(card => {
+                const actualSaves = savesCountMap.get(card.id);
+                const actualUpvotes = upvotesCountMap.get(card.id);
+                
+                if (actualSaves !== undefined && actualSaves > (card.saves_count || 0)) {
+                  card.saves_count = actualSaves;
+                }
+                if (actualUpvotes !== undefined && actualUpvotes > (card.upvotes_count || 0)) {
+                  card.upvotes_count = actualUpvotes;
+                }
+              });
+            } catch (countError) {
+              console.error('[Feed API] Error fetching counts:', countError);
+              // Continue with stored counts if fetch fails
+            }
+          }
+
+          // Fetch attributions
           const { data: attributions } = await supabase
             .from('card_attributions')
             .select(`
@@ -111,7 +193,8 @@ export async function GET(request: NextRequest) {
               card_id,
               user_id,
               source,
-              stack_id,
+              collection_id,
+            stack_id, // Legacy support
               created_at,
               user:users!card_attributions_user_id_fkey (
                 id,
@@ -133,6 +216,7 @@ export async function GET(request: NextRequest) {
 
           // Create score map (use 0 if not in ranking)
           const scoreMap = new Map(rankedItems?.map(item => [item.item_id, item.norm_score]) || []);
+          const eventMap = new Map(rankedItems?.map(item => [item.item_id, item.last_event_at]) || []);
 
           cards.forEach(card => {
             results.push({
@@ -140,44 +224,90 @@ export async function GET(request: NextRequest) {
               ...card,
               attributions: attributionsMap.get(card.id) || [],
               score: scoreMap.get(card.id) || 0,
+              last_event_at: eventMap.get(card.id) || null,
+              // Ensure counts are numbers (not null/undefined)
+              saves_count: card.saves_count || 0,
+              upvotes_count: card.upvotes_count || 0,
             });
           });
         }
       }
     }
 
-    // Fetch ranked stacks - fetch from the same offset range to ensure proper mixing
-    if (type === 'stack' || type === 'both') {
-      const { data: rankedItems, error: itemsError } = await supabase
-        .from('explore_ranking_items')
-        .select('item_id, norm_score')
-        .eq('item_type', 'stack')
-        .order('norm_score', { ascending: false })
-        .range(0, stacksLimit - 1); // Start from 0 to get top-ranked stacks
-
-      let stackIds: string[] = [];
+    // Fetch ranked collections - fetch from the same offset range to ensure proper mixing
+    if (type === 'collection' || type === 'both') {
+      let rankedItems: any[] = [];
+      let itemsError: any = null;
+      let collectionIds: string[] = [];
       
-      if (!itemsError && rankedItems && rankedItems.length > 0) {
-        // Use ranked items if available
-        stackIds = rankedItems.map(item => item.item_id);
+      if (useNewRanking) {
+        // Use new ranking_scores table
+        const { data, error } = await supabase
+          .from('ranking_scores')
+          .select('item_id, norm_score, last_event_at')
+          .eq('item_type', 'collection')
+          .not('norm_score', 'is', null)
+          .order('norm_score', { ascending: false })
+          .order('last_event_at', { ascending: false, nullsFirst: false })
+          .limit(collectionsLimit);
+        
+        rankedItems = data || [];
+        itemsError = error;
+        
+        if (error) {
+          console.error('[Feed API] Error fetching ranked collections:', error);
+        }
+        
+        if (rankedItems && rankedItems.length > 0) {
+          collectionIds = rankedItems.map(item => item.item_id);
+        } else {
+          console.log('[Feed API] No ranked collections found, will use fallback');
+          // Fall through to fallback below
+        }
       } else {
-        // Fallback: get recent public stacks if ranking table is empty
-        const { data: recentStacks } = await supabase
-          .from('stacks')
+        // Use legacy explore_ranking_items (fallback to recent collections if view doesn't exist)
+        const { data, error } = await supabase
+          .from('explore_ranking_items')
+          .select('item_id, norm_score')
+          .eq('item_type', 'collection')
+          .order('norm_score', { ascending: false })
+          .range(0, collectionsLimit - 1);
+        
+        rankedItems = data || [];
+        itemsError = error;
+        
+        // If error accessing view, it might not exist yet - fall through to recent collections
+        if (!itemsError && rankedItems && rankedItems.length > 0) {
+          collectionIds = rankedItems.map(item => item.item_id);
+        }
+      }
+      
+      // Fallback: get recent public collections if ranking table is empty or no scores exist
+      if (collectionIds.length === 0) {
+        console.log(`[Feed API] Using fallback: fetching ${collectionsLimit} recent collections`);
+        const { data: recentCollections, error: recentError } = await supabase
+          .from('collections')
           .select('id')
           .eq('is_public', true)
           .eq('is_hidden', false)
           .order('created_at', { ascending: false })
-          .limit(stacksLimit);
+          .limit(collectionsLimit);
         
-        if (recentStacks) {
-          stackIds = recentStacks.map(s => s.id);
+        if (recentError) {
+          console.error('[Feed API] Error fetching recent collections:', recentError);
+        }
+        
+        if (recentCollections && recentCollections.length > 0) {
+          collectionIds = recentCollections.map(c => c.id);
+          console.log(`[Feed API] Found ${collectionIds.length} recent collections as fallback`);
+        } else {
+          console.log('[Feed API] No recent collections found in fallback');
         }
       }
       
-      if (stackIds.length > 0) {
-        const { data: stacks, error: stacksError } = await supabase
-          .from('stacks')
+      if (collectionIds.length > 0) {
+        const { data: collections, error: collectionsError } = await supabase
+          .from('collections')
           .select(`
             id,
             title,
@@ -188,34 +318,105 @@ export async function GET(request: NextRequest) {
             stats,
             created_at,
             owner_id,
-            owner:users!stacks_owner_id_fkey (
+            owner:users!collections_owner_id_fkey (
               id,
               username,
               display_name,
               avatar_url
+            ),
+            tags:collection_tags (
+              tag:tags (
+                id,
+                name
+              )
             )
           `)
-          .in('id', stackIds)
+          .in('id', collectionIds)
           .eq('is_public', true)
           .eq('is_hidden', false);
 
-        if (!stacksError && stacks) {
+        if (collectionsError) {
+          console.error('Error fetching collections:', collectionsError);
+        }
+
+        if (!collectionsError && collections && collections.length > 0) {
+          // Fetch first card thumbnails in parallel for collections without cover images
+          const collectionsNeedingThumbnails = collections.filter(c => !c.cover_image_url);
+          const firstCardThumbnails = new Map<string, string | null>();
+          
+          if (collectionsNeedingThumbnails.length > 0) {
+            // Batch fetch first card thumbnails for all collections at once (more efficient)
+            const collectionIds = collectionsNeedingThumbnails.map(c => c.id);
+            
+            // Use DISTINCT ON to get first card per collection in a single query
+            const { data: firstCards } = await supabase
+              .from('collection_cards')
+              .select(`
+                collection_id,
+                card:cards!inner (
+                  thumbnail_url
+                )
+              `)
+              .in('collection_id', collectionIds)
+              .order('added_at', { ascending: true });
+            
+            // Group by collection_id and take first for each
+            const seenCollections = new Set<string>();
+            firstCards?.forEach((cc: any) => {
+              if (!seenCollections.has(cc.collection_id) && cc.card?.thumbnail_url) {
+                firstCardThumbnails.set(cc.collection_id, cc.card.thumbnail_url);
+                seenCollections.add(cc.collection_id);
+              }
+            });
+          }
+
           // Create score map (use 0 if not in ranking)
           const scoreMap = new Map(rankedItems?.map(item => [item.item_id, item.norm_score]) || []);
+          const eventMap = new Map(rankedItems?.map(item => [item.item_id, item.last_event_at]) || []);
 
-          stacks.forEach(stack => {
+          collections.forEach(collection => {
+            // Transform tags from nested structure to flat array
+            const tags = collection.tags?.map((ct: any) => ct.tag).filter(Boolean) || [];
+            
+            // Ensure stats has the expected structure
+            const stats = collection.stats || {
+              views: 0,
+              upvotes: 0,
+              saves: 0,
+              comments: 0,
+            };
+            
             results.push({
-              type: 'stack',
-              ...stack,
-              score: scoreMap.get(stack.id) || 0,
+              type: 'collection',
+              ...collection,
+              tags,
+              stats,
+              first_card_thumbnail_url: firstCardThumbnails.get(collection.id) || null,
+              collection_cards: undefined, // Remove nested data
+              score: scoreMap.get(collection.id) || 0,
+              last_event_at: eventMap.get(collection.id) || null,
             });
           });
+        } else if (collectionIds.length === 0) {
+          console.log('[Feed API] No collection IDs found - collections may not exist or ranking is empty');
+        } else if (!collections || collections.length === 0) {
+          console.log('[Feed API] Collections query returned empty - check filters (is_public, is_hidden)');
         }
       }
     }
 
-    // Sort ALL results by score (descending) - this properly mixes cards and stacks
-    const sortedResults = results.sort((a, b) => (b.score || 0) - (a.score || 0));
+    // Sort ALL results by score (descending) - this properly mixes cards and collections
+    // Tie-break by last_event_at (more recent wins)
+    const sortedResults = results.sort((a, b) => {
+      const scoreDiff = (b.score || 0) - (a.score || 0);
+      if (Math.abs(scoreDiff) < 0.0001) {
+        // Scores are effectively equal, use last_event_at
+        const aTime = a.last_event_at ? new Date(a.last_event_at).getTime() : 0;
+        const bTime = b.last_event_at ? new Date(b.last_event_at).getTime() : 0;
+        return bTime - aTime;
+      }
+      return scoreDiff;
+    });
 
     // Dedupe canonical cards while preserving score-based order
     const dedupedResults: any[] = [];
@@ -241,21 +442,50 @@ export async function GET(request: NextRequest) {
           }
         }
       } else {
+        // Collections (or legacy stacks)
         dedupedResults.push(item);
       }
     });
 
     // Re-sort after deduplication to maintain score order
-    dedupedResults.sort((a, b) => (b.score || 0) - (a.score || 0));
-
-    return NextResponse.json({
-      feed: dedupedResults.slice(0, limit),
-      total: dedupedResults.length,
+    dedupedResults.sort((a, b) => {
+      const scoreDiff = (b.score || 0) - (a.score || 0);
+      if (Math.abs(scoreDiff) < 0.0001) {
+        const aTime = a.last_event_at ? new Date(a.last_event_at).getTime() : 0;
+        const bTime = b.last_event_at ? new Date(b.last_event_at).getTime() : 0;
+        return bTime - aTime;
+      }
+      return scoreDiff;
     });
-  } catch (error) {
-    console.error('Error in feed route:', error);
+
+    const finalFeed = dedupedResults.slice(0, limit);
+    
+    // Debug logging
+    const collectionCount = finalFeed.filter(item => item.type === 'collection').length;
+    const cardCount = finalFeed.filter(item => item.type === 'card').length;
+    console.log(`[Feed API] Returning feed: ${collectionCount} collections, ${cardCount} cards, total: ${finalFeed.length}`);
+
+    // Add cache headers for better performance
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        feed: finalFeed,
+        total: dedupedResults.length,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
+  } catch (error: any) {
+    console.error('Error in feed route:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error', details: process.env.NODE_ENV === 'development' ? error?.message : undefined },
       { status: 500 }
     );
   }

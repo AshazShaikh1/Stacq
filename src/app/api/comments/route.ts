@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/api';
 import { createServiceClient } from '@/lib/supabase/api-service';
 import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
 import { moderateComment } from '@/lib/moderation/comment-moderation';
+import { logRankingEvent } from '@/lib/ranking/events';
 import { checkShadowban } from '@/lib/anti-abuse/fingerprinting';
 
 // GET: Fetch comments for a target (stack or card)
@@ -230,6 +231,10 @@ export async function POST(request: NextRequest) {
 
     // Update comment stats
     await updateCommentStats(serviceClient, target_type, target_id, 1);
+
+    // Log ranking event (normalize target_type)
+    const normalizedTargetType = target_type === 'stack' ? 'collection' : target_type;
+    await logRankingEvent(normalizedTargetType as 'card' | 'collection', target_id, 'comment');
 
     return NextResponse.json({ comment: newComment });
   } catch (error) {

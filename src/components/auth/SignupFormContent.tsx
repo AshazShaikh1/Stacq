@@ -112,7 +112,7 @@ export function SignupFormContent({
         return;
       }
 
-      const redirectTo = `${origin}/auth/callback?next=/feed`;
+      const redirectTo = `${origin}/auth/callback?next=/`;
       
       console.log('Initiating OAuth with redirectTo:', redirectTo);
       
@@ -270,7 +270,7 @@ export function SignupFormContent({
           // Track signup event
           trackEvent.signup(authData.user.id, 'email');
           if (isFullPage) {
-            router.push('/feed');
+            router.push('/');
             router.refresh();
           } else {
             onSuccess?.();
@@ -312,12 +312,12 @@ export function SignupFormContent({
             <div className="w-10 h-10 bg-jet rounded-lg flex items-center justify-center text-white font-bold text-lg">
               S
             </div>
-            <span className="text-h2 font-bold text-jet-dark">Stack</span>
+            <span className="text-h2 font-bold text-jet-dark">Stacq</span>
           </div>
           
           {/* Welcome Text */}
           <h2 className="text-h2 font-semibold text-jet-dark mb-2">
-            Welcome to Stack
+            Welcome to Stacq
           </h2>
         </div>
       )}

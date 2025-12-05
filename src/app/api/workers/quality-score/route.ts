@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
  * Calculate quality score for a user (0-100)
  * Based on:
  * - Account age
- * - Content quality (stacks, cards)
+ * - Content quality (collections, cards)
  * - Engagement (upvotes received, comments)
  * - Reports received (negative)
  * - Spam/abuse flags (negative)
@@ -97,27 +97,27 @@ async function calculateQualityScore(supabase: any, userId: string): Promise<num
     score += Math.min(accountAgeDays / 3, 10);
   }
 
-  // Get user's stacks count and quality
-  const { count: stacksCount } = await supabase
-    .from('stacks')
+  // Get user's collections count and quality
+  const { count: collectionsCount } = await supabase
+    .from('collections')
     .select('*', { count: 'exact', head: true })
     .eq('owner_id', userId)
     .eq('is_public', true);
 
-  // Get stacks with upvotes
-  const { data: stacks } = await supabase
-    .from('stacks')
+  // Get collections with upvotes
+  const { data: collections } = await supabase
+    .from('collections')
     .select('stats')
     .eq('owner_id', userId)
     .eq('is_public', true);
 
   let totalUpvotes = 0;
-  if (stacks) {
-    totalUpvotes = stacks.reduce((sum, stack) => sum + (stack.stats?.upvotes || 0), 0);
+  if (collections) {
+    totalUpvotes = collections.reduce((sum, collection) => sum + (collection.stats?.upvotes || 0), 0);
   }
 
-  // Quality based on stacks and engagement
-  score += Math.min((stacksCount || 0) * 2, 20); // Max +20 for stacks
+  // Quality based on collections and engagement
+  score += Math.min((collectionsCount || 0) * 2, 20); // Max +20 for collections
   score += Math.min(totalUpvotes / 10, 15); // Max +15 for upvotes
 
   // Get cards created

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { FeedGrid } from '@/components/feed/FeedGrid';
-import { StackGridSkeleton } from '@/components/ui/Skeleton';
+import { CollectionGridSkeleton } from '@/components/ui/Skeleton';
 
-export default function FeedPage() {
+export function FeedPage() {
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'both' | 'card' | 'stack'>('both');
+  const [filter, setFilter] = useState<'both' | 'card' | 'collection'>('both');
 
   useEffect(() => {
     fetchFeed();
@@ -16,7 +16,12 @@ export default function FeedPage() {
   const fetchFeed = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/feed?type=${filter}&limit=50`);
+      // Use cache: 'force-cache' for initial load, then 'no-store' for subsequent fetches
+      const cacheOption = feedItems.length === 0 ? 'force-cache' : 'no-store';
+      const response = await fetch(`/api/feed?type=${filter}&limit=50`, {
+        cache: cacheOption,
+        next: { revalidate: 60 }, // Revalidate every 60 seconds
+      });
       const data = await response.json();
       
       if (response.ok) {
@@ -65,20 +70,24 @@ export default function FeedPage() {
               Cards
             </button>
             <button
-              onClick={() => setFilter('stack')}
+              onClick={() => setFilter('collection')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                filter === 'stack'
+                filter === 'collection'
                   ? 'bg-white text-jet-dark shadow-sm'
                   : 'text-gray-muted hover:text-jet-dark'
               }`}
             >
-              Stacks
+              Collections
             </button>
           </div>
         </div>
       </div>
 
-      <FeedGrid items={feedItems} isLoading={isLoading} />
+      {isLoading ? (
+        <CollectionGridSkeleton count={12} />
+      ) : (
+        <FeedGrid items={feedItems} />
+      )}
     </div>
   );
 }

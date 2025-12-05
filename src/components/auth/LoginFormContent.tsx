@@ -44,7 +44,7 @@ export function LoginFormContent({
         return;
       }
 
-      const redirectTo = `${origin}/auth/callback?next=/feed`;
+      const redirectTo = `${origin}/auth/callback?next=/`;
       
       console.log('Initiating OAuth with redirectTo:', redirectTo);
       
@@ -101,7 +101,7 @@ export function LoginFormContent({
 
       // Success - handle navigation
       if (isFullPage) {
-        router.push('/feed');
+        router.push('/');
         router.refresh();
       } else {
         onSuccess?.();
@@ -123,7 +123,7 @@ export function LoginFormContent({
             <div className="w-10 h-10 bg-jet rounded-lg flex items-center justify-center text-white font-bold text-lg">
               S
             </div>
-            <span className="text-h2 font-bold text-jet-dark">Stack</span>
+            <span className="text-h2 font-bold text-jet-dark">Stacq</span>
           </div>
           
           {/* Welcome Text */}

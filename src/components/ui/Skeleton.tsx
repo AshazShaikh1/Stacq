@@ -43,6 +43,13 @@ export function Skeleton({
 }
 
 /**
+ * Collection Card Skeleton (alias for StackCardSkeleton for backward compatibility)
+ */
+export function CollectionCardSkeleton() {
+  return <StackCardSkeleton />;
+}
+
+/**
  * Stack Card Skeleton
  */
 export function StackCardSkeleton() {
@@ -129,15 +136,22 @@ export function ProfileHeaderSkeleton() {
 }
 
 /**
- * Grid of Stack Skeletons
+ * Grid of Collection Skeletons
  */
-export function StackGridSkeleton({ count = 12 }: { count?: number }) {
+export function CollectionGridSkeleton({ count = 12 }: { count?: number }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {[...Array(count)].map((_, i) => (
-        <StackCardSkeleton key={i} />
+        <CollectionCardSkeleton key={i} />
       ))}
     </div>
   );
+}
+
+/**
+ * Grid of Stack Skeletons (legacy, use CollectionGridSkeleton)
+ */
+export function StackGridSkeleton({ count = 12 }: { count?: number }) {
+  return <CollectionGridSkeleton count={count} />;
 }
 

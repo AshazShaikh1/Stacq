@@ -3,28 +3,52 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/analytics';
+import { useToast } from '@/contexts/ToastContext';
 
 interface UseSavesOptions {
-  stackId: string;
+  stackId?: string; // Legacy support
+  collectionId?: string;
+  cardId?: string;
+  targetType?: 'collection' | 'card';
   initialSaves?: number;
   initialSaved?: boolean;
 }
 
-export function useSaves({ stackId, initialSaves = 0, initialSaved = false }: UseSavesOptions) {
+export function useSaves({ 
+  stackId, 
+  collectionId, 
+  cardId,
+  targetType,
+  initialSaves = 0, 
+  initialSaved = false 
+}: UseSavesOptions) {
+  const id = collectionId || cardId || stackId;
+  const type = targetType || (cardId ? 'card' : 'collection');
   const [saves, setSaves] = useState(initialSaves);
   const [saved, setSaved] = useState(initialSaved);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const fetchSaveStatus = useCallback(async () => {
+    if (!id) return;
+    
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Get save count
-    const { count } = await supabase
+    // Get save count - support target_type and target_id (new) or legacy collection_id/stack_id
+    const { count, error } = await supabase
       .from('saves')
       .select('*', { count: 'exact', head: true })
-      .eq('stack_id', stackId);
+      .eq('target_type', type)
+      .eq('target_id', id);
+
+    if (error) {
+      console.error('Error fetching save count:', error);
+      // Don't overwrite if there's an error - keep current value
+      return;
+    }
 
     setSaves(count || 0);
 
@@ -34,32 +58,60 @@ export function useSaves({ stackId, initialSaves = 0, initialSaved = false }: Us
         .from('saves')
         .select('id')
         .eq('user_id', user.id)
-        .eq('stack_id', stackId)
+        .eq('target_type', type)
+        .eq('target_id', id)
         .maybeSingle();
 
       setSaved(!!userSave);
     }
-  }, [stackId]);
+  }, [id, type]);
 
   useEffect(() => {
     // Only run on client side
     if (typeof window === 'undefined') return;
+    if (!id) return;
 
-    // Fetch initial save status
-    fetchSaveStatus();
-  }, [stackId, fetchSaveStatus]);
+    const supabase = createClient();
+    
+    // Always fetch user's saved status
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase
+          .from('saves')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('target_type', type)
+          .eq('target_id', id)
+          .maybeSingle()
+          .then(({ data: userSave }) => {
+            setSaved(!!userSave);
+          });
+      }
+    });
+
+    // Only fetch count if we don't have an initial value
+    // This prevents overwriting the initial value from the feed API
+    if (initialSaves === 0) {
+      fetchSaveStatus();
+    }
+  }, [id, type]);
 
   const toggleSave = async () => {
+    if (!id) return;
+    
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      if (confirm('Please sign in to save stacks. Would you like to sign in now?')) {
+      const itemName = type === 'card' ? 'cards' : 'collections';
+      if (confirm(`Please sign in to save ${itemName}. Would you like to sign in now?`)) {
         window.location.href = '/login';
       }
       return;
     }
 
+    // Start animation
+    setIsAnimating(true);
     setIsLoading(true);
     setError(null);
 
@@ -68,7 +120,11 @@ export function useSaves({ stackId, initialSaves = 0, initialSaved = false }: Us
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stack_id: stackId,
+          target_type: type,
+          target_id: id,
+          collection_id: collectionId || (type === 'collection' ? id : undefined),
+          card_id: cardId || (type === 'card' ? id : undefined),
+          stack_id: stackId, // Legacy support
         }),
       });
 
@@ -76,7 +132,8 @@ export function useSaves({ stackId, initialSaves = 0, initialSaved = false }: Us
 
       if (!response.ok) {
         if (response.status === 401) {
-          if (confirm('Please sign in to save stacks. Would you like to sign in now?')) {
+          const itemName = type === 'card' ? 'cards' : 'collections';
+          if (confirm(`Please sign in to save ${itemName}. Would you like to sign in now?`)) {
             window.location.href = '/login';
           }
           return;
@@ -84,20 +141,42 @@ export function useSaves({ stackId, initialSaves = 0, initialSaved = false }: Us
         throw new Error(data.error || 'Failed to save');
       }
 
-      // Optimistic update
-      setSaved(data.saved);
-      setSaves(prev => data.saved ? prev + 1 : prev - 1);
-
-      // Track analytics
-      if (data.saved && user) {
-        trackEvent.viewStack(user.id, stackId);
+      // Update state with response data
+      const newSavedState = data.saved;
+      setSaved(newSavedState);
+      // Use the save count from the API response if available, otherwise do optimistic update
+      if (data.saves !== undefined) {
+        setSaves(data.saves);
+      } else {
+        setSaves(prev => newSavedState ? prev + 1 : Math.max(0, prev - 1));
       }
+
+      // Show toast notification
+      const itemName = type === 'card' ? 'Card' : 'Collection';
+      if (newSavedState) {
+        showSuccess(`${itemName} saved!`);
+        trackEvent.save(user.id, id);
+      } else {
+        showSuccess(`${itemName} unsaved`);
+        trackEvent.unsave(user.id, id);
+      }
+
+      // Refresh the page data after a short delay to ensure DB is updated
+      setTimeout(() => {
+        fetchSaveStatus();
+      }, 500);
     } catch (err: any) {
       setError(err.message);
+      const itemName = type === 'card' ? 'card' : 'collection';
+      showError(err.message || `Failed to save ${itemName}`);
       // Revert optimistic update
       fetchSaveStatus();
     } finally {
       setIsLoading(false);
+      // End animation after a short delay
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 300);
     }
   };
 
@@ -106,6 +185,7 @@ export function useSaves({ stackId, initialSaves = 0, initialSaved = false }: Us
     saved,
     isLoading,
     error,
+    isAnimating,
     toggleSave,
   };
 }

@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/api-service';
 
 /**
  * POST /api/workers/ranking
- * Compute ranking scores for cards and stacks
+ * Compute ranking scores for cards and collections
  * 
  * Formula:
  * base = w_u*ln(1+U) + w_s*ln(1+S) + w_c*ln(1+C) + w_v*ln(1+V)
@@ -14,7 +14,7 @@ import { createServiceClient } from '@/lib/supabase/api-service';
  * 
  * Default weights:
  * Cards: w_u=1.0, w_s=2.0, w_c=2.5, w_v=1.5, half_life_hours=48
- * Stacks: w_u=0.8, w_s=3.0, w_c=2.0, w_v=0.0, half_life_hours=168
+ * Collections: w_u=0.8, w_s=3.0, w_c=2.0, w_v=0.0, half_life_hours=168
  */
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceClient();
     const results: Record<string, any> = {
       cards_processed: 0,
-      stacks_processed: 0,
+      collections_processed: 0,
       errors: [],
     };
 
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       half_life_hours: 48,
     };
 
-    const stackWeights = {
+    const collectionWeights = {
       w_u: 0.8,
       w_s: 3.0,
       w_c: 2.0,
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     };
 
     const lambdaCards = Math.log(2) / cardWeights.half_life_hours;
-    const lambdaStacks = Math.log(2) / stackWeights.half_life_hours;
+    const lambdaCollections = Math.log(2) / collectionWeights.half_life_hours;
 
     // Process cards
     const { data: cards, error: cardsError } = await supabase
@@ -128,9 +128,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Process stacks
-    const { data: stacks, error: stacksError } = await supabase
-      .from('stacks')
+    // Process collections
+    const { data: collections, error: collectionsError } = await supabase
+      .from('collections')
       .select(`
         id,
         stats,
@@ -141,42 +141,42 @@ export async function POST(request: NextRequest) {
       .eq('is_public', true)
       .eq('is_hidden', false);
 
-    if (!stacksError && stacks) {
-      for (const stack of stacks) {
+    if (!collectionsError && collections) {
+      for (const collection of collections) {
         try {
-          const stats = stack.stats || {};
+          const stats = collection.stats || {};
           const U = stats.upvotes || 0;
           const S = stats.saves || 0;
           const C = stats.comments || 0;
-          const V = 0; // Stacks don't track visits_count
+          const V = 0; // Collections don't track visits_count
           
-          const ageHours = (Date.now() - new Date(stack.created_at).getTime()) / (1000 * 60 * 60);
+          const ageHours = (Date.now() - new Date(collection.created_at).getTime()) / (1000 * 60 * 60);
           
           // Get owner quality score
           let Q = 50;
-          if (stack.owner_id) {
+          if (collection.owner_id) {
             const { data: owner } = await supabase
               .from('users')
               .select('quality_score')
-              .eq('id', stack.owner_id)
+              .eq('id', collection.owner_id)
               .single();
             Q = owner?.quality_score || 50;
           }
 
           // Promotion boost
-          const P = stack.promoted_until && new Date(stack.promoted_until) > new Date() ? 0.5 : 0;
+          const P = collection.promoted_until && new Date(collection.promoted_until) > new Date() ? 0.5 : 0;
 
           // Base score
           const base = 
-            stackWeights.w_u * Math.log(1 + U) +
-            stackWeights.w_s * Math.log(1 + S) +
-            stackWeights.w_c * Math.log(1 + C) +
-            stackWeights.w_v * Math.log(1 + V);
+            collectionWeights.w_u * Math.log(1 + U) +
+            collectionWeights.w_s * Math.log(1 + S) +
+            collectionWeights.w_c * Math.log(1 + C) +
+            collectionWeights.w_v * Math.log(1 + V);
 
           // Factors
           const creatorFactor = 1 + (Q / 100);
           const promoFactor = 1 + P;
-          const ageFactor = Math.exp(-lambdaStacks * ageHours);
+          const ageFactor = Math.exp(-lambdaCollections * ageHours);
           const abuseFactor = 1; // TODO: Get from fraud detection
 
           const rawScore = base * creatorFactor * promoFactor * ageFactor * abuseFactor;
@@ -185,8 +185,8 @@ export async function POST(request: NextRequest) {
           await supabase
             .from('explore_ranking_items')
             .upsert({
-              item_type: 'stack',
-              item_id: stack.id,
+              item_type: 'collection',
+              item_id: collection.id,
               raw_score,
               norm_score: rawScore, // Will be normalized in next step
               updated_at: new Date().toISOString(),
@@ -194,9 +194,9 @@ export async function POST(request: NextRequest) {
               onConflict: 'item_type,item_id',
             });
 
-          results.stacks_processed++;
+          results.collections_processed++;
         } catch (error: any) {
-          results.errors.push({ stack_id: stack.id, error: error.message });
+          results.errors.push({ collection_id: collection.id, error: error.message });
         }
       }
     }

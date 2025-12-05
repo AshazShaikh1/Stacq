@@ -1,7 +1,7 @@
 'use client';
 
 import { ComponentType, lazy, Suspense } from 'react';
-import { StackGridSkeleton } from '@/components/ui/Skeleton';
+import { CollectionGridSkeleton } from '@/components/ui/Skeleton';
 
 /**
  * Higher-order component for lazy loading with loading fallback

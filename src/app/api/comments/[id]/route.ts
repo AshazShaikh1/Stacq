@@ -104,7 +104,8 @@ export async function DELETE(
   try {
     const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
-    const stackId = searchParams.get('stack_id');
+    const collectionId = searchParams.get('collection_id');
+    const stackId = searchParams.get('stack_id'); // Legacy support
     
     const supabase = await createClient(request);
 
@@ -134,32 +135,36 @@ export async function DELETE(
     // Check if user is comment author
     const isAuthor = comment.user_id === user.id;
 
-    // Check if user is stack owner (if target is a stack)
-    let isStackOwner = false;
-    if (comment.target_type === 'stack' && stackId) {
-      const { data: stack } = await supabase
-        .from('stacks')
+    // Check if user is collection/stack owner (support both collection and stack types)
+    let isOwner = false;
+    const targetId = collectionId || stackId || comment.target_id;
+    const targetType = comment.target_type === 'stack' ? 'collection' : comment.target_type;
+    
+    if ((targetType === 'collection' || comment.target_type === 'stack') && targetId) {
+      // Try collections first
+      const { data: collection } = await supabase
+        .from('collections')
         .select('owner_id')
-        .eq('id', stackId)
+        .eq('id', targetId)
         .single();
       
-      isStackOwner = stack?.owner_id === user.id;
+      if (collection) {
+        isOwner = collection.owner_id === user.id;
+      } else {
+        // Fallback to stacks for legacy support
+        const { data: stack } = await supabase
+          .from('stacks')
+          .select('owner_id')
+          .eq('id', targetId)
+          .single();
+        
+        isOwner = stack?.owner_id === user.id;
+      }
     }
 
-    // Also check if target_id is a stack and user owns it
-    if (comment.target_type === 'stack' && !isStackOwner) {
-      const { data: stack } = await supabase
-        .from('stacks')
-        .select('owner_id')
-        .eq('id', comment.target_id)
-        .single();
-      
-      isStackOwner = stack?.owner_id === user.id;
-    }
-
-    if (!isAuthor && !isStackOwner) {
+    if (!isAuthor && !isOwner) {
       return NextResponse.json(
-        { error: 'Forbidden: You can only delete your own comments or comments on your stacks' },
+        { error: 'Forbidden: You can only delete your own comments or comments on your collections' },
         { status: 403 }
       );
     }
@@ -245,7 +250,35 @@ async function updateCommentStats(
   delta: number
 ) {
   try {
-    if (targetType === 'stack') {
+    // Support both collection and stack (legacy)
+    const normalizedType = targetType === 'stack' ? 'collection' : targetType;
+    
+    if (normalizedType === 'collection') {
+      // Try collections first
+      const { data: collection } = await serviceClient
+        .from('collections')
+        .select('stats')
+        .eq('id', targetId)
+        .single();
+
+      if (collection) {
+        const stats = collection.stats || {};
+        const currentComments = stats.comments || 0;
+        const newComments = Math.max(0, currentComments + delta);
+
+        await serviceClient
+          .from('collections')
+          .update({
+            stats: {
+              ...stats,
+              comments: newComments,
+            },
+          })
+          .eq('id', targetId);
+        return;
+      }
+      
+      // Fallback to stacks for legacy support
       const { data: stack } = await serviceClient
         .from('stacks')
         .select('stats')

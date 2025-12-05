@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { FeedGrid } from '@/components/feed/FeedGrid';
-import { EmptyStacksState } from '@/components/ui/EmptyState';
+import { EmptyCollectionsState } from '@/components/ui/EmptyState';
 import { redirect } from 'next/navigation';
 
 export default async function MyStacksPage() {
@@ -11,9 +11,9 @@ export default async function MyStacksPage() {
     redirect('/login');
   }
 
-  // Get user's stacks
-  const { data: stacks, error } = await supabase
-    .from('stacks')
+  // Get user's collections
+  const { data: collections, error } = await supabase
+    .from('collections')
     .select(`
       id,
       title,
@@ -21,7 +21,7 @@ export default async function MyStacksPage() {
       cover_image_url,
       owner_id,
       stats,
-      owner:users!stacks_owner_id_fkey (
+      owner:users!collections_owner_id_fkey (
         username,
         display_name,
         avatar_url
@@ -32,22 +32,22 @@ export default async function MyStacksPage() {
     .limit(100);
 
   if (error) {
-    console.error('Error fetching stacks:', error);
+    console.error('Error fetching collections:', error);
   }
 
   return (
     <div className="container mx-auto px-page py-section">
       <div className="mb-8">
-        <h1 className="text-h1 font-bold text-jet-dark mb-2">Your Stacks</h1>
+        <h1 className="text-h1 font-bold text-jet-dark mb-2">Your Collections</h1>
         <p className="text-body text-gray-muted">
-          All your created stacks in one place
+          All your created collections in one place
         </p>
       </div>
 
-      {stacks && stacks.length > 0 ? (
-        <FeedGrid stacks={stacks} />
+      {collections && collections.length > 0 ? (
+        <FeedGrid collections={collections} />
       ) : (
-        <EmptyStacksState />
+        <EmptyCollectionsState />
       )}
     </div>
   );

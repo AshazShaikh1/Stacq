@@ -330,5 +330,47 @@ export const trackEvent = {
       userId,
     });
   },
+
+  /**
+   * Track collection view
+   */
+  viewCollection: (userId: string | null, collectionId: string) => {
+    analytics.track({
+      name: 'view_collection',
+      properties: {
+        collection_id: collectionId,
+        is_authenticated: !!userId,
+      },
+      userId: userId || undefined,
+    });
+  },
+
+  /**
+   * Track save
+   */
+  save: (userId: string, targetId: string) => {
+    analytics.track({
+      name: 'save',
+      properties: {
+        target_type: 'collection',
+        target_id: targetId,
+      },
+      userId,
+    });
+  },
+
+  /**
+   * Track unsave
+   */
+  unsave: (userId: string, targetId: string) => {
+    analytics.track({
+      name: 'unsave',
+      properties: {
+        target_type: 'collection',
+        target_id: targetId,
+      },
+      userId,
+    });
+  },
 };
 

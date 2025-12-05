@@ -7,14 +7,17 @@ import { CommentSkeleton } from '@/components/ui/Skeleton';
 import { EmptyCommentsState } from '@/components/ui/EmptyState';
 
 interface CommentsSectionProps {
-  targetType: 'stack' | 'card';
+  targetType: 'collection' | 'card' | 'stack'; // 'stack' for legacy support
   targetId: string;
-  stackOwnerId?: string;
+  stackOwnerId?: string; // Legacy support
+  collectionOwnerId?: string;
 }
 
-export function CommentsSection({ targetType, targetId, stackOwnerId }: CommentsSectionProps) {
+export function CommentsSection({ targetType, targetId, stackOwnerId, collectionOwnerId }: CommentsSectionProps) {
+  // Convert 'stack' to 'collection' for the hook
+  const apiTargetType = targetType === 'stack' ? 'collection' : targetType;
   const { comments, isLoading, error, addComment, refreshComments } = useComments({
-    targetType,
+    targetType: apiTargetType,
     targetId,
   });
 
@@ -58,10 +61,11 @@ export function CommentsSection({ targetType, targetId, stackOwnerId }: Comments
             <CommentItem
               key={comment.id}
               comment={comment}
-              targetType={targetType}
+              targetType={apiTargetType}
               targetId={targetId}
               depth={0}
               stackOwnerId={stackOwnerId}
+              collectionOwnerId={collectionOwnerId}
               onCommentUpdate={refreshComments}
             />
           ))

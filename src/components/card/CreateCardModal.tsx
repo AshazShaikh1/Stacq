@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { CreateStackModal } from '@/components/stack/CreateStackModal';
+import { CreateCollectionModal } from '@/components/collection/CreateCollectionModal';
 import { CardTypeSelector } from './CardTypeSelector';
 import { CardDetailsStep } from './CardDetailsStep';
 import { StackSelector } from './StackSelector';
@@ -31,6 +31,9 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [docsFile, setDocsFile] = useState<File | null>(null);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string>('');
+  // Legacy support
   const [stacks, setStacks] = useState<any[]>([]);
   const [selectedStackId, setSelectedStackId] = useState<string>('');
   const [error, setError] = useState('');
@@ -38,7 +41,7 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [isDraggingDocs, setIsDraggingDocs] = useState(false);
-  const [isCreateStackModalOpen, setIsCreateStackModalOpen] = useState(false);
+  const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] = useState(false);
 
   // Handle initial URL from extension
   useEffect(() => {
@@ -80,19 +83,19 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     }
   }, [isOpen, initialFileData]);
 
-  // Fetch user's stacks when modal opens
+  // Fetch user's collections when modal opens
   useEffect(() => {
     if (isOpen && step === 'stack') {
-      fetchStacks();
+      fetchCollections();
     }
   }, [isOpen, step]);
 
-  // Refresh stacks when create stack modal closes
+  // Refresh collections when create collection modal closes
   useEffect(() => {
-    if (!isCreateStackModalOpen && step === 'stack') {
-      fetchStacks();
+    if (!isCreateCollectionModalOpen && step === 'stack') {
+      fetchCollections();
     }
-  }, [isCreateStackModalOpen, step]);
+  }, [isCreateCollectionModalOpen, step]);
 
   const fetchMetadata = async (urlToFetch: string) => {
     try {
@@ -121,26 +124,28 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     }
   };
 
-  const fetchStacks = async () => {
+  const fetchCollections = async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) return;
 
-      const { data: userStacks, error } = await supabase
-        .from('stacks')
+      const { data: userCollections, error } = await supabase
+        .from('collections')
         .select('id, title, description, cover_image_url')
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching stacks:', error);
+        console.error('Error fetching collections:', error);
       } else {
-        setStacks(userStacks || []);
+        setCollections(userCollections || []);
+        // Legacy support
+        setStacks(userCollections || []);
       }
     } catch (err) {
-      console.error('Error fetching stacks:', err);
+      console.error('Error fetching collections:', err);
     }
   };
 
@@ -301,11 +306,12 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
 
       // Determine source
       const isFromExtension = !!(initialUrl || initialFileData);
+      const id = selectedCollectionId || selectedStackId;
       const cardSource = isFromExtension 
         ? 'extension' 
-        : (selectedStackId ? 'stack' : 'manual');
+        : (id ? 'collection' : 'manual');
 
-      // Create card (standalone or with stack)
+      // Create card (standalone or with collection)
       const response = await fetch('/api/cards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -314,7 +320,8 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
           title: title.trim(),
           description: description.trim() || undefined,
           thumbnail_url: thumbnailUrl || undefined,
-          stack_id: selectedStackId || undefined,
+          collection_id: selectedCollectionId || undefined,
+          stack_id: selectedStackId || undefined, // Legacy support
           is_public: true, // Standalone cards are public by default
           source: cardSource,
         }),
@@ -333,10 +340,11 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       if (cardData.card) {
         // Check if this is from extension (has initialUrl or initialFileData)
         const isFromExtension = !!(initialUrl || initialFileData);
+        const id = selectedCollectionId || selectedStackId || '';
         if (isFromExtension) {
-          trackEvent.extensionSave(user.id, cardData.card.id, selectedStackId || '', cardType || 'link');
+          trackEvent.extensionSave(user.id, cardData.card.id, id, cardType || 'link');
         } else {
-          trackEvent.addCard(user.id, cardData.card.id, selectedStackId || '', cardType || 'link');
+          trackEvent.addCard(user.id, cardData.card.id, id, cardType || 'link');
         }
       }
 
@@ -434,10 +442,14 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
           }`}
         >
           <StackSelector
-            stacks={stacks}
+            collections={collections}
+            selectedCollectionId={selectedCollectionId}
             selectedStackId={selectedStackId}
-            onSelect={setSelectedStackId}
-            onCreateNew={() => setIsCreateStackModalOpen(true)}
+            onSelect={(id) => {
+              setSelectedCollectionId(id);
+              setSelectedStackId(id); // Legacy support
+            }}
+            onCreateNew={() => setIsCreateCollectionModalOpen(true)}
             onBack={handleBack}
             onSubmit={handleSubmit}
             isLoading={isLoading}
@@ -446,14 +458,15 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
         </div>
       </div>
 
-      {/* Create Stack Modal */}
-      <CreateStackModal
-        isOpen={isCreateStackModalOpen}
-        onClose={() => setIsCreateStackModalOpen(false)}
+      {/* Create Collection Modal */}
+      <CreateCollectionModal
+        isOpen={isCreateCollectionModalOpen}
+        onClose={() => setIsCreateCollectionModalOpen(false)}
         fromCardCreation={true}
-        onStackCreated={(stackId) => {
-          setSelectedStackId(stackId);
-          setIsCreateStackModalOpen(false);
+        onCollectionCreated={(collectionId) => {
+          setSelectedCollectionId(collectionId);
+          setSelectedStackId(collectionId); // Legacy support
+          setIsCreateCollectionModalOpen(false);
           setTimeout(() => {
             handleSubmit();
           }, 100);

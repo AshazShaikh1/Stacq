@@ -28,24 +28,28 @@ interface Comment {
 
 interface CommentItemProps {
   comment: Comment;
-  targetType: 'stack' | 'card';
+  targetType: 'collection' | 'card' | 'stack'; // 'stack' for legacy support
   targetId: string;
   depth: number;
-  stackOwnerId?: string;
+  stackOwnerId?: string; // Legacy support
+  collectionOwnerId?: string;
   onCommentUpdate?: () => void;
 }
 
 const MAX_DEPTH = 4;
 
-export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId, onCommentUpdate }: CommentItemProps) {
+export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId, collectionOwnerId, onCommentUpdate }: CommentItemProps) {
   const router = useRouter();
   const [isReplying, setIsReplying] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [localComment, setLocalComment] = useState(comment);
-  const { addComment, refreshComments } = useComments({ targetType, targetId });
+  // Convert 'stack' to 'collection' for the hook
+  const apiTargetType = targetType === 'stack' ? 'collection' : targetType;
+  const { addComment, refreshComments } = useComments({ targetType: apiTargetType, targetId });
   const canReply = depth < MAX_DEPTH;
+  const ownerId = collectionOwnerId || stackOwnerId;
 
   // Update local comment when prop changes
   useEffect(() => {
@@ -59,9 +63,9 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
     });
   }, []);
 
-  // User can edit/delete if they are the comment author or stack owner
+  // User can edit/delete if they are the comment author or collection/stack owner
   const canEdit = user?.id === localComment.user_id;
-  const canDelete = user?.id === localComment.user_id || (stackOwnerId && user?.id === stackOwnerId);
+  const canDelete = user?.id === localComment.user_id || (ownerId && user?.id === ownerId);
 
   const handleReply = async (content: string) => {
     try {
@@ -120,9 +124,12 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
 
     setIsDeleting(true);
     try {
+      // Support both collection and stack (legacy)
+      const collectionId = targetType === 'collection' ? targetId : undefined;
       const stackId = targetType === 'stack' ? targetId : undefined;
-      const url = stackId 
-        ? `/api/comments/${localComment.id}?stack_id=${stackId}`
+      const queryParam = collectionId ? `collection_id=${collectionId}` : (stackId ? `stack_id=${stackId}` : '');
+      const url = queryParam 
+        ? `/api/comments/${localComment.id}?${queryParam}`
         : `/api/comments/${localComment.id}`;
       
       const response = await fetch(url, {
@@ -275,6 +282,7 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
                   targetId={targetId}
                   depth={depth + 1}
                   stackOwnerId={stackOwnerId}
+                  collectionOwnerId={collectionOwnerId}
                   onCommentUpdate={onCommentUpdate}
                 />
               ))}

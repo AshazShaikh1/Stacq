@@ -71,7 +71,7 @@ export function LandingPageButtons() {
       </Button>
       <Link href="/explore">
         <Button variant="outline" size="lg">
-          Explore Stacks
+          Explore Collections
         </Button>
       </Link>
     </div>
@@ -97,7 +97,7 @@ export function LandingPageCTAButtons() {
           size="lg" 
           className="bg-white border-white text-jet hover:bg-gray-light hover:border-gray-light"
         >
-          Browse stacks
+          Browse collections
         </Button>
       </Link>
     </div>

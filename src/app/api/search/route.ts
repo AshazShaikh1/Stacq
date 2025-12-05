@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q');
-    const type = searchParams.get('type') || 'all'; // all, stacks, cards, users
+    const typeParam = searchParams.get('type') || 'all'; // all, collections, cards, users (support legacy 'stacks')
+    const type = typeParam === 'stacks' ? 'collections' : typeParam;
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
@@ -20,16 +21,16 @@ export async function GET(request: NextRequest) {
 
     const searchQuery = q.trim();
     const results: any = {
-      stacks: [],
+      collections: [],
       cards: [],
       users: [],
       total: 0,
     };
 
-    // Search Stacks
-    if (type === 'all' || type === 'stacks') {
-      const { data: stacks, error: stacksError } = await supabase
-        .from('stacks')
+    // Search Collections (support legacy 'stacks' type)
+    if (type === 'all' || type === 'collections') {
+      const { data: collections, error: collectionsError } = await supabase
+        .from('collections')
         .select(`
           id,
           title,
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
           owner_id,
           stats,
           slug,
-          owner:users!stacks_owner_id_fkey (
+          owner:users!collections_owner_id_fkey (
             username,
             display_name,
             avatar_url
@@ -50,8 +51,8 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
-      if (!stacksError && stacks) {
-        results.stacks = stacks;
+      if (!collectionsError && collections) {
+        results.collections = collections;
       }
     }
 
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest) {
     }
 
     results.total = 
-      (results.stacks?.length || 0) + 
+      (results.collections?.length || 0) + 
       (results.cards?.length || 0) + 
       (results.users?.length || 0);
 

@@ -77,10 +77,13 @@ async function handleCheckoutCompleted(
     user_id,
     type,
     duration,
+    collection_id,
     stack_id,
     username,
     duration_days,
   } = metadata;
+  
+  const id = collection_id || stack_id; // Support both
 
   if (!user_id || !type) {
     console.error('Missing required metadata:', { user_id, type });
@@ -99,7 +102,8 @@ async function handleCheckoutCompleted(
       status: 'completed',
       metadata: {
         duration,
-        stack_id: stack_id || null,
+        collection_id: collection_id || null,
+        stack_id: stack_id || null, // Legacy support
         username: username || null,
         duration_days: duration_days || null,
         session_id: session.id,
@@ -119,22 +123,40 @@ async function handleCheckoutCompleted(
 
   switch (type) {
     case 'promote':
-      if (stack_id && expiresAt) {
-        await supabase
-          .from('stacks')
+      if (id && expiresAt) {
+        // Try collections first
+        const { error: collectionError } = await supabase
+          .from('collections')
           .update({ promoted_until: expiresAt })
-          .eq('id', stack_id);
+          .eq('id', id);
+        
+        // Fallback to stacks for legacy support
+        if (collectionError) {
+          await supabase
+            .from('stacks')
+            .update({ promoted_until: expiresAt })
+            .eq('id', id);
+        }
       }
       break;
 
     case 'hidden_stack':
-      if (stack_id && expiresAt) {
-        await supabase
-          .from('stacks')
+      if (id && expiresAt) {
+        // Try collections first
+        const { error: collectionError } = await supabase
+          .from('collections')
           .update({ is_hidden: true })
-          .eq('id', stack_id);
+          .eq('id', id);
+        
+        // Fallback to stacks for legacy support
+        if (collectionError) {
+          await supabase
+            .from('stacks')
+            .update({ is_hidden: true })
+            .eq('id', id);
+        }
         // Note: We don't automatically unhide after expiry - that would require a worker
-        // For MVP, hidden stacks stay hidden until manually changed
+        // For MVP, hidden collections stay hidden until manually changed
       }
       break;
 

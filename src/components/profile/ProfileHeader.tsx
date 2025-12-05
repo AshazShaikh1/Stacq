@@ -16,8 +16,8 @@ interface ProfileHeaderProps {
     display_name: string;
     avatar_url?: string;
     stats?: {
-      stacks_created: number;
-      stacks_saved: number;
+      collections_created: number;
+      collections_saved: number;
       total_upvotes: number;
       total_views: number;
       followers?: number;
@@ -33,8 +33,8 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
   const [displayName, setDisplayName] = useState(profile.display_name);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const stats = profile.stats || {
-    stacks_created: 0,
-    stacks_saved: 0,
+    collections_created: 0,
+    collections_saved: 0,
     total_upvotes: 0,
     total_views: 0,
     followers: 0,
@@ -68,7 +68,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
       try {
         await navigator.share({
           title: `${profile.display_name} (@${profile.username})`,
-          text: `Check out ${profile.display_name}'s profile on Stack`,
+          text: `Check out ${profile.display_name}'s profile on Stacq`,
           url: profileUrl,
         });
       } catch (err) {
@@ -178,9 +178,9 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
       <div className="flex gap-8">
         <div>
           <div className="text-h2 font-bold text-jet-dark">
-            {stats.stacks_created}
+            {stats.collections_created}
           </div>
-          <div className="text-small text-gray-muted">Stacks</div>
+          <div className="text-small text-gray-muted">Collections</div>
         </div>
         <div>
           <div className="text-h2 font-bold text-jet-dark">

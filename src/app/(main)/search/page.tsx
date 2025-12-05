@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { StackCard } from '@/components/stack/StackCard';
+import { CollectionCard } from '@/components/collection/CollectionCard';
 import { CardPreview } from '@/components/card/CardPreview';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -22,7 +22,7 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
       <EmptyState
         icon="🔍"
         title="Start searching"
-        description="Search for stacks, cards, and stackers"
+        description="Search for collections, cards, and creators"
       />
     );
   }
@@ -32,21 +32,21 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
 
   // Build search results
   const results: {
-    stacks: any[];
+    collections: any[];
     cards: any[];
     users: any[];
   } = {
-    stacks: [],
+    collections: [],
     cards: [],
     users: [],
   };
 
-  // Search Stacks
-  if (type === 'all' || type === 'stacks') {
+  // Search Collections (support legacy 'stacks' type)
+  if (type === 'all' || type === 'stacks' || type === 'collections') {
     // Use full-text search with search_vector
     const searchTerms = searchQuery.split(' ').filter(t => t.length > 0).join(' & ');
-    const { data: stacks } = await supabase
-      .from('stacks')
+    const { data: collections } = await supabase
+      .from('collections')
       .select(`
         id,
         title,
@@ -55,7 +55,7 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
         owner_id,
         stats,
         slug,
-        owner:users!stacks_owner_id_fkey (
+        owner:users!collections_owner_id_fkey (
           username,
           display_name,
           avatar_url
@@ -67,14 +67,14 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
       .order('created_at', { ascending: false })
       .limit(20);
 
-    if (stacks) {
+    if (collections) {
       // Filter by full-text search if search_vector is available
-      const filtered = stacks.filter((stack: any) => {
-        const titleMatch = stack.title?.toLowerCase().includes(searchQuery.toLowerCase());
-        const descMatch = stack.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const filtered = collections.filter((collection: any) => {
+        const titleMatch = collection.title?.toLowerCase().includes(searchQuery.toLowerCase());
+        const descMatch = collection.description?.toLowerCase().includes(searchQuery.toLowerCase());
         return titleMatch || descMatch;
       });
-      results.stacks = filtered;
+      results.collections = filtered;
     }
   }
 
@@ -118,7 +118,7 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
     }
   }
 
-  const totalResults = results.stacks.length + results.cards.length + results.users.length;
+  const totalResults = results.collections.length + results.cards.length + results.users.length;
 
   if (totalResults === 0) {
     return <EmptySearchState query={query} />;
@@ -131,15 +131,15 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
         Found {totalResults} result{totalResults !== 1 ? 's' : ''} for &quot;{query}&quot;
       </div>
 
-      {/* Stacks Results */}
-      {results.stacks.length > 0 && (
+      {/* Collections Results */}
+      {results.collections.length > 0 && (
         <div>
           <h2 className="text-h2 font-bold text-jet-dark mb-4">
-            Stacks ({results.stacks.length})
+            Collections ({results.collections.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {results.stacks.map((stack: any) => (
-              <StackCard key={stack.id} stack={stack} />
+            {results.collections.map((collection: any) => (
+              <CollectionCard key={collection.id} collection={collection} />
             ))}
           </div>
         </div>
@@ -163,7 +163,7 @@ async function SearchResults({ query, type }: { query: string; type: string }) {
       {results.users.length > 0 && (
         <div>
           <h2 className="text-h2 font-bold text-jet-dark mb-4">
-            Stackers ({results.users.length})
+            Creators ({results.users.length})
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {results.users.map((user: any) => (
@@ -247,14 +247,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             All
           </Link>
           <Link
-            href={`/search?q=${encodeURIComponent(query)}&type=stacks`}
+            href={`/search?q=${encodeURIComponent(query)}&type=collections`}
             className={`px-4 py-2 rounded-md text-small font-medium transition-colors ${
-              type === 'stacks'
+              type === 'stacks' || type === 'collections'
                 ? 'bg-jet text-white'
                 : 'bg-gray-light text-jet-dark hover:bg-jet/10'
             }`}
           >
-            Stacks
+            Collections
           </Link>
           <Link
             href={`/search?q=${encodeURIComponent(query)}&type=cards`}
@@ -274,7 +274,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 : 'bg-gray-light text-jet-dark hover:bg-jet/10'
             }`}
           >
-            Stackers
+            Creators
           </Link>
         </div>
       </div>

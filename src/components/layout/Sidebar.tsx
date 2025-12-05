@@ -42,7 +42,7 @@ export function Sidebar() {
     { href: '/', icon: HomeIcon, label: 'Home', auth: false },
     { href: '/explore', icon: ExploreIcon, label: 'Explore', auth: false },
     { href: null, icon: CreateIcon, label: 'Create', auth: true, onClick: () => setIsCreateModalOpen(true) },
-    { href: '/my-stacks', icon: MyStacksIcon, label: 'Your Stacks', auth: true },
+    { href: '/my-stacks', icon: MyStacksIcon, label: 'Your Collections', auth: true },
     { href: '/saved', icon: SavedIcon, label: 'Saved', auth: true },
   ];
 

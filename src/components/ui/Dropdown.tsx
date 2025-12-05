@@ -65,7 +65,7 @@ export function Dropdown({ items, children, className = '' }: DropdownProps) {
             setIsOpen(!isOpen);
           }
         }}
-        className="p-2 rounded-md hover:bg-gray-light transition-colors focus:outline-none focus:ring-2 focus:ring-jet focus:ring-offset-2"
+        className={`${children ? 'w-full h-full' : 'p-2'} rounded-md hover:bg-gray-light transition-colors focus:outline-none focus:ring-2 focus:ring-jet focus:ring-offset-2`}
         aria-label="More options"
         aria-expanded={isOpen}
         aria-haspopup="true"

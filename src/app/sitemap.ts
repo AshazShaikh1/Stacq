@@ -19,26 +19,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'hourly',
       priority: 0.9,
     },
-    {
-      url: `${baseUrl}/feed`,
-      lastModified: new Date(),
-      changeFrequency: 'hourly',
-      priority: 0.8,
-    },
   ];
 
-  // Public stacks
-  const { data: stacks } = await supabase
-    .from('stacks')
+  // Public collections
+  const { data: collections } = await supabase
+    .from('collections')
     .select('id, slug, updated_at')
     .eq('is_public', true)
     .eq('is_hidden', false)
     .order('updated_at', { ascending: false })
-    .limit(1000); // Limit to most recent 1000 stacks
+    .limit(1000); // Limit to most recent 1000 collections
 
-  const stackPages: MetadataRoute.Sitemap = (stacks || []).map((stack) => ({
-    url: `${baseUrl}/stack/${stack.slug || stack.id}`,
-    lastModified: stack.updated_at ? new Date(stack.updated_at) : new Date(),
+  const collectionPages: MetadataRoute.Sitemap = (collections || []).map((collection) => ({
+    url: `${baseUrl}/collection/${collection.slug || collection.id}`,
+    lastModified: collection.updated_at ? new Date(collection.updated_at) : new Date(),
     changeFrequency: 'weekly' as const,
     priority: 0.7,
   }));
@@ -57,6 +51,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...stackPages, ...profilePages];
+  return [...staticPages, ...collectionPages, ...profilePages];
 }
 

@@ -1,7 +1,6 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { LandingPage } from '@/components/landing/LandingPage';
-import { HomeFeed } from '@/components/feed/HomeFeed';
+import { FeedPage } from '@/components/feed/FeedPage';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -13,16 +12,5 @@ export default async function Home() {
   }
 
   // If signed in, show feed (home) with cards and stacks
-  return (
-    <div className="container mx-auto px-page py-section">
-      <div className="mb-8">
-        <h1 className="text-h1 font-bold text-jet-dark mb-2">Home</h1>
-        <p className="text-body text-gray-muted">
-          Discover curated resources from the community
-        </p>
-      </div>
-
-      <HomeFeed />
-    </div>
-  );
+  return <FeedPage />;
 }

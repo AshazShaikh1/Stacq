@@ -41,11 +41,11 @@ export default async function PaymentSuccessPage({ searchParams }: PaymentSucces
         </div>
 
         <div className="flex gap-4 justify-center">
-          <Link href="/feed">
+          <Link href="/">
             <Button variant="primary">Go to Feed</Button>
           </Link>
           <Link href="/explore">
-            <Button variant="outline">Explore Stacks</Button>
+            <Button variant="outline">Explore Collections</Button>
           </Link>
         </div>
       </div>

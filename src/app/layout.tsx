@@ -2,17 +2,18 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 export const metadata: Metadata = {
   title: {
-    default: "Stack - Curated Resource Platform",
-    template: "%s | Stack",
+    default: "Stacq - Curated Resource Platform",
+    template: "%s | Stacq",
   },
-  description: "Discover and share curated resources with the community. Create stacks, add cards, and explore high-quality content.",
-  keywords: ["curated resources", "bookmarks", "collections", "stacks", "cards", "community"],
-  authors: [{ name: "Stack Team" }],
-  creator: "Stack",
-  publisher: "Stack",
+  description: "Discover and share curated resources with the community. Create collections, add cards, and explore high-quality content.",
+  keywords: ["curated resources", "bookmarks", "collections", "cards", "community"],
+  authors: [{ name: "Stacq Team" }],
+  creator: "Stacq",
+  publisher: "Stacq",
   formatDetection: {
     email: false,
     address: false,
@@ -23,21 +24,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    siteName: "Stack",
-    title: "Stack - Curated Resource Platform",
+    siteName: "Stacq",
+    title: "Stacq - Curated Resource Platform",
     description: "Discover and share curated resources with the community",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Stack - Curated Resource Platform",
+        alt: "Stacq - Curated Resource Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Stack - Curated Resource Platform",
+    title: "Stacq - Curated Resource Platform",
     description: "Discover and share curated resources with the community",
     images: ["/og-image.png"],
   },
@@ -63,7 +64,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ErrorBoundary>
-          <LayoutWrapper>{children}</LayoutWrapper>
+          <ToastProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </ToastProvider>
         </ErrorBoundary>
       </body>
     </html>

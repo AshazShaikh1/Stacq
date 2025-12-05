@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
   
   return generateSEOMetadata({
     title: `${profileUser.display_name} (@${username})`,
-    description: `View ${profileUser.display_name}'s profile on Stack`,
+    description: `View ${profileUser.display_name}'s profile on Stacq`,
     image: profileUser.avatar_url || undefined,
     url: `/profile/${username}`,
   });
@@ -44,7 +44,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   const { tab: tabParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user: currentUser } } = await supabase.auth.getUser();
-  const tab = tabParam || 'created';
+  const tab = tabParam || 'collection';
 
   // Get profile user
   const { data: profileUser, error: profileError } = await supabase
@@ -62,7 +62,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   // Get stats
   const [createdCount, savedCount, upvotesResult, viewsResult, followerCount, followingCount] = await Promise.all([
     supabase
-      .from('stacks')
+      .from('collections')
       .select('id', { count: 'exact', head: true })
       .eq('owner_id', profileUser.id),
     supabase
@@ -74,7 +74,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       .select('id', { count: 'exact', head: true })
       .eq('user_id', profileUser.id),
     supabase
-      .from('stacks')
+      .from('collections')
       .select('stats', { count: 'exact' })
       .eq('owner_id', profileUser.id),
     supabase
@@ -87,15 +87,15 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       .eq('follower_id', profileUser.id),
   ]);
 
-  const totalViews = viewsResult.data?.reduce((sum, stack) => {
-    return sum + ((stack.stats as any)?.views || 0);
+  const totalViews = viewsResult.data?.reduce((sum, collection) => {
+    return sum + ((collection.stats as any)?.views || 0);
   }, 0) || 0;
 
   const profile = {
     ...profileUser,
     stats: {
-      stacks_created: createdCount.count || 0,
-      stacks_saved: savedCount.count || 0,
+      collections_created: createdCount.count || 0,
+      collections_saved: savedCount.count || 0,
       total_upvotes: upvotesResult.count || 0,
       total_views: totalViews,
       followers: followerCount.count || 0,
@@ -103,55 +103,115 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
     },
   };
 
-  // Get stacks based on tab
-  let stacksQuery = supabase
-    .from('stacks')
-    .select(`
-      id,
-      title,
-      description,
-      cover_image_url,
-      owner_id,
-      stats,
-      owner:users!stacks_owner_id_fkey (
-        username,
-        display_name,
-        avatar_url
-      )
-    `);
+  // Get collections or cards based on tab
+  let collections: any[] = [];
+  let cards: any[] = [];
+  let collectionsError: any = null;
+  let cardsError: any = null;
 
-  if (tab === 'created') {
-    stacksQuery = stacksQuery.eq('owner_id', profileUser.id);
+  if (tab === 'card' || tab === 'cards') { // Support both 'card' and 'cards'
+    // Fetch cards created by the user
+    let cardsQuery = supabase
+      .from('cards')
+      .select(`
+        id,
+        title,
+        description,
+        thumbnail_url,
+        canonical_url,
+        domain,
+        created_at,
+        created_by,
+        is_public,
+        visits_count,
+        saves_count,
+        upvotes_count,
+        comments_count,
+        creator:users!cards_created_by_fkey (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq('created_by', profileUser.id)
+      .eq('status', 'active');
+
     if (!isOwnProfile) {
-      stacksQuery = stacksQuery.eq('is_public', true).eq('is_hidden', false);
+      cardsQuery = cardsQuery.eq('is_public', true);
     }
-  } else if (tab === 'saved') {
-    // Get saved stacks from saves table
-    const { data: saves } = await supabase
-      .from('saves')
-      .select('stack_id')
-      .eq('user_id', profileUser.id)
+
+    const result = await cardsQuery
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(40);
 
-    if (saves && saves.length > 0) {
-      const stackIds = saves.map(s => s.stack_id);
-      stacksQuery = stacksQuery.in('id', stackIds);
+    cards = result.data || [];
+    cardsError = result.error;
+  } else {
+    // Fetch collections
+    let collectionsQuery = supabase
+      .from('collections')
+      .select(`
+        id,
+        title,
+        description,
+        cover_image_url,
+        owner_id,
+        stats,
+        owner:users!collections_owner_id_fkey (
+          username,
+          display_name,
+          avatar_url
+        )
+      `);
+
+    if (tab === 'collection' || tab === 'created') { // Support both 'collection' and legacy 'created'
+      collectionsQuery = collectionsQuery.eq('owner_id', profileUser.id);
       if (!isOwnProfile) {
-        stacksQuery = stacksQuery.eq('is_public', true).eq('is_hidden', false);
+        collectionsQuery = collectionsQuery.eq('is_public', true).eq('is_hidden', false);
       }
-    } else {
-      stacksQuery = stacksQuery.eq('id', '00000000-0000-0000-0000-000000000000'); // Return no results
+    } else if (tab === 'saved') {
+      // Get saved collections from saves table (support both collection_id and stack_id)
+      const { data: saves } = await supabase
+        .from('saves')
+        .select('collection_id, stack_id')
+        .eq('user_id', profileUser.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (saves && saves.length > 0) {
+        const collectionIds = saves
+          .map(s => s.collection_id || s.stack_id)
+          .filter((id): id is string => !!id);
+        collectionsQuery = collectionsQuery.in('id', collectionIds);
+        if (!isOwnProfile) {
+          collectionsQuery = collectionsQuery.eq('is_public', true).eq('is_hidden', false);
+        }
+      } else {
+        collectionsQuery = collectionsQuery.eq('id', '00000000-0000-0000-0000-000000000000'); // Return no results
+      }
     }
+
+    const result = await collectionsQuery
+      .order('created_at', { ascending: false })
+      .limit(40);
+
+    collections = result.data || [];
+    collectionsError = result.error;
   }
 
-  const { data: stacks, error: stacksError } = await stacksQuery
-    .order('created_at', { ascending: false })
-    .limit(40);
-
-  if (stacksError) {
-    console.error('Error fetching stacks:', stacksError);
+  if (collectionsError) {
+    console.error('Error fetching collections:', collectionsError);
   }
+  if (cardsError) {
+    console.error('Error fetching cards:', cardsError);
+  }
+
+  // Combine collections and cards into feed items format
+  const feedItems = [
+    ...collections.map(c => ({ type: 'collection' as const, ...c })),
+    ...cards.map(c => ({ type: 'card' as const, ...c }))
+  ];
 
   return (
     <div className="container mx-auto px-page py-section">
@@ -161,16 +221,28 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       <div className="border-b border-gray-light mb-6">
         <div className="flex gap-8">
           <a
-            href={`/profile/${username}?tab=created`}
+            href={`/profile/${username}?tab=collection`}
             className={`
               pb-4 px-1 border-b-2 transition-colors
-              ${tab === 'created'
+              ${tab === 'collection' || tab === 'created'
                 ? 'border-jet text-jet-dark font-semibold'
                 : 'border-transparent text-gray-muted hover:text-jet-dark'
               }
             `}
           >
-            Created
+            Collection
+          </a>
+          <a
+            href={`/profile/${username}?tab=card`}
+            className={`
+              pb-4 px-1 border-b-2 transition-colors
+              ${tab === 'card' || tab === 'cards'
+                ? 'border-jet text-jet-dark font-semibold'
+                : 'border-transparent text-gray-muted hover:text-jet-dark'
+              }
+            `}
+          >
+            Card
           </a>
           <a
             href={`/profile/${username}?tab=saved`}
@@ -187,8 +259,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
         </div>
       </div>
 
-      {/* Stacks Grid */}
-      <FeedGrid stacks={stacks || []} />
+      {/* Collections/Cards Grid */}
+      <FeedGrid items={feedItems} />
     </div>
   );
 }

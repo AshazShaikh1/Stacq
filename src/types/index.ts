@@ -2,7 +2,7 @@
 
 export type CardType = 'link' | 'image' | 'docs';
 
-export type StackVisibility = 'public' | 'private' | 'unlisted';
+export type CollectionVisibility = 'public' | 'private' | 'unlisted';
 
 export interface User {
   id: string;
@@ -12,7 +12,7 @@ export interface User {
   email?: string;
 }
 
-export interface Stack {
+export interface Collection {
   id: string;
   title: string;
   description?: string;
@@ -29,6 +29,10 @@ export interface Stack {
     cards?: number;
   };
 }
+
+// Legacy alias for backward compatibility during migration
+export type Stack = Collection;
+export type StackVisibility = CollectionVisibility;
 
 export interface Card {
   id: string;
@@ -47,11 +51,14 @@ export interface Notification {
   type: 'follow' | 'upvote' | 'comment' | 'clone';
   actor_id: string;
   data: {
-    stack_id?: string;
-    stack_title?: string;
+    collection_id?: string;
+    collection_title?: string;
     card_id?: string;
     comment_id?: string;
     comment_content?: string;
+    // Legacy support
+    stack_id?: string;
+    stack_title?: string;
   };
   read: boolean;
   created_at: string;
@@ -62,7 +69,7 @@ export interface Comment {
   id: string;
   content: string;
   user_id: string;
-  target_type: 'stack' | 'card';
+  target_type: 'collection' | 'card';
   target_id: string;
   parent_id?: string;
   deleted: boolean;

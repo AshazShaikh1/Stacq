@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { FeedGrid } from '@/components/feed/FeedGrid';
-import { StackGridSkeleton } from '@/components/ui/Skeleton';
+import { CollectionGridSkeleton } from '@/components/ui/Skeleton';
 
 export function HomeFeed() {
   const [feedItems, setFeedItems] = useState<any[]>([]);
@@ -32,7 +32,7 @@ export function HomeFeed() {
   };
 
   if (isLoading) {
-    return <StackGridSkeleton count={12} />;
+    return <CollectionGridSkeleton count={12} />;
   }
 
   return <FeedGrid items={feedItems} />;

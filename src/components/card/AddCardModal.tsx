@@ -10,10 +10,17 @@ import { createClient } from '@/lib/supabase/client';
 interface AddCardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  stackId: string;
+  stackId?: string; // Legacy support
+  collectionId?: string;
 }
 
-export function AddCardModal({ isOpen, onClose, stackId }: AddCardModalProps) {
+export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCardModalProps) {
+  const id = collectionId || stackId;
+  
+  if (!id) {
+    console.error('AddCardModal: Either collectionId or stackId must be provided');
+    return null;
+  }
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
@@ -89,7 +96,8 @@ export function AddCardModal({ isOpen, onClose, stackId }: AddCardModalProps) {
           title: title || undefined,
           description: description || undefined,
           thumbnail_url: thumbnailUrl || undefined,
-          stack_id: stackId,
+          collection_id: collectionId,
+          stack_id: stackId, // Legacy support
         }),
       });
 

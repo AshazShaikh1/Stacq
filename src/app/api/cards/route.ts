@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // This ensures card creation works even if RLS policy has issues
     const serviceClient = createServiceClient();
 
-    const { url, title, description, thumbnail_url, stack_id, is_public, source } = await request.json();
+    const { url, title, description, thumbnail_url, collection_id, stack_id, is_public, source } = await request.json();
 
     if (!url) {
       return NextResponse.json(
@@ -61,7 +61,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine source if not provided
-    const attributionSource = source || (stack_id ? 'stack' : 'manual');
+    const id = collection_id || stack_id;
+    const attributionSource = source || (id ? 'collection' : 'manual');
 
     // Canonicalize URL using normalize-url library
     const { canonicalizeUrl } = await import('@/lib/metadata/extractor');
@@ -132,7 +133,8 @@ export async function POST(request: NextRequest) {
         card_id: cardId,
         user_id: user.id,
         source: attributionSource,
-        stack_id: stack_id || null,
+        collection_id: collection_id || null,
+        stack_id: stack_id || null, // Legacy support
       });
 
     if (attributionError && attributionError.code !== '23505') { // Ignore duplicate attribution errors
@@ -140,23 +142,29 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if attribution fails, but log it
     }
 
-    // Add card to stack if stack_id provided
-    if (stack_id) {
+    // Add card to collection if collection_id provided
+    if (collection_id || stack_id) {
+      const targetId = collection_id || stack_id;
+      const tableName = collection_id ? 'collection_cards' : 'stack_cards';
+      const idField = collection_id ? 'collection_id' : 'stack_id';
+      
       const { data: existingMapping } = await serviceClient
-        .from('stack_cards')
+        .from(tableName)
         .select('id')
-        .eq('stack_id', stack_id)
+        .eq(idField, targetId)
         .eq('card_id', cardId)
         .maybeSingle();
 
       if (!existingMapping) {
+        const insertData: any = {
+          [idField]: targetId,
+          card_id: cardId,
+          added_by: user.id,
+        };
+        
         const { error: mappingError } = await serviceClient
-          .from('stack_cards')
-          .insert({
-            stack_id,
-            card_id: cardId,
-            added_by: user.id,
-          });
+          .from(tableName)
+          .insert(insertData);
 
         if (mappingError) {
           return NextResponse.json(

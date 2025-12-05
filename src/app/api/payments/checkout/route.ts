@@ -5,7 +5,7 @@ import { stripe, getPrice, getDurationDays, PaymentType } from '@/lib/stripe';
 /**
  * POST /api/payments/checkout
  * Create a Stripe Checkout session
- * Body: { type: PaymentType, duration?: string, stack_id?: string, username?: string }
+ * Body: { type: PaymentType, duration?: string, collection_id?: string, stack_id?: string, username?: string }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, duration, stack_id, username } = body;
+    const { type, duration, collection_id, stack_id, username } = body;
+    const id = collection_id || stack_id; // Support both
 
     if (!type) {
       return NextResponse.json(
@@ -49,32 +50,48 @@ export async function POST(request: NextRequest) {
     }
 
     if (type === 'promote' || type === 'hidden_stack') {
-      if (!stack_id) {
+      if (!id) {
         return NextResponse.json(
-          { error: 'stack_id is required for this payment type' },
+          { error: 'collection_id or stack_id is required for this payment type' },
           { status: 400 }
         );
       }
 
-      // Verify stack exists and belongs to user
-      const { data: stack, error: stackError } = await supabase
-        .from('stacks')
+      // Verify collection exists and belongs to user (try collections first, fallback to stacks)
+      const { data: collection, error: collectionError } = await supabase
+        .from('collections')
         .select('id, owner_id, title')
-        .eq('id', stack_id)
+        .eq('id', id)
         .single();
 
-      if (stackError || !stack) {
-        return NextResponse.json(
-          { error: 'Stack not found' },
-          { status: 404 }
-        );
-      }
+      if (collectionError || !collection) {
+        // Fallback to stacks for legacy support
+        const { data: stack, error: stackError } = await supabase
+          .from('stacks')
+          .select('id, owner_id, title')
+          .eq('id', id)
+          .single();
 
-      if (stack.owner_id !== user.id) {
-        return NextResponse.json(
-          { error: 'You can only promote your own stacks' },
-          { status: 403 }
-        );
+        if (stackError || !stack) {
+          return NextResponse.json(
+            { error: 'Collection not found' },
+            { status: 404 }
+          );
+        }
+
+        if (stack.owner_id !== user.id) {
+          return NextResponse.json(
+            { error: 'You can only promote your own collections' },
+            { status: 403 }
+          );
+        }
+      } else {
+        if (collection.owner_id !== user.id) {
+          return NextResponse.json(
+            { error: 'You can only promote your own collections' },
+            { status: 403 }
+          );
+        }
       }
     }
 
@@ -115,7 +132,7 @@ export async function POST(request: NextRequest) {
             currency: 'usd',
             product_data: {
               name: getProductName(type, duration),
-              description: getProductDescription(type, duration, stack_id, username),
+              description: getProductDescription(type, duration, id, username),
             },
             unit_amount: amount,
           },
@@ -130,7 +147,8 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         type,
         duration: duration || '',
-        stack_id: stack_id || '',
+        collection_id: collection_id || '',
+        stack_id: stack_id || '', // Legacy support
         username: username || '',
         duration_days: durationDays?.toString() || '',
       },
@@ -152,28 +170,28 @@ export async function POST(request: NextRequest) {
 function getProductName(type: PaymentType, duration?: string): string {
   switch (type) {
     case 'promote':
-      return `Promote Stack - ${duration || '7 days'}`;
+      return `Promote Collection - ${duration || '7 days'}`;
     case 'reserve_username':
       return 'Reserve Username';
     case 'hidden_stack':
-      return `Hidden Stack - ${duration || '30 days'}`;
+      return `Hidden Collection - ${duration || '30 days'}`;
     case 'featured_stacker':
-      return `Featured Stacker - ${duration || '7 days'}`;
+      return `Featured Creator - ${duration || '7 days'}`;
     default:
       return 'Payment';
   }
 }
 
-function getProductDescription(type: PaymentType, duration?: string, stack_id?: string, username?: string): string {
+function getProductDescription(type: PaymentType, duration?: string, collection_id?: string, username?: string): string {
   switch (type) {
     case 'promote':
-      return `Promote your stack to appear at the top of explore feeds for ${duration || '7 days'}`;
+      return `Promote your collection to appear at the top of explore feeds for ${duration || '7 days'}`;
     case 'reserve_username':
       return `Reserve the username "${username}" permanently`;
     case 'hidden_stack':
-      return `Make your stack hidden (paid feature) for ${duration || '30 days'}`;
+      return `Make your collection hidden (paid feature) for ${duration || '30 days'}`;
     case 'featured_stacker':
-      return `Feature your profile as a top stacker for ${duration || '7 days'}`;
+      return `Feature your profile as a top creator for ${duration || '7 days'}`;
     default:
       return '';
   }

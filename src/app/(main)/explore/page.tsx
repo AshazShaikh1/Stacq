@@ -14,8 +14,8 @@ export default async function ExplorePage() {
   monthAgo.setMonth(monthAgo.getMonth() - 1);
 
   // Fetch today's trending
-  const { data: todayStacks, error: todayError } = await supabase
-    .from('stacks')
+  const { data: todayCollections, error: todayError } = await supabase
+    .from('collections')
     .select(`
       id,
       title,
@@ -24,12 +24,12 @@ export default async function ExplorePage() {
       owner_id,
       stats,
       created_at,
-      owner:users!stacks_owner_id_fkey (
+      owner:users!collections_owner_id_fkey (
         username,
         display_name,
         avatar_url
       ),
-      tags:stack_tags (
+      tags:collection_tags (
         tag:tags (
           id,
           name
@@ -43,12 +43,12 @@ export default async function ExplorePage() {
     .limit(20);
 
   if (todayError) {
-    console.error('Error fetching today stacks:', todayError);
+    console.error('Error fetching today collections:', todayError);
   }
 
   // Fetch last week's trending
-  const { data: weekStacks, error: weekError } = await supabase
-    .from('stacks')
+  const { data: weekCollections, error: weekError } = await supabase
+    .from('collections')
     .select(`
       id,
       title,
@@ -57,12 +57,12 @@ export default async function ExplorePage() {
       owner_id,
       stats,
       created_at,
-      owner:users!stacks_owner_id_fkey (
+      owner:users!collections_owner_id_fkey (
         username,
         display_name,
         avatar_url
       ),
-      tags:stack_tags (
+      tags:collection_tags (
         tag:tags (
           id,
           name
@@ -77,12 +77,12 @@ export default async function ExplorePage() {
     .limit(20);
 
   if (weekError) {
-    console.error('Error fetching week stacks:', weekError);
+    console.error('Error fetching week collections:', weekError);
   }
 
   // Fetch this month's trending
-  const { data: monthStacks, error: monthError } = await supabase
-    .from('stacks')
+  const { data: monthCollections, error: monthError } = await supabase
+    .from('collections')
     .select(`
       id,
       title,
@@ -91,12 +91,12 @@ export default async function ExplorePage() {
       owner_id,
       stats,
       created_at,
-      owner:users!stacks_owner_id_fkey (
+      owner:users!collections_owner_id_fkey (
         username,
         display_name,
         avatar_url
       ),
-      tags:stack_tags (
+      tags:collection_tags (
         tag:tags (
           id,
           name
@@ -111,63 +111,63 @@ export default async function ExplorePage() {
     .limit(20);
 
   if (monthError) {
-    console.error('Error fetching month stacks:', monthError);
+    console.error('Error fetching month collections:', monthError);
   }
 
   // Sort by upvotes
-  const sortByUpvotes = (stacks: any[]) => {
-    return [...(stacks || [])].sort((a: any, b: any) => {
+  const sortByUpvotes = (collections: any[]) => {
+    return [...(collections || [])].sort((a: any, b: any) => {
       const aUpvotes = a.stats?.upvotes || 0;
       const bUpvotes = b.stats?.upvotes || 0;
       return bUpvotes - aUpvotes;
     });
   };
 
-  const sortedTodayStacks = sortByUpvotes(todayStacks || []);
-  const sortedWeekStacks = sortByUpvotes(weekStacks || []);
-  const sortedMonthStacks = sortByUpvotes(monthStacks || []);
+  const sortedTodayCollections = sortByUpvotes(todayCollections || []);
+  const sortedWeekCollections = sortByUpvotes(weekCollections || []);
+  const sortedMonthCollections = sortByUpvotes(monthCollections || []);
 
   return (
     <div className="container mx-auto px-page py-section">
       <div className="mb-8">
         <h1 className="text-h1 font-bold text-jet-dark mb-2">Explore</h1>
         <p className="text-body text-gray-muted mb-6">
-          Discover trending stacks and top stackers
+          Discover trending collections and top creators
         </p>
       </div>
 
       {/* Today Trending */}
-      {sortedTodayStacks.length > 0 && (
+      {sortedTodayCollections.length > 0 && (
         <div className="mb-12">
           <h2 className="text-h2 font-semibold text-jet-dark mb-6">Today Trending</h2>
-          <FeedGrid stacks={sortedTodayStacks} />
+          <FeedGrid collections={sortedTodayCollections} />
         </div>
       )}
 
       {/* Last Week Trending */}
-      {sortedWeekStacks.length > 0 && (
+      {sortedWeekCollections.length > 0 && (
         <div className="mb-12">
           <h2 className="text-h2 font-semibold text-jet-dark mb-6">Last Week Trending</h2>
-          <FeedGrid stacks={sortedWeekStacks} />
+          <FeedGrid collections={sortedWeekCollections} />
         </div>
       )}
 
       {/* This Month Trending */}
-      {sortedMonthStacks.length > 0 && (
+      {sortedMonthCollections.length > 0 && (
         <div className="mb-12">
           <h2 className="text-h2 font-semibold text-jet-dark mb-6">This Month Trending</h2>
-          <FeedGrid stacks={sortedMonthStacks} />
+          <FeedGrid collections={sortedMonthCollections} />
         </div>
       )}
 
-      {/* Show message if no stacks */}
-      {sortedTodayStacks.length === 0 && sortedWeekStacks.length === 0 && sortedMonthStacks.length === 0 && (
+      {/* Show message if no collections */}
+      {sortedTodayCollections.length === 0 && sortedWeekCollections.length === 0 && sortedMonthCollections.length === 0 && (
         <EmptyState
           icon="📊"
-          title="No trending stacks yet"
-          description="Be the first to create a stack and share it with the community"
+          title="No trending collections yet"
+          description="Be the first to create a collection and share it with the community"
           action={{
-            label: "Create Stack",
+            label: "Create Collection",
             href: "/",
           }}
         />

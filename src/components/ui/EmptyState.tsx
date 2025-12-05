@@ -80,14 +80,14 @@ export function EmptyStacksState({ onCreateStack }: { onCreateStack?: () => void
   return (
     <EmptyState
       icon="📌"
-      title="No stacks yet"
-      description="Start by creating your first stack to organize and share your favorite resources"
+      title="No collections yet"
+      description="Start by creating your first collection to organize and share your favorite resources"
       action={{
-        label: "Create Stack",
+        label: "Create Collection",
         onClick: onCreateStack,
       }}
       secondaryAction={{
-        label: "Explore Stacks",
+        label: "Explore Collections",
         href: "/explore",
       }}
     />
@@ -99,7 +99,7 @@ export function EmptyCardsState({ onAddCard }: { onAddCard?: () => void }) {
     <EmptyState
       icon="🔗"
       title="No cards yet"
-      description="Add your first card to this stack to get started"
+      description="Add your first card to this collection to get started"
       action={{
         label: "Add Card",
         onClick: onAddCard,
@@ -136,13 +136,17 @@ export function EmptySavedStacksState() {
   return (
     <EmptyState
       icon="💾"
-      title="No saved stacks"
-      description="Save stacks you like to find them easily later"
+      title="No saved collections"
+      description="Save collections you like to find them easily later"
       action={{
-        label: "Explore Stacks",
+        label: "Explore Collections",
         href: "/explore",
       }}
     />
   );
+}
+
+export function EmptySavedCollectionsState() {
+  return <EmptySavedStacksState />;
 }
 

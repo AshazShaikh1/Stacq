@@ -13,8 +13,10 @@ interface Notification {
   type: 'follow' | 'upvote' | 'comment' | 'clone';
   actor_id: string;
   data: {
-    stack_id?: string;
-    stack_title?: string;
+    collection_id?: string;
+    stack_id?: string; // Legacy support
+    collection_title?: string;
+    stack_title?: string; // Legacy support
     card_id?: string;
     comment_id?: string;
     comment_content?: string;
@@ -147,26 +149,28 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
     setIsOpen(false);
 
     // Redirect based on notification type
+    const collectionId = notification.data.collection_id || notification.data.stack_id; // Support both
+    
     switch (notification.type) {
       case 'follow':
         router.push(`/profile/${notification.actor.username}`);
         break;
       case 'upvote':
-        // If it's a comment upvote, go to the stack with the comment
-        if (notification.data.comment_id && notification.data.stack_id) {
-          router.push(`/stack/${notification.data.stack_id}`);
-        } else if (notification.data.stack_id) {
-          router.push(`/stack/${notification.data.stack_id}`);
+        // If it's a comment upvote, go to the collection with the comment
+        if (notification.data.comment_id && collectionId) {
+          router.push(`/collection/${collectionId}`);
+        } else if (collectionId) {
+          router.push(`/collection/${collectionId}`);
         }
         break;
       case 'comment':
-        if (notification.data.stack_id) {
-          router.push(`/stack/${notification.data.stack_id}`);
+        if (collectionId) {
+          router.push(`/collection/${collectionId}`);
         }
         break;
       case 'clone':
-        if (notification.data.stack_id) {
-          router.push(`/stack/${notification.data.stack_id}`);
+        if (collectionId) {
+          router.push(`/collection/${collectionId}`);
         }
         break;
       default:
@@ -176,6 +180,7 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
 
   const formatNotificationText = (notification: Notification): string => {
     const actorName = notification.actor?.display_name || 'Someone';
+    const collectionTitle = notification.data.collection_title || notification.data.stack_title || 'your collection';
     
     switch (notification.type) {
       case 'follow':
@@ -188,15 +193,12 @@ export function NotificationDropdown({ user }: NotificationDropdownProps) {
             : 'your comment';
           return `${actorName} liked your ${commentContent} comment`;
         }
-        // Otherwise it's an upvote on a stack
-        const stackTitle = notification.data.stack_title || 'your stack';
-        return `${actorName} upvoted your ${stackTitle} stack`;
+        // Otherwise it's an upvote on a collection
+        return `${actorName} upvoted your ${collectionTitle} collection`;
       case 'comment':
-        const commentStackTitle = notification.data.stack_title || 'your stack';
-        return `${actorName} commented on your ${commentStackTitle} stack`;
+        return `${actorName} commented on your ${collectionTitle} collection`;
       case 'clone':
-        const cloneStackTitle = notification.data.stack_title || 'your stack';
-        return `${actorName} cloned your ${cloneStackTitle} stack`;
+        return `${actorName} cloned your ${collectionTitle} collection`;
       default:
         return 'New notification';
     }

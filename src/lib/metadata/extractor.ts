@@ -157,6 +157,10 @@ export async function fetchMetadata(url: string): Promise<MetadataResult> {
     clearTimeout(timeoutId);
     
     if (!response.ok) {
+      // For 403/404, throw a specific error that can be caught and handled silently
+      if (response.status === 403 || response.status === 404) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
@@ -167,6 +171,19 @@ export async function fetchMetadata(url: string): Promise<MetadataResult> {
     
     if (error.name === 'AbortError') {
       throw new Error('Request timeout');
+    }
+    
+    // Don't log expected network errors (DNS failures, connection resets, etc.)
+    // These are common for invalid URLs or network issues
+    const isExpectedError = 
+      error.code === 'ENOTFOUND' || 
+      error.code === 'EAI_AGAIN' || 
+      error.code === 'ECONNRESET' ||
+      error.code === 'ETIMEDOUT' ||
+      error.message?.includes('fetch failed');
+    
+    if (!isExpectedError) {
+      console.error('Unexpected error fetching metadata:', error);
     }
     
     throw error;

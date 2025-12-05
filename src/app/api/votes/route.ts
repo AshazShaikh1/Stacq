@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/api';
 import { createServiceClient } from '@/lib/supabase/api-service';
 import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } from '@/lib/rate-limit';
 import { checkShadowban } from '@/lib/anti-abuse/fingerprinting';
+import { logRankingEvent } from '@/lib/ranking/events';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,9 +50,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['stack', 'card'].includes(target_type)) {
+    // Accept 'stack', 'card', or 'collection' (normalize 'stack' and 'collection' to 'collection')
+    if (!['stack', 'card', 'collection'].includes(target_type)) {
       return NextResponse.json(
-        { error: 'target_type must be "stack" or "card"' },
+        { error: 'target_type must be "stack", "card", or "collection"' },
         { status: 400 }
       );
     }
@@ -83,8 +85,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const serviceClient = createServiceClient();
-
     // Check if vote already exists
     const { data: existingVote } = await serviceClient
       .from('votes')
@@ -93,6 +93,9 @@ export async function POST(request: NextRequest) {
       .eq('target_type', target_type)
       .eq('target_id', target_id)
       .maybeSingle();
+
+    // Normalize target_type (support legacy 'stack')
+    const normalizedTargetType = target_type === 'stack' ? 'collection' : target_type;
 
     if (existingVote) {
       // Remove vote (toggle off)
@@ -104,6 +107,9 @@ export async function POST(request: NextRequest) {
       // Update stats
       await updateVoteStats(serviceClient, target_type, target_id, -1);
 
+      // Log ranking event
+      await logRankingEvent(normalizedTargetType as 'card' | 'collection', target_id, 'unvote');
+
       return NextResponse.json({ success: true, voted: false });
     }
 
@@ -112,7 +118,7 @@ export async function POST(request: NextRequest) {
       .from('votes')
       .insert({
         user_id: user.id,
-        target_type,
+        target_type: normalizedTargetType,
         target_id,
       });
 
@@ -125,6 +131,9 @@ export async function POST(request: NextRequest) {
 
     // Update stats
     await updateVoteStats(serviceClient, target_type, target_id, 1);
+
+    // Log ranking event
+    await logRankingEvent(normalizedTargetType as 'card' | 'collection', target_id, 'upvote');
 
     return NextResponse.json({ success: true, voted: true });
   } catch (error) {

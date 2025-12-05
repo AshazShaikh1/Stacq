@@ -58,13 +58,14 @@ export function ReportsList({ initialReports, initialStatus }: ReportsListProps)
 
   const getTargetLink = (report: Report) => {
     switch (report.target_type) {
-      case 'stack':
-        return `/stack/${report.target_id}`;
+      case 'collection':
+      case 'stack': // Legacy support
+        return `/collection/${report.target_id}`;
       case 'card':
-        // Cards don't have a direct page, link to search or parent stack
+        // Cards don't have a direct page, link to search or parent collection
         return `/search?q=${encodeURIComponent(report.target_id)}&type=cards`;
       case 'comment':
-        // Comments are on stack pages, would need to fetch parent
+        // Comments are on collection pages, would need to fetch parent
         return '#';
       case 'user':
         return `/profile/${report.target_id}`;

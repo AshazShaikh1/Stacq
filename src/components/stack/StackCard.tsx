@@ -6,11 +6,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Dropdown } from '@/components/ui/Dropdown';
-import { EditStackModal } from '@/components/stack/EditStackModal';
+import { EditCollectionModal } from '@/components/collection/EditCollectionModal';
 import { createClient } from '@/lib/supabase/client';
 
-interface StackCardProps {
-  stack: {
+interface CollectionCardProps {
+  collection: {
     id: string;
     title: string;
     description?: string;
@@ -33,7 +33,7 @@ interface StackCardProps {
   };
 }
 
-export function StackCard({ stack }: StackCardProps) {
+export function CollectionCard({ collection }: CollectionCardProps) {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -46,7 +46,7 @@ export function StackCard({ stack }: StackCardProps) {
     });
   }, []);
 
-  const isOwner = user?.id === stack.owner_id;
+  const isOwner = user?.id === collection.owner_id;
 
   const handleEdit = () => {
     setIsEditModalOpen(true);
@@ -54,35 +54,35 @@ export function StackCard({ stack }: StackCardProps) {
 
   const handleDelete = async () => {
 
-    if (!confirm(`Are you sure you want to delete "${stack.title}"? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete "${collection.title}"? This action cannot be undone.`)) {
       return;
     }
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/stacks/${stack.id}`, {
+      const response = await fetch(`/api/collections/${collection.id}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to delete stack');
+        throw new Error(error.error || 'Failed to delete collection');
       }
 
       // Refresh the page to update the grid
       router.refresh();
     } catch (error: any) {
-      alert(error.message || 'Failed to delete stack');
+      alert(error.message || 'Failed to delete collection');
       setIsDeleting(false);
     }
   };
 
-  const displayName = stack.owner?.display_name || 'Unknown';
-  const username = stack.owner?.username || 'unknown';
+  const displayName = collection.owner?.display_name || 'Unknown';
+  const username = collection.owner?.username || 'unknown';
 
   return (
     <>
-      <Link href={`/stack/${stack.id}`}>
+      <Link href={`/collection/${collection.id}`}>
         <Card hover className="overflow-hidden h-full flex flex-col relative">
           {/* Dropdown Menu - Only show for owner */}
           {isOwner && (
@@ -114,11 +114,11 @@ export function StackCard({ stack }: StackCardProps) {
           )}
 
           {/* Cover Image */}
-          {stack.cover_image_url ? (
+          {collection.cover_image_url ? (
             <div className="relative w-full h-48 bg-gray-light">
               <Image
-                src={stack.cover_image_url}
-                alt={stack.title}
+                src={collection.cover_image_url}
+                alt={collection.title}
                 fill
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
@@ -134,13 +134,13 @@ export function StackCard({ stack }: StackCardProps) {
           <div className="p-4 flex-1 flex flex-col">
             {/* Title */}
             <h3 className="text-h2 font-semibold text-jet-dark mb-2 line-clamp-2">
-              {stack.title}
+              {collection.title}
             </h3>
 
             {/* Description */}
-            {stack.description && (
+            {collection.description && (
               <p className="text-small text-gray-muted mb-4 line-clamp-2 flex-1">
-                {stack.description}
+                {collection.description}
               </p>
             )}
 
@@ -148,9 +148,9 @@ export function StackCard({ stack }: StackCardProps) {
             <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-light">
               {/* Owner */}
               <div className="flex items-center gap-2">
-                {stack.owner?.avatar_url ? (
+                {collection.owner?.avatar_url ? (
                   <Image
-                    src={stack.owner.avatar_url}
+                    src={collection.owner.avatar_url}
                     alt={displayName}
                     width={24}
                     height={24}
@@ -168,11 +168,11 @@ export function StackCard({ stack }: StackCardProps) {
               <div className="flex items-center gap-3 text-small text-gray-muted">
                 <span className="flex items-center gap-1">
                   <span>👍</span>
-                  {stack.stats.upvotes || 0}
+                  {collection.stats.upvotes || 0}
                 </span>
                 <span className="flex items-center gap-1">
                   <span>💾</span>
-                  {stack.stats.saves || 0}
+                  {collection.stats.saves || 0}
                 </span>
               </div>
             </div>
@@ -181,17 +181,17 @@ export function StackCard({ stack }: StackCardProps) {
       </Link>
 
       {isEditModalOpen && (
-        <EditStackModal
+        <EditCollectionModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          stack={{
-            id: stack.id,
-            title: stack.title,
-            description: stack.description,
-            cover_image_url: stack.cover_image_url,
-            is_public: stack.is_public ?? true,
-            is_hidden: stack.is_hidden ?? false,
-            tags: stack.tags || [],
+          collection={{
+            id: collection.id,
+            title: collection.title,
+            description: collection.description,
+            cover_image_url: collection.cover_image_url,
+            is_public: collection.is_public ?? true,
+            is_hidden: collection.is_hidden ?? false,
+            tags: collection.tags || [],
           }}
         />
       )}
