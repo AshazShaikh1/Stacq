@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
 import { isFeatureEnabled } from '@/lib/feature-flags';
+import { cachedJsonResponse } from '@/lib/cache/headers';
+import { cached } from '@/lib/redis';
+import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
 
 /**
  * GET /api/feed
@@ -465,18 +468,11 @@ export async function GET(request: NextRequest) {
     const cardCount = finalFeed.filter(item => item.type === 'card').length;
     console.log(`[Feed API] Returning feed: ${collectionCount} collections, ${cardCount} cards, total: ${finalFeed.length}`);
 
-    // Add cache headers for better performance
-    return NextResponse.json(
-      {
-        feed: finalFeed,
-        total: dedupedResults.length,
-      },
-      {
-        headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-        },
-      }
-    );
+    // Return with cache headers
+    return cachedJsonResponse({
+      feed: finalFeed,
+      total: dedupedResults.length,
+    }, 'PUBLIC_READ');
   } catch (error: any) {
     console.error('Error in feed route:', error);
     console.error('Error details:', {

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
+import { cachedJsonResponse } from '@/lib/cache/headers';
+import { cached } from '@/lib/redis';
+import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
 
 export async function GET(request: NextRequest) {
   try {
@@ -115,7 +118,8 @@ export async function GET(request: NextRequest) {
       (results.cards?.length || 0) + 
       (results.users?.length || 0);
 
-    return NextResponse.json(results);
+    // Cache search results (longer TTL since search queries change less frequently)
+    return cachedJsonResponse(results, 'SEARCH');
   } catch (error) {
     console.error('Error in search route:', error);
     return NextResponse.json(

@@ -1,40 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FeedGrid } from '@/components/feed/FeedGrid';
 import { CollectionGridSkeleton } from '@/components/ui/Skeleton';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/swr/fetcher';
 
 export function FeedPage() {
-  const [feedItems, setFeedItems] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'both' | 'card' | 'collection'>('both');
-
-  useEffect(() => {
-    fetchFeed();
-  }, [filter]);
-
-  const fetchFeed = async () => {
-    setIsLoading(true);
-    try {
-      // Use cache: 'force-cache' for initial load, then 'no-store' for subsequent fetches
-      const cacheOption = feedItems.length === 0 ? 'force-cache' : 'no-store';
-      const response = await fetch(`/api/feed?type=${filter}&limit=50`, {
-        cache: cacheOption,
-        next: { revalidate: 60 }, // Revalidate every 60 seconds
-      });
-      const data = await response.json();
-      
-      if (response.ok) {
-        setFeedItems(data.feed || []);
-      } else {
-        console.error('Error fetching feed:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching feed:', error);
-    } finally {
-      setIsLoading(false);
+  
+  // Use SWR for client-side caching with automatic revalidation
+  const { data, error, isLoading } = useSWR(
+    `/api/feed?type=${filter}&limit=50`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
+      refreshInterval: 0,
     }
-  };
+  );
+
+  const feedItems = data?.feed || [];
 
   return (
     <div className="container mx-auto px-page py-section">
@@ -85,6 +72,10 @@ export function FeedPage() {
 
       {isLoading ? (
         <CollectionGridSkeleton count={12} />
+      ) : error ? (
+        <div className="text-center py-8 text-red-500">
+          Error loading feed. Please try again.
+        </div>
       ) : (
         <FeedGrid items={feedItems} />
       )}

@@ -1,40 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { FeedGrid } from '@/components/feed/FeedGrid';
 import { CollectionGridSkeleton } from '@/components/ui/Skeleton';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/swr/fetcher';
 
 export function HomeFeed() {
-  const [feedItems, setFeedItems] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchFeed();
-  }, []);
-
-  const fetchFeed = async () => {
-    setIsLoading(true);
-    try {
-      // Use the feed API endpoint with the new ranking algorithm
-      const response = await fetch('/api/feed?type=both&limit=50');
-      const data = await response.json();
-      
-      if (response.ok) {
-        setFeedItems(data.feed || []);
-      } else {
-        console.error('Error fetching feed:', data.error);
-      }
-    } catch (error) {
-      console.error('Error fetching feed:', error);
-    } finally {
-      setIsLoading(false);
+  // Use SWR for client-side caching
+  const { data, error, isLoading } = useSWR(
+    '/api/feed?type=both&limit=50',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 2000,
     }
-  };
+  );
 
   if (isLoading) {
     return <CollectionGridSkeleton count={12} />;
   }
 
-  return <FeedGrid items={feedItems} />;
+  if (error) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        Error loading feed. Please try again.
+      </div>
+    );
+  }
+
+  return <FeedGrid items={data?.feed || []} />;
 }
 

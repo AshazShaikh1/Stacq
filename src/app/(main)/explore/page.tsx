@@ -1,6 +1,8 @@
 import { FeedGrid } from '@/components/feed/FeedGrid';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { createClient } from '@/lib/supabase/server';
+import { cached } from '@/lib/redis';
+import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
 
 export default async function ExplorePage() {
   const supabase = await createClient();
@@ -13,102 +15,142 @@ export default async function ExplorePage() {
   const monthAgo = new Date(today);
   monthAgo.setMonth(monthAgo.getMonth() - 1);
 
-  // Fetch today's trending
-  const { data: todayCollections, error: todayError } = await supabase
-    .from('collections')
-    .select(`
-      id,
-      title,
-      description,
-      cover_image_url,
-      owner_id,
-      stats,
-      created_at,
-      owner:users!collections_owner_id_fkey (
-        username,
-        display_name,
-        avatar_url
-      ),
-      tags:collection_tags (
-        tag:tags (
+  // Fetch today's trending with caching
+  const todayResult = await cached(
+    getCacheKey('collections', { 
+      is_public: true, 
+      is_hidden: false,
+      created_at_gte: today.toISOString()
+    }, { 
+      order: 'created_at DESC',
+      limit: 20 
+    }),
+    async () => {
+      return await supabase
+        .from('collections')
+        .select(`
           id,
-          name
-        )
-      )
-    `)
-    .eq('is_public', true)
-    .eq('is_hidden', false)
-    .gte('created_at', today.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(20);
+          title,
+          description,
+          cover_image_url,
+          owner_id,
+          stats,
+          created_at,
+          owner:users!collections_owner_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          tags:collection_tags (
+            tag:tags (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('is_public', true)
+        .eq('is_hidden', false)
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(20);
+    },
+    CACHE_TTL.EXPLORE
+  );
+  const { data: todayCollections, error: todayError } = todayResult;
 
   if (todayError) {
     console.error('Error fetching today collections:', todayError);
   }
 
-  // Fetch last week's trending
-  const { data: weekCollections, error: weekError } = await supabase
-    .from('collections')
-    .select(`
-      id,
-      title,
-      description,
-      cover_image_url,
-      owner_id,
-      stats,
-      created_at,
-      owner:users!collections_owner_id_fkey (
-        username,
-        display_name,
-        avatar_url
-      ),
-      tags:collection_tags (
-        tag:tags (
+  // Fetch last week's trending with caching
+  const weekResult = await cached(
+    getCacheKey('collections', { 
+      is_public: true, 
+      is_hidden: false,
+      created_at_gte: weekAgo.toISOString(),
+      created_at_lt: today.toISOString()
+    }, { 
+      order: 'created_at DESC',
+      limit: 20 
+    }),
+    async () => {
+      return await supabase
+        .from('collections')
+        .select(`
           id,
-          name
-        )
-      )
-    `)
-    .eq('is_public', true)
-    .eq('is_hidden', false)
-    .gte('created_at', weekAgo.toISOString())
-    .lt('created_at', today.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(20);
+          title,
+          description,
+          cover_image_url,
+          owner_id,
+          stats,
+          created_at,
+          owner:users!collections_owner_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          tags:collection_tags (
+            tag:tags (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('is_public', true)
+        .eq('is_hidden', false)
+        .gte('created_at', weekAgo.toISOString())
+        .lt('created_at', today.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(20);
+    },
+    CACHE_TTL.EXPLORE
+  );
+  const { data: weekCollections, error: weekError } = weekResult;
 
-  if (weekError) {
-    console.error('Error fetching week collections:', weekError);
-  }
-
-  // Fetch this month's trending
-  const { data: monthCollections, error: monthError } = await supabase
-    .from('collections')
-    .select(`
-      id,
-      title,
-      description,
-      cover_image_url,
-      owner_id,
-      stats,
-      created_at,
-      owner:users!collections_owner_id_fkey (
-        username,
-        display_name,
-        avatar_url
-      ),
-      tags:collection_tags (
-        tag:tags (
+  // Fetch this month's trending with caching
+  const monthResult = await cached(
+    getCacheKey('collections', { 
+      is_public: true, 
+      is_hidden: false,
+      created_at_gte: monthAgo.toISOString(),
+      created_at_lt: weekAgo.toISOString()
+    }, { 
+      order: 'created_at DESC',
+      limit: 20 
+    }),
+    async () => {
+      return await supabase
+        .from('collections')
+        .select(`
           id,
-          name
-        )
-      )
-    `)
-    .eq('is_public', true)
-    .eq('is_hidden', false)
-    .gte('created_at', monthAgo.toISOString())
-    .lt('created_at', weekAgo.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(20);
+          title,
+          description,
+          cover_image_url,
+          owner_id,
+          stats,
+          created_at,
+          owner:users!collections_owner_id_fkey (
+            username,
+            display_name,
+            avatar_url
+          ),
+          tags:collection_tags (
+            tag:tags (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('is_public', true)
+        .eq('is_hidden', false)
+        .gte('created_at', monthAgo.toISOString())
+        .lt('created_at', weekAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(20);
+    },
+    CACHE_TTL.EXPLORE
+  );
+  const { data: monthCollections, error: monthError } = monthResult;
 
   if (monthError) {
     console.error('Error fetching month collections:', monthError);

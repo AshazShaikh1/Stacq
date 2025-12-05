@@ -77,7 +77,8 @@ export async function GET(request: NextRequest) {
     // Build threaded structure (max 4 levels)
     const threadedComments = buildThreadedComments(comments || []);
 
-    return NextResponse.json({ comments: threadedComments });
+    // Comments are user-specific but can be cached briefly
+    return cachedJsonResponse({ comments: threadedComments }, 'USER_SPECIFIC');
   } catch (error) {
     console.error('Error in comments GET route:', error);
     return NextResponse.json(

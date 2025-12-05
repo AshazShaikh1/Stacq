@@ -12,18 +12,45 @@ jobs:
     steps:
       - name: Trigger Metadata Worker
         env:
-          APP_URL: ${{ secrets.APP_URL || 'https://your-domain.com' }}
+          APP_URL: ${{ secrets.APP_URL }}
           WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
         run: |
-          if [ -z "$WORKER_API_KEY" ]; then
-            echo "Warning: WORKER_API_KEY not set. Worker may require authentication."
-            curl -X POST $APP_URL/api/workers/fetch-metadata \
-              -H "Content-Type: application/json" \
-              -d '{"limit": 50}'
-          else
-            curl -X POST $APP_URL/api/workers/fetch-metadata \
-              -H "Content-Type: application/json" \
-              -H "x-api-key: $WORKER_API_KEY" \
-              -d '{"limit": 50}'
+          if [ -z "$APP_URL" ]; then
+            echo "Error: APP_URL secret is not set"
+            echo "Please set APP_URL in GitHub repository settings > Secrets"
+            exit 1
           fi
-
+          
+          echo "Fetching metadata for cards..."
+          
+          # Build curl command
+          CURL_CMD="curl -s -w \"\n%{http_code}\" -X POST"
+          CURL_CMD="$CURL_CMD -H \"Content-Type: application/json\""
+          
+          if [ -n "$WORKER_API_KEY" ]; then
+            CURL_CMD="$CURL_CMD -H \"x-api-key: $WORKER_API_KEY\""
+            echo "Using API key authentication"
+          else
+            echo "Warning: WORKER_API_KEY not set. Worker may require authentication."
+          fi
+          
+          CURL_CMD="$CURL_CMD -d '{\"limit\": 50}'"
+          CURL_CMD="$CURL_CMD \"$APP_URL/api/workers/fetch-metadata\""
+          
+          response=$(eval $CURL_CMD)
+          
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          
+          echo "Response code: $http_code"
+          echo "Response body: $body"
+          
+          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
+            echo "✅ Metadata fetch completed successfully"
+            exit 0
+          else
+            echo "❌ Failed to fetch metadata (HTTP $http_code)"
+            echo "Response: $body"
+            # Don't exit with error - metadata fetch failures are non-critical
+            exit 0
+          fi
