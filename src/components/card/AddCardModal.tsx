@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/contexts/ToastContext';
+import { Link2, Image as ImageIcon, FileText, Upload } from 'lucide-react';
 
 interface AddCardModalProps {
   isOpen: boolean;
@@ -14,14 +16,13 @@ interface AddCardModalProps {
   collectionId?: string;
 }
 
+type CardType = 'link' | 'image' | 'doc' | null;
+
 export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCardModalProps) {
   const id = collectionId || stackId;
-  
-  if (!id) {
-    console.error('AddCardModal: Either collectionId or stackId must be provided');
-    return null;
-  }
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
+  const [cardType, setCardType] = useState<CardType>(null);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -29,6 +30,11 @@ export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCard
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  if (!id) {
+    console.error('AddCardModal: Either collectionId or stackId must be provided');
+    return null;
+  }
 
   const handleUrlChange = async (newUrl: string) => {
     setUrl(newUrl);
@@ -113,27 +119,110 @@ export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCard
       setTitle('');
       setDescription('');
       setThumbnailUrl('');
+      setCardType(null);
+      showSuccess('Card added successfully!');
       onClose();
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       setError('An unexpected error occurred');
+      showError(err.message || 'Failed to add card');
       setIsLoading(false);
     }
   };
 
+  // Reset card type when modal closes
+  const handleClose = () => {
+    setCardType(null);
+    setUrl('');
+    setTitle('');
+    setDescription('');
+    setThumbnailUrl('');
+    setError('');
+    onClose();
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Card" size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* URL Input */}
-        <Input
-          type="url"
-          label="URL"
-          placeholder="https://example.com"
-          value={url}
-          onChange={(e) => handleUrlChange(e.target.value)}
-          required
-          disabled={isLoading}
-        />
+    <Modal isOpen={isOpen} onClose={handleClose} title="Add Card" size="md">
+      {!cardType ? (
+        // Card Type Selection
+        <div className="space-y-4">
+          <p className="text-body text-gray-muted mb-4">Choose the type of card you want to add:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button
+              type="button"
+              onClick={() => setCardType('link')}
+              className="p-6 rounded-lg border-2 border-gray-light hover:border-emerald transition-all duration-200 text-left group"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-lg bg-emerald/10 flex items-center justify-center mb-3 group-hover:bg-emerald/20 transition-colors">
+                  <Link2 className="w-6 h-6 text-emerald" />
+                </div>
+                <h3 className="font-semibold text-jet-dark mb-1">Link</h3>
+                <p className="text-sm text-gray-muted">Add a web link</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCardType('image')}
+              className="p-6 rounded-lg border-2 border-gray-light hover:border-emerald transition-all duration-200 text-left group"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-lg bg-emerald/10 flex items-center justify-center mb-3 group-hover:bg-emerald/20 transition-colors">
+                  <ImageIcon className="w-6 h-6 text-emerald" />
+                </div>
+                <h3 className="font-semibold text-jet-dark mb-1">Image</h3>
+                <p className="text-sm text-gray-muted">Add an image</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCardType('doc')}
+              className="p-6 rounded-lg border-2 border-gray-light hover:border-emerald transition-all duration-200 text-left group"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-12 h-12 rounded-lg bg-emerald/10 flex items-center justify-center mb-3 group-hover:bg-emerald/20 transition-colors">
+                  <FileText className="w-6 h-6 text-emerald" />
+                </div>
+                <h3 className="font-semibold text-jet-dark mb-1">Document</h3>
+                <p className="text-sm text-gray-muted">Add a document</p>
+              </div>
+            </button>
+          </div>
+          <div className="flex justify-end pt-4">
+            <Button type="button" variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Card Type Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              {cardType === 'link' && <Link2 className="w-5 h-5 text-emerald" />}
+              {cardType === 'image' && <ImageIcon className="w-5 h-5 text-emerald" />}
+              {cardType === 'doc' && <FileText className="w-5 h-5 text-emerald" />}
+              <span className="font-semibold text-jet-dark capitalize">{cardType}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCardType(null)}
+              className="text-sm text-gray-muted hover:text-jet-dark"
+            >
+              Change type
+            </button>
+          </div>
+
+          {/* URL Input */}
+          <Input
+            type={cardType === 'image' ? 'url' : cardType === 'doc' ? 'url' : 'url'}
+            label={cardType === 'image' ? 'Image URL' : cardType === 'doc' ? 'Document URL' : 'URL'}
+            placeholder={cardType === 'image' ? 'https://example.com/image.jpg' : cardType === 'doc' ? 'https://example.com/document.pdf' : 'https://example.com'}
+            value={url}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            required
+            disabled={isLoading}
+          />
 
         {/* Loading State */}
         {isFetchingMetadata && (
@@ -204,7 +293,7 @@ export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCard
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isLoading}
           >
             Cancel
@@ -218,6 +307,7 @@ export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCard
           </Button>
         </div>
       </form>
+      )}
     </Modal>
   );
 }

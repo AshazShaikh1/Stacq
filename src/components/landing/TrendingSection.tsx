@@ -71,7 +71,7 @@ export function TrendingSection({ collections, cards }: TrendingSectionProps) {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <FeedGrid items={trendingItems} />
+          <FeedGrid items={trendingItems} hideHoverButtons={true} />
         </motion.div>
       ) : (
         <div className="text-center py-12">

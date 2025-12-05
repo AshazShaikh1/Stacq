@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { BasicInfoStep } from '@/components/stack/BasicInfoStep';
 import { OptionalDetailsStep } from '@/components/stack/OptionalDetailsStep';
 import { BecomeStackerModal } from '@/components/auth/BecomeStackerModal';
+import { useToast } from '@/contexts/ToastContext';
 import type { CollectionVisibility } from '@/types';
 
 interface CreateCollectionModalProps {
@@ -20,6 +21,7 @@ type Step = 'basic' | 'details';
 
 export function CreateCollectionModal({ isOpen, onClose, fromCardCreation = false, onCollectionCreated }: CreateCollectionModalProps) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [step, setStep] = useState<Step>('basic');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -211,12 +213,16 @@ export function CreateCollectionModal({ isOpen, onClose, fromCardCreation = fals
         return;
       }
       
+      // Show success toast
+      showSuccess('Collection created successfully!');
+      
       // Otherwise, close modal and navigate
       onClose();
       router.push(`/collection/${collection.slug || collection.id}`);
       router.refresh();
-    } catch (err) {
+    } catch (err: any) {
       setError('An unexpected error occurred');
+      showError(err.message || 'Failed to create collection');
       setIsLoading(false);
     }
   };

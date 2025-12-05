@@ -173,14 +173,20 @@ export async function fetchMetadata(url: string): Promise<MetadataResult> {
       throw new Error('Request timeout');
     }
     
-    // Don't log expected network errors (DNS failures, connection resets, etc.)
-    // These are common for invalid URLs or network issues
+    // Don't log expected network errors (DNS failures, connection resets, 403/404, etc.)
+    // These are common for invalid URLs, network issues, or sites blocking scrapers
     const isExpectedError = 
       error.code === 'ENOTFOUND' || 
       error.code === 'EAI_AGAIN' || 
       error.code === 'ECONNRESET' ||
       error.code === 'ETIMEDOUT' ||
-      error.message?.includes('fetch failed');
+      error.message?.includes('fetch failed') ||
+      error.message?.includes('HTTP 403') ||
+      error.message?.includes('HTTP 404') ||
+      error.message?.includes('403') ||
+      error.message?.includes('404') ||
+      error.message?.includes('Forbidden') ||
+      error.message?.includes('Not Found');
     
     if (!isExpectedError) {
       console.error('Unexpected error fetching metadata:', error);

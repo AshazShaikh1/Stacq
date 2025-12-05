@@ -9,7 +9,19 @@ import { fetchMetadata } from '@/lib/metadata/extractor';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    // Safely parse JSON body
+    let body;
+    try {
+      body = await request.json();
+    } catch (jsonError) {
+      // Handle empty or invalid JSON
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    
+    const { url } = body || {};
 
     if (!url) {
       return NextResponse.json(

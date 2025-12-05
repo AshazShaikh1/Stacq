@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { useToast } from '@/contexts/ToastContext';
 
 interface UserProfile {
   id: string;
@@ -22,7 +24,9 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { showSuccess } = useToast();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -66,6 +70,7 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    showSuccess('Logged out successfully');
     window.location.href = '/';
   };
 
@@ -99,6 +104,18 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
                 width={40}
                 height={40}
                 className="rounded-full"
+                unoptimized
+                onError={(e) => {
+                  // Hide image on error and show initials
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent && !parent.querySelector('.fallback-initials')) {
+                    const fallback = document.createElement('div');
+                    fallback.className = 'fallback-initials w-full h-full flex items-center justify-center text-jet font-semibold text-sm';
+                    fallback.textContent = initials;
+                    parent.appendChild(fallback);
+                  }
+                }}
               />
             ) : (
               initials
@@ -147,15 +164,36 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-light/50 transition-colors cursor-pointer"
               >
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 relative">
                   {profile.avatar_url ? (
-                    <Image
-                      src={profile.avatar_url}
-                      alt={profile.display_name}
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    />
+                    <>
+                      <Image
+                        src={profile.avatar_url}
+                        alt={profile.display_name}
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                        unoptimized
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const fallback = parent.querySelector('.fallback-initials') as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            } else {
+                              const div = document.createElement('div');
+                              div.className = 'fallback-initials w-10 h-10 rounded-full bg-jet/20 flex items-center justify-center text-jet font-semibold text-sm';
+                              div.textContent = initials;
+                              parent.appendChild(div);
+                            }
+                          }
+                        }}
+                      />
+                      <div className="fallback-initials hidden w-10 h-10 rounded-full bg-jet/20 flex items-center justify-center text-jet font-semibold text-sm">
+                        {initials}
+                      </div>
+                    </>
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-jet/20 flex items-center justify-center text-jet font-semibold text-sm">
                       {initials}
@@ -197,7 +235,7 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
-                  handleSignOut();
+                  setShowLogoutConfirm(true);
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-light transition-colors text-left"
               >
@@ -224,6 +262,18 @@ export function AccountDropdown({ user }: AccountDropdownProps) {
           </div>
         </>
       )}
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleSignOut}
+        title="Confirm Logout"
+        message="Are you sure you want to log out?"
+        confirmText="Log out"
+        cancelText="Cancel"
+        variant="default"
+      />
     </div>
   );
 }

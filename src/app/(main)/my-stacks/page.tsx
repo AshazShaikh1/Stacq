@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { FeedGrid } from '@/components/feed/FeedGrid';
-import { EmptyCollectionsState } from '@/components/ui/EmptyState';
+import { EmptyStacksState } from '@/components/ui/EmptyState';
 import { redirect } from 'next/navigation';
 
 export default async function MyStacksPage() {
@@ -47,7 +47,7 @@ export default async function MyStacksPage() {
       {collections && collections.length > 0 ? (
         <FeedGrid collections={collections} />
       ) : (
-        <EmptyCollectionsState />
+        <EmptyStacksState />
       )}
     </div>
   );

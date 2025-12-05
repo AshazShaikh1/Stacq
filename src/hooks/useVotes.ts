@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/analytics';
+import { useToast } from '@/contexts/ToastContext';
 
 interface UseVotesOptions {
   targetType: 'collection' | 'card' | 'stack'; // 'stack' for legacy support
@@ -16,6 +17,7 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
   const [voted, setVoted] = useState(initialVoted);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showError, showInfo } = useToast();
 
   const fetchVoteCount = useCallback(async () => {
     const supabase = createClient();
@@ -85,9 +87,10 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      if (confirm('Please sign in to upvote. Would you like to sign in now?')) {
+      showInfo('Please sign in to upvote');
+      setTimeout(() => {
         window.location.href = '/login';
-      }
+      }, 1500);
       return;
     }
 
@@ -110,15 +113,16 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
 
       if (!response.ok) {
         if (response.status === 401) {
-          if (confirm('Please sign in to upvote. Would you like to sign in now?')) {
+          showInfo('Please sign in to upvote');
+          setTimeout(() => {
             window.location.href = '/login';
-          }
+          }, 1500);
           return;
         }
         if (response.status === 403) {
           // Show user-friendly error message for 403 (account age or shadowban)
           const errorMsg = data.error || 'Unable to vote. Your account may be too new or restricted.';
-          alert(errorMsg);
+          showError(errorMsg);
           setError(errorMsg);
           return;
         }

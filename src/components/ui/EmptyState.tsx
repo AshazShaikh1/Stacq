@@ -150,3 +150,7 @@ export function EmptySavedCollectionsState() {
   return <EmptySavedStacksState />;
 }
 
+export function EmptyCollectionsState() {
+  return <EmptyStacksState />;
+}
+

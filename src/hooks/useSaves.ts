@@ -104,9 +104,10 @@ export function useSaves({
     
     if (!user) {
       const itemName = type === 'card' ? 'cards' : 'collections';
-      if (confirm(`Please sign in to save ${itemName}. Would you like to sign in now?`)) {
+      showInfo(`Please sign in to save ${itemName}`);
+      setTimeout(() => {
         window.location.href = '/login';
-      }
+      }, 1500);
       return;
     }
 
@@ -133,9 +134,10 @@ export function useSaves({
       if (!response.ok) {
         if (response.status === 401) {
           const itemName = type === 'card' ? 'cards' : 'collections';
-          if (confirm(`Please sign in to save ${itemName}. Would you like to sign in now?`)) {
+          showInfo(`Please sign in to save ${itemName}`);
+          setTimeout(() => {
             window.location.href = '/login';
-          }
+          }, 1500);
           return;
         }
         throw new Error(data.error || 'Failed to save');

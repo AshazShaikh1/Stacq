@@ -24,7 +24,7 @@ interface Comment {
 }
 
 interface UseCommentsOptions {
-  targetType: 'stack' | 'card';
+  targetType: 'stack' | 'card' | 'collection';
   targetId: string;
 }
 

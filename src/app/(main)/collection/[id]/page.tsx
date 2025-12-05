@@ -228,6 +228,13 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
         isOwner={isOwner}
       />
 
+      {/* Add Card Button - Show for owners when cards exist */}
+      {isOwner && cards.length > 0 && (
+        <div className="mb-6 flex justify-end">
+          <AddCardButton collectionId={collection.id} />
+        </div>
+      )}
+
       {/* Cards Grid */}
       {cards.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

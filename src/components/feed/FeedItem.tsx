@@ -48,11 +48,12 @@ interface FeedItemProps {
     };
     attributions?: Attribution[];
   };
+  hideHoverButtons?: boolean;
 }
 
-export function FeedItem({ item }: FeedItemProps) {
+export function FeedItem({ item, hideHoverButtons = false }: FeedItemProps) {
   if (item.type === 'collection') {
-    return <CollectionCard collection={item as any} />;
+    return <CollectionCard collection={item as any} hideHoverButtons={hideHoverButtons} />;
   }
 
   // Card item - use the new Pinterest-style CardPreview component
@@ -77,6 +78,7 @@ export function FeedItem({ item }: FeedItemProps) {
         metadata,
         created_by: (card as any).created_by, // Pass created_by for edit permissions
       }}
+      hideHoverButtons={hideHoverButtons}
     />
   );
 }

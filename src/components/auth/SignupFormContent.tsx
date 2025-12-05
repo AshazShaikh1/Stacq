@@ -283,7 +283,8 @@ export function SignupFormContent({
           trackEvent.signup(authData.user.id, 'email');
           // Show success message
           setError('');
-          alert('Account created! Please check your email to confirm your account before signing in.');
+          // Note: Toast will be shown by the parent component if useToast is available
+          // For now, we'll show a success state that the parent can handle
           if (isFullPage) {
             router.push('/login');
           } else {

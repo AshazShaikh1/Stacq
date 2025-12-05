@@ -5,6 +5,7 @@ import { rateLimiters, checkRateLimit, getRateLimitIdentifier, getIpAddress } fr
 import { moderateComment } from '@/lib/moderation/comment-moderation';
 import { logRankingEvent } from '@/lib/ranking/events';
 import { checkShadowban } from '@/lib/anti-abuse/fingerprinting';
+import { cachedJsonResponse } from '@/lib/cache/headers';
 
 // GET: Fetch comments for a target (stack or card)
 export async function GET(request: NextRequest) {
@@ -21,9 +22,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!['stack', 'card'].includes(targetType)) {
+    // Accept 'collection' (new) or 'stack' (legacy) for backward compatibility
+    const normalizedTargetType = targetType === 'collection' ? 'collection' : targetType === 'stack' ? 'collection' : targetType;
+    
+    if (!['stack', 'card', 'collection'].includes(targetType)) {
       return NextResponse.json(
-        { error: 'target_type must be "stack" or "card"' },
+        { error: 'target_type must be "collection", "stack", or "card"' },
         { status: 400 }
       );
     }
@@ -54,7 +58,7 @@ export async function GET(request: NextRequest) {
           avatar_url
         )
       `)
-      .eq('target_type', targetType)
+      .eq('target_type', normalizedTargetType)
       .eq('target_id', targetId)
       .eq('deleted', false);
 
@@ -144,9 +148,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['stack', 'card'].includes(target_type)) {
+    // Accept 'collection' (new) or 'stack' (legacy) for backward compatibility
+    const normalizedTargetType = target_type === 'collection' ? 'collection' : target_type === 'stack' ? 'collection' : target_type;
+    
+    if (!['stack', 'card', 'collection'].includes(target_type)) {
       return NextResponse.json(
-        { error: 'target_type must be "stack" or "card"' },
+        { error: 'target_type must be "collection", "stack", or "card"' },
         { status: 400 }
       );
     }
@@ -193,7 +200,7 @@ export async function POST(request: NextRequest) {
       .from('comments')
       .insert({
         user_id: user.id,
-        target_type,
+        target_type: normalizedTargetType,
         target_id,
         parent_id: parent_id || null,
         content: content.trim(),
@@ -231,10 +238,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Update comment stats
-    await updateCommentStats(serviceClient, target_type, target_id, 1);
+    await updateCommentStats(serviceClient, normalizedTargetType, target_id, 1);
 
-    // Log ranking event (normalize target_type)
-    const normalizedTargetType = target_type === 'stack' ? 'collection' : target_type;
+    // Log ranking event
     await logRankingEvent(normalizedTargetType as 'card' | 'collection', target_id, 'comment');
 
     return NextResponse.json({ comment: newComment });
@@ -317,7 +323,8 @@ async function updateCommentStats(
   targetId: string,
   delta: number
 ) {
-  const table = targetType === 'stack' ? 'stacks' : 'cards';
+  // Normalize targetType: 'stack' or 'collection' both map to 'collections' table
+  const table = (targetType === 'stack' || targetType === 'collection') ? 'collections' : 'cards';
   
   // Get current stats
   const { data: target } = await serviceClient

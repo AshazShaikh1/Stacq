@@ -34,6 +34,11 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
     setSelectedOption(null);
   };
 
+  const handleCollectionCreated = () => {
+    setIsCollectionModalOpen(false);
+    setSelectedOption(null);
+  };
+
   const handleCardModalClose = () => {
     setIsCardModalOpen(false);
     setSelectedOption(null);
@@ -118,7 +123,11 @@ export function CreateOptionsModal({ isOpen, onClose }: CreateOptionsModalProps)
 
       {isCollectionModalOpen && (
         <Suspense fallback={<ModalFallback />}>
-          <CreateCollectionModal isOpen={isCollectionModalOpen} onClose={handleCollectionModalClose} />
+          <CreateCollectionModal 
+            isOpen={isCollectionModalOpen} 
+            onClose={handleCollectionModalClose}
+            onCollectionCreated={handleCollectionCreated}
+          />
         </Suspense>
       )}
 

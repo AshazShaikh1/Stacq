@@ -39,9 +39,9 @@ export function ToastItem({ toast, onRemove }: ToastProps) {
   };
 
   const typeStyles = {
-    success: 'bg-green-500 text-white',
-    error: 'bg-red-500 text-white',
-    info: 'bg-blue-500 text-white',
+    success: 'bg-emerald text-white shadow-button',
+    error: 'bg-red-500 text-white shadow-lg',
+    info: 'bg-blue-500 text-white shadow-lg',
   };
 
   return (

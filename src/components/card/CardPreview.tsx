@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useSaves } from '@/hooks/useSaves';
 import { useVotes } from '@/hooks/useVotes';
 import { generatePlaceholderImage } from '@/lib/utils/placeholder';
+import { useToast } from '@/contexts/ToastContext';
 
 interface CardPreviewProps {
   card: {
@@ -32,10 +33,12 @@ interface CardPreviewProps {
   collectionId?: string;
   collectionOwnerId?: string;
   addedBy?: string;
+  hideHoverButtons?: boolean;
 }
 
-export function CardPreview({ card, stackId, stackOwnerId, collectionId, collectionOwnerId, addedBy }: CardPreviewProps) {
+export function CardPreview({ card, stackId, stackOwnerId, collectionId, collectionOwnerId, addedBy, hideHoverButtons = false }: CardPreviewProps) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [user, setUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -126,11 +129,12 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
         throw new Error(data.error || 'Failed to delete card');
       }
 
+      showSuccess('Card deleted successfully');
       // Force page reload to update the grid
       window.location.reload();
     } catch (error: any) {
       console.error('Error deleting card:', error);
-      alert(error.message || 'Failed to delete card');
+      showError(error.message || 'Failed to delete card');
       setIsDeleting(false);
     }
   };
@@ -219,8 +223,11 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
       });
     } else {
       // Fallback: copy to clipboard
-      navigator.clipboard.writeText(card.canonical_url);
-      alert('Link copied to clipboard!');
+      navigator.clipboard.writeText(card.canonical_url).then(() => {
+        showSuccess('Link copied to clipboard!');
+      }).catch(() => {
+        showError('Failed to copy link');
+      });
     }
   };
 
@@ -274,6 +281,7 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
               )}
 
               {/* Top Right - Share and More Options (shown on hover) */}
+              {!hideHoverButtons && (
               <div 
                 className={`absolute top-3 right-3 z-20 flex gap-2 transition-opacity duration-200 ${
                   isHovered ? 'opacity-100' : 'opacity-0'
@@ -327,8 +335,10 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                   </div>
                 )}
               </div>
+              )}
 
               {/* Bottom Left - Engagement Metrics (shown on hover) */}
+              {!hideHoverButtons && (
               <div 
                 className={`absolute bottom-3 left-3 z-20 flex items-center gap-3 transition-opacity duration-200 ${
                   isHovered ? 'opacity-100' : 'opacity-0'
@@ -375,9 +385,10 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                   <span>{saveCount}</span>
                 </button>
               </div>
+              )}
 
               {/* Bottom Right - Save Button (prominent, shown on hover) */}
-              {user && (
+              {!hideHoverButtons && user && (
                 <div 
                   className={`absolute bottom-3 right-3 z-20 transition-opacity duration-200 ${
                     isHovered ? 'opacity-100' : 'opacity-0'

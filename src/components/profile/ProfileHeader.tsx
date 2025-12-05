@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { useFollow } from '@/hooks/useFollow';
 import { ProfilePictureEditor } from './ProfilePictureEditor';
 import { EditProfileModal } from './EditProfileModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { useToast } from '@/contexts/ToastContext';
 import { useState } from 'react';
 
 interface ProfileHeaderProps {
@@ -29,9 +31,11 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderProps) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [displayName, setDisplayName] = useState(profile.display_name);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const stats = profile.stats || {
     collections_created: 0,
     collections_saved: 0,
@@ -58,6 +62,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    showSuccess('Logged out successfully');
     // Redirect to home page which will show landing page for signed out users
     window.location.href = '/';
   };
@@ -81,7 +86,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(profileUrl);
-        alert('Link copied to clipboard!');
+        showSuccess('Link copied to clipboard!');
       } catch (err) {
         console.error('Failed to copy:', err);
         // Fallback for older browsers
@@ -91,7 +96,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        alert('Link copied to clipboard!');
+        showSuccess('Link copied to clipboard!');
       }
     }
   };
@@ -116,6 +121,11 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
               width={120}
               height={120}
               className="rounded-full border-4 border-white shadow-card"
+              unoptimized
+              onError={(e) => {
+                // Hide image on error
+                e.currentTarget.style.display = 'none';
+              }}
             />
           ) : (
             <div className="w-30 h-30 rounded-full bg-gradient-to-br from-jet/20 to-gray-light border-4 border-white shadow-card flex items-center justify-center text-4xl font-bold text-jet">
@@ -146,7 +156,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={handleSignOut}
+                  onClick={() => setShowLogoutConfirm(true)}
                   className="text-red-600 hover:text-red-700 hover:border-red-600"
                 >
                   Sign out
@@ -217,6 +227,20 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
           currentUsername={profile.username}
           userId={profile.id}
           onUpdate={setDisplayName}
+        />
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {isOwnProfile && (
+        <ConfirmModal
+          isOpen={showLogoutConfirm}
+          onClose={() => setShowLogoutConfirm(false)}
+          onConfirm={handleSignOut}
+          title="Confirm Sign Out"
+          message="Are you sure you want to sign out?"
+          confirmText="Sign out"
+          cancelText="Cancel"
+          variant="default"
         />
       )}
     </div>

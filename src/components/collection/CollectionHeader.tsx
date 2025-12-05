@@ -7,11 +7,13 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { EditCollectionModal } from '@/components/collection/EditCollectionModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useVotes } from '@/hooks/useVotes';
 import { useSaves } from '@/hooks/useSaves';
 import { ReportButton } from '@/components/report/ReportButton';
 import { createClient } from '@/lib/supabase/client';
 import { trackEvent } from '@/lib/analytics';
+import { useToast } from '@/contexts/ToastContext';
 
 interface CollectionHeaderProps {
   collection: {
@@ -43,6 +45,7 @@ interface CollectionHeaderProps {
 
 export function CollectionHeader({ collection, isOwner = false }: CollectionHeaderProps) {
   const router = useRouter();
+  const { showSuccess, showError } = useToast();
   const { upvotes, voted, isLoading, error, toggleVote } = useVotes({
     targetType: 'collection',
     targetId: collection.id,
@@ -58,6 +61,7 @@ export function CollectionHeader({ collection, isOwner = false }: CollectionHead
   const [user, setUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -66,27 +70,39 @@ export function CollectionHeader({ collection, isOwner = false }: CollectionHead
     });
   }, []);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({
-        title: collection.title,
-        text: collection.description,
-        url: window.location.href,
-      });
+      try {
+        await navigator.share({
+          title: collection.title,
+          text: collection.description,
+          url: window.location.href,
+        });
+      } catch (err) {
+        // User cancelled or error occurred
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error sharing:', err);
+        }
+      }
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        showSuccess('Link copied to clipboard!');
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        showError('Failed to copy link');
+      }
     }
   };
 
   const handleClone = async () => {
     if (!user) {
-      alert('Please sign in to clone collections');
+      showError('Please sign in to clone collections');
       return;
     }
 
     if (isOwner) {
-      alert('You cannot clone your own collection');
+      showError('You cannot clone your own collection');
       return;
     }
 
@@ -111,22 +127,19 @@ export function CollectionHeader({ collection, isOwner = false }: CollectionHead
 
       // Redirect to the cloned collection
       if (data.collection?.id) {
+        showSuccess('Collection cloned successfully!');
         window.location.href = `/collection/${data.collection.id}`;
       } else {
-        alert('Collection cloned successfully!');
+        showSuccess('Collection cloned successfully!');
         // Refresh the page to show updated state
         window.location.reload();
       }
     } catch (error: any) {
-      alert(error.message || 'Failed to clone collection. Please try again.');
+      showError(error.message || 'Failed to clone collection. Please try again.');
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete "${collection.title}"? This action cannot be undone.`)) {
-      return;
-    }
-
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/collections/${collection.id}`, {
@@ -138,10 +151,11 @@ export function CollectionHeader({ collection, isOwner = false }: CollectionHead
         throw new Error(error.error || 'Failed to delete collection');
       }
 
+      showSuccess('Collection deleted successfully');
       // Redirect to home page after deletion
       router.push('/');
     } catch (error: any) {
-      alert(error.message || 'Failed to delete collection');
+      showError(error.message || 'Failed to delete collection');
       setIsDeleting(false);
     }
   };
@@ -286,7 +300,7 @@ export function CollectionHeader({ collection, isOwner = false }: CollectionHead
               },
               {
                 label: 'Delete',
-                onClick: handleDelete,
+                onClick: () => setShowDeleteConfirm(true),
                 variant: 'danger',
                 icon: (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -337,6 +351,20 @@ export function CollectionHeader({ collection, isOwner = false }: CollectionHead
             is_hidden: collection.is_hidden ?? false,
             tags: collection.tags || [],
           }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isOwner && (
+        <ConfirmModal
+          isOpen={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+          onConfirm={handleDelete}
+          title="Delete Collection"
+          message={`Are you sure you want to delete "${collection.title}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
         />
       )}
     </div>

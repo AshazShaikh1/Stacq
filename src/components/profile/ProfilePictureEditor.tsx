@@ -31,6 +31,11 @@ export function ProfilePictureEditor({
             width={120}
             height={120}
             className="rounded-full border-4 border-white shadow-card"
+            unoptimized
+            onError={(e) => {
+              // Hide image on error
+              e.currentTarget.style.display = 'none';
+            }}
           />
         ) : (
           <div className="w-30 h-30 rounded-full bg-gradient-to-br from-jet/20 to-gray-light border-4 border-white shadow-card flex items-center justify-center text-4xl font-bold text-jet">

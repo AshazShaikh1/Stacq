@@ -13,9 +13,10 @@ interface FeedGridProps {
   collections?: any[]; // Legacy support (stacks)
   isLoading?: boolean;
   onCreateCollection?: () => void;
+  hideHoverButtons?: boolean; // Hide hover buttons (for landing page)
 }
 
-export function FeedGrid({ items, collections, isLoading, onCreateCollection }: FeedGridProps) {
+export function FeedGrid({ items, collections, isLoading, onCreateCollection, hideHoverButtons = false }: FeedGridProps) {
   if (isLoading) {
     return <CollectionGridSkeleton count={12} />;
   }
@@ -38,7 +39,7 @@ export function FeedGrid({ items, collections, isLoading, onCreateCollection }: 
       }}
     >
       {feedItems.map((item) => (
-        <FeedItem key={`${item.type}-${item.id}`} item={item} />
+        <FeedItem key={`${item.type}-${item.id}`} item={item} hideHoverButtons={hideHoverButtons} />
       ))}
     </div>
   );
