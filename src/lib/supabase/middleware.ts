@@ -61,11 +61,12 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/signup', '/reset-password', '/explore', '/stack']
+  const publicRoutes = ['/', '/login', '/signup', '/reset-password', '/explore', '/stack', '/auth/callback']
   const isPublicRoute = publicRoutes.some(route => 
     request.nextUrl.pathname === route || 
     request.nextUrl.pathname.startsWith('/explore') ||
-    request.nextUrl.pathname.startsWith('/stack/')
+    request.nextUrl.pathname.startsWith('/stack/') ||
+    request.nextUrl.pathname.startsWith('/auth/callback')
   )
 
   // Redirect authenticated users away from auth pages
@@ -82,7 +83,8 @@ export async function updateSession(request: NextRequest) {
   // Allow public routes and auth pages
   if (isPublicRoute || request.nextUrl.pathname.startsWith('/login') || 
       request.nextUrl.pathname.startsWith('/signup') || 
-      request.nextUrl.pathname.startsWith('/reset-password')) {
+      request.nextUrl.pathname.startsWith('/reset-password') ||
+      request.nextUrl.pathname.startsWith('/auth/callback')) {
     return supabaseResponse
   }
 
