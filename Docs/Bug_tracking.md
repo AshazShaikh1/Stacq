@@ -348,3 +348,84 @@ AMAZON_AFFILIATE_TAG=your-tag-20
 - Affiliate processing is completely optional and fails silently
 - No impact on card creation if affiliate processing fails
 - Works for all major Amazon domains (US, UK, CA, DE, FR, ES, IT, JP, IN, AU, BR, MX, etc.)
+
+## Supabase Security Warnings - Database Functions and Configuration
+**Date:** 2025-01-XX  
+**Status:** ✅ Resolved (Migration Created)  
+**Severity:** High
+
+### Description
+Supabase database linter detected multiple security warnings:
+1. **Function Search Path Mutable** - 27 functions without `search_path` set (security vulnerability)
+2. **Extensions in Public Schema** - `pg_trgm` and `citext` installed in public schema
+3. **Materialized Views Accessible via API** - `explore_ranking` and `explore_ranking_items` accessible
+4. **Leaked Password Protection Disabled** - Auth configuration issue
+
+### Root Cause
+1. **Function Search Path**: PostgreSQL functions without explicit `search_path` are vulnerable to search_path injection attacks where malicious users can manipulate the search_path to execute unauthorized code.
+2. **Extensions in Public**: Extensions installed in public schema can be accessed by all users, which is a security best practice violation.
+3. **Materialized Views**: Views are intentionally public for explore/feed functionality, but should be documented.
+4. **Password Protection**: Feature not enabled in Supabase Auth dashboard.
+
+### Solution
+1. **Created Migration 037** (`supabase/migrations/037_fix_security_warnings.sql`):
+   - Fixed all 27 functions by adding `SET search_path = public, pg_temp` or `SET search_path = ''`
+   - For SECURITY DEFINER functions: Used `SET search_path = public, pg_temp`
+   - For regular functions: Used `SET search_path = public, pg_temp`
+   - Functions fixed include:
+     - Helper functions: `is_admin`, `owns_stack`, `account_age_hours`
+     - User management: `handle_new_user`, `handle_email_verification`
+     - Follow system: `get_follower_count`, `get_following_count`, `is_following`
+     - Stacker system: `is_stacker`, `can_publish`
+     - Ranking system: `refresh_explore_ranking`, `refresh_explore_ranking_items`, `get_ranking_config`, `log_ranking_event`, `get_ranking_signals`
+     - Card/Collection functions: `update_card_counters`, `sync_card_visibility_on_collection_change`, `update_cards_search_vector`, `update_collections_search_vector`
+     - And more...
+
+2. **Extensions in Public Schema**:
+   - Created `extensions` schema for future migration
+   - Documented that moving extensions requires careful migration (breaking change)
+   - Current state acceptable as extensions in public are common, but should be addressed in future
+
+3. **Materialized Views**:
+   - Added comments documenting intentional public access
+   - Views are needed for public explore/feed functionality
+   - If restriction needed in future, add RLS policies or move to different schema
+
+4. **Leaked Password Protection**:
+   - Manual configuration required in Supabase Dashboard
+   - Path: Auth > Policies > Password Security > Enable "Leaked Password Protection"
+   - Reference: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+
+### Migration Details
+- **Migration File**: `supabase/migrations/037_fix_security_warnings.sql`
+- **Functions Fixed**: 27+ functions
+- **Breaking Changes**: None (all fixes are additive/secure)
+- **Rollback**: Migration can be reverted if needed
+
+### Manual Steps Required
+1. **Run Migration**: Apply migration 037 to production database
+2. **Enable Password Protection**: 
+   - Go to Supabase Dashboard > Auth > Policies > Password Security
+   - Enable "Leaked Password Protection"
+   - This checks passwords against HaveIBeenPwned.org database
+
+### Verification
+After migration, verify:
+- ✅ All functions have `search_path` set
+- ✅ Functions work correctly (no broken functionality)
+- ✅ Materialized views still accessible (if needed)
+- ✅ Password protection enabled in dashboard
+
+### Prevention
+- Always set `search_path` when creating new database functions
+- Use `SET search_path = public, pg_temp` for SECURITY DEFINER functions
+- Use `SET search_path = public, pg_temp` for regular functions
+- Install extensions in separate schema when possible
+- Document intentionally public views/tables
+- Enable all security features in Supabase Auth dashboard
+
+### References
+- Supabase Database Linter: https://supabase.com/docs/guides/database/database-linter
+- Function Search Path Security: https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable
+- Extension Security: https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public
+- Password Security: https://supabase.com/docs/guides/auth/password-security
