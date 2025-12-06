@@ -3,6 +3,8 @@ import "./globals.css";
 import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { SuppressMixpanelErrors } from "@/components/SuppressMixpanelErrors";
 
 export const metadata: Metadata = {
   title: {
@@ -63,10 +65,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <SuppressMixpanelErrors />
         <ErrorBoundary>
-          <ToastProvider>
-            <LayoutWrapper>{children}</LayoutWrapper>
-          </ToastProvider>
+          <AuthProvider>
+            <ToastProvider>
+              <LayoutWrapper>{children}</LayoutWrapper>
+            </ToastProvider>
+          </AuthProvider>
         </ErrorBoundary>
       </body>
     </html>

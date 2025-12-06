@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
+import { createServiceClient } from '@/lib/supabase/api-service';
 
 // GET collection
 export async function GET(
@@ -148,7 +149,47 @@ export async function DELETE(
       );
     }
 
-    // Delete collection (cascade will handle related records)
+    // Get all cards in this collection before deleting
+    const { data: collectionCards } = await supabase
+      .from('collection_cards')
+      .select('card_id')
+      .eq('collection_id', id);
+
+    // Use service client to delete cards that are only in this collection
+    const serviceClient = createServiceClient();
+
+    if (collectionCards && collectionCards.length > 0) {
+      const cardIds = collectionCards.map(cc => cc.card_id);
+
+      // For each card, check if it's only in this collection
+      for (const cardId of cardIds) {
+        // Check if card is in other collections
+        const { data: otherCollections } = await serviceClient
+          .from('collection_cards')
+          .select('id')
+          .eq('card_id', cardId)
+          .neq('collection_id', id)
+          .limit(1);
+
+        // Also check legacy stacks
+        const { data: legacyStacks } = await serviceClient
+          .from('stack_cards')
+          .select('id')
+          .eq('card_id', cardId)
+          .limit(1);
+
+        // If card is not in any other collection or stack, delete it
+        if ((!otherCollections || otherCollections.length === 0) &&
+            (!legacyStacks || legacyStacks.length === 0)) {
+          await serviceClient
+            .from('cards')
+            .delete()
+            .eq('id', cardId);
+        }
+      }
+    }
+
+    // Delete collection (cascade will handle collection_cards relationships)
     const { error: deleteError } = await supabase
       .from('collections')
       .delete()
@@ -257,6 +298,10 @@ export async function PATCH(
         { status: 500 }
       );
     }
+
+    // Note: Card visibility is automatically synced via database trigger
+    // (see migration 036_sync_card_visibility_with_collection.sql)
+    // The trigger handles updating cards' is_public when collection visibility changes
 
     return NextResponse.json({ collection: updatedCollection });
   } catch (error) {

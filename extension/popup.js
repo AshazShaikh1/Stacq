@@ -4,9 +4,6 @@ const API_BASE = "http://localhost:3000"; // Change to your production URL
 
 // State
 let currentTab = null;
-let selectedCardType = null;
-let selectedFile = null;
-let filePreview = null;
 
 // DOM Elements
 const loadingEl = document.getElementById('loading');
@@ -48,7 +45,6 @@ const fileDescriptionInput = document.getElementById('file-description');
 const fileTypesHint = document.getElementById('file-types');
 const saveFileBtn = document.getElementById('save-file-btn');
 const browseFileBtn = document.getElementById('browse-file-btn');
-// Image method toggle elements (may not exist if not on image step)
 const imageMethodToggle = document.getElementById('image-method-toggle');
 const toggleFileBtn = document.getElementById('toggle-file');
 const toggleUrlBtn = document.getElementById('toggle-url');
@@ -107,8 +103,6 @@ typeOptions.forEach(option => {
 });
 
 function selectCardType(type) {
-  selectedCardType = type;
-  
   if (type === 'link') {
     showLinkDetails();
   } else if (type === 'image' || type === 'docs') {
@@ -204,7 +198,7 @@ function showFileDetails(type) {
 }
 
 function setupFileUpload(type) {
-  // Browse button - separate from drop zone to prevent accidental clicks
+  // Browse button
   if (browseFileBtn) {
     browseFileBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -215,9 +209,6 @@ function setupFileUpload(type) {
     });
   }
 
-  // Remove click handler from drop content - only drag-and-drop works there
-  // This prevents accidental clicks that might close the popup
-
   // File input change
   if (fileInput) {
     fileInput.addEventListener('change', async (e) => {
@@ -225,39 +216,12 @@ function setupFileUpload(type) {
       e.stopPropagation();
       const file = e.target.files?.[0];
       if (file) {
-        // Save file data to storage before popup might close
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const fileData = {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            data: reader.result,
-            cardType: type,
-            timestamp: Date.now()
-          };
-          
-          // Save to chrome storage in case popup closes
-          try {
-            await chrome.storage.local.set({ pendingFile: fileData });
-          } catch (err) {
-            console.log('Storage not available:', err);
-          }
-          
-          handleFileSelect(file, type);
-        };
-        
-        if (type === 'image') {
-          reader.readAsDataURL(file);
-        } else {
-          // For docs, we'll handle it differently
-          reader.readAsDataURL(file);
-        }
+        handleFileSelect(file, type);
       }
     });
   }
 
-  // Drag and drop - this works without closing the popup
+  // Drag and drop
   if (dropZone) {
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -288,12 +252,14 @@ function setupFileUpload(type) {
     removeFileBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      selectedFile = null;
-      filePreview = null;
       if (fileInput) fileInput.value = '';
       if (fileTitleInput) fileTitleInput.value = '';
       if (fileDescriptionInput) fileDescriptionInput.value = '';
-      updateFilePreview();
+      if (filePreviewEl) {
+        filePreviewEl.style.display = 'none';
+        if (filePreviewContent) filePreviewContent.innerHTML = '';
+      }
+      if (dropContent) dropContent.style.display = 'flex';
       if (saveFileBtn) saveFileBtn.style.display = 'none';
     });
   }
@@ -306,12 +272,9 @@ function setupFileUpload(type) {
   }
 }
 
-// Track if toggle listeners are already set up
 let toggleListenersSetup = false;
 
 function setupImageMethodToggle() {
-  // Toggle between file upload and URL input
-  // Only set up if elements exist and not already set up
   if (!toggleFileBtn || !toggleUrlBtn || toggleListenersSetup) {
     return;
   }
@@ -324,11 +287,8 @@ function setupImageMethodToggle() {
     toggleUrlBtn.classList.remove('active');
     if (dropZone) dropZone.style.display = 'block';
     if (imageUrlSection) imageUrlSection.style.display = 'none';
-    // Clear URL input
     if (imageUrlInput) imageUrlInput.value = '';
     if (imageUrlPreview) imageUrlPreview.style.display = 'none';
-    selectedFile = null;
-    filePreview = null;
     updateSaveButton();
   });
 
@@ -338,10 +298,7 @@ function setupImageMethodToggle() {
     toggleFileBtn.classList.remove('active');
     if (dropZone) dropZone.style.display = 'none';
     if (imageUrlSection) imageUrlSection.style.display = 'block';
-    // Clear file input
     if (fileInput) fileInput.value = '';
-    selectedFile = null;
-    filePreview = null;
     if (filePreviewEl) filePreviewEl.style.display = 'none';
     if (dropContent) dropContent.style.display = 'flex';
     updateSaveButton();
@@ -405,52 +362,26 @@ function handleFileSelect(file, type) {
     }
   }
 
-  selectedFile = file;
-  
   // Create preview
   if (type === 'image') {
     const reader = new FileReader();
     reader.onloadend = () => {
-      filePreview = reader.result;
-      updateFilePreview();
+      if (filePreviewContent) {
+        filePreviewContent.innerHTML = `
+          <img src="${reader.result}" alt="Preview" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px;" />
+          <div class="file-preview-info">
+            <p class="file-preview-name">${file.name}</p>
+            <p class="file-preview-size">${formatFileSize(file.size)}</p>
+          </div>
+        `;
+      }
+      if (filePreviewEl) filePreviewEl.style.display = 'block';
+      if (dropContent) dropContent.style.display = 'none';
+      updateSaveButton();
     };
     reader.readAsDataURL(file);
   } else {
-    filePreview = null;
-    updateFilePreview();
-  }
-
-  // Auto-fill title if empty
-  if (fileTitleInput && !fileTitleInput.value) {
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-    fileTitleInput.value = nameWithoutExt;
-  }
-
-  updateSaveButton();
-}
-
-function updateFilePreview() {
-  if (!selectedFile) {
-    if (dropContent) dropContent.style.display = 'flex';
-    if (filePreviewEl) filePreviewEl.style.display = 'none';
-    return;
-  }
-
-  if (dropContent) dropContent.style.display = 'none';
-  if (filePreviewEl) filePreviewEl.style.display = 'block';
-
-  if (filePreviewContent) {
-    if (filePreview) {
-      // Image preview
-      filePreviewContent.innerHTML = `
-        <img src="${filePreview}" alt="Preview" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px;" />
-        <div class="file-preview-info">
-          <p class="file-preview-name">${selectedFile.name}</p>
-          <p class="file-preview-size">${formatFileSize(selectedFile.size)}</p>
-        </div>
-      `;
-    } else {
-      // Document preview
+    if (filePreviewContent) {
       filePreviewContent.innerHTML = `
         <div class="file-preview-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -458,11 +389,20 @@ function updateFilePreview() {
           </svg>
         </div>
         <div class="file-preview-info">
-          <p class="file-preview-name">${selectedFile.name}</p>
-          <p class="file-preview-size">${formatFileSize(selectedFile.size)}</p>
+          <p class="file-preview-name">${file.name}</p>
+          <p class="file-preview-size">${formatFileSize(file.size)}</p>
         </div>
       `;
     }
+    if (filePreviewEl) filePreviewEl.style.display = 'block';
+    if (dropContent) dropContent.style.display = 'none';
+    updateSaveButton();
+  }
+
+  // Auto-fill title if empty
+  if (fileTitleInput && !fileTitleInput.value) {
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+    fileTitleInput.value = nameWithoutExt;
   }
 }
 
@@ -474,7 +414,7 @@ function formatFileSize(bytes) {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
-async function updateSaveButton() {
+function updateSaveButton() {
   if (!fileTitleInput || !fileTitleInput.value.trim()) {
     if (saveFileBtn) saveFileBtn.style.display = 'none';
     return;
@@ -484,7 +424,7 @@ async function updateSaveButton() {
   const isUsingUrl = toggleUrlBtn && toggleUrlBtn.classList.contains('active');
   const imageUrl = isUsingUrl && imageUrlInput ? imageUrlInput.value.trim() : null;
 
-  if (!selectedFile && !imageUrl) {
+  if (!fileInput?.files?.[0] && !imageUrl) {
     if (saveFileBtn) saveFileBtn.style.display = 'none';
     return;
   }
@@ -492,54 +432,38 @@ async function updateSaveButton() {
   if (saveFileBtn) {
     saveFileBtn.style.display = 'flex';
     
-    let fileData;
-    
     if (isUsingUrl && imageUrl) {
       // Using image URL
-      fileData = {
-        cardType: selectedCardType,
+      const fileData = {
+        cardType: 'image',
         title: fileTitleInput.value.trim(),
         description: fileDescriptionInput.value.trim() || undefined,
         imageUrl: imageUrl,
       };
       
-      // Encode and set href immediately for URL
       const encodedData = encodeURIComponent(JSON.stringify(fileData));
       const saveUrl = `${API_BASE}/save?file=${encodedData}`;
       saveFileBtn.href = saveUrl;
-    } else if (selectedFile) {
+    } else if (fileInput?.files?.[0]) {
       // Using file upload
+      const file = fileInput.files[0];
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const fileDataUrl = reader.result;
+      reader.onloadend = () => {
         const fileData = {
-          name: selectedFile.name,
-          type: selectedFile.type,
-          size: selectedFile.size,
-          data: fileDataUrl,
-          cardType: selectedCardType,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: reader.result,
+          cardType: 'image',
           title: fileTitleInput.value.trim(),
           description: fileDescriptionInput.value.trim() || undefined,
         };
         
-        // Save to chrome storage as backup
-        try {
-          await chrome.storage.local.set({ pendingFileData: fileData });
-        } catch (err) {
-          console.log('Storage error:', err);
-        }
-        
-        // Encode file data in URL
         const encodedData = encodeURIComponent(JSON.stringify(fileData));
         const saveUrl = `${API_BASE}/save?file=${encodedData}`;
         saveFileBtn.href = saveUrl;
       };
-      
-      reader.readAsDataURL(selectedFile);
-      return; // Exit early, will set href in onloadend
-    } else {
-      if (saveFileBtn) saveFileBtn.style.display = 'none';
-      return;
+      reader.readAsDataURL(file);
     }
   }
 }
@@ -554,12 +478,14 @@ if (backBtnLink) {
 if (backBtnFile) {
   backBtnFile.addEventListener('click', () => {
     showTypeSelection();
-    selectedFile = null;
-    filePreview = null;
     if (fileInput) fileInput.value = '';
     if (fileTitleInput) fileTitleInput.value = '';
     if (fileDescriptionInput) fileDescriptionInput.value = '';
-    updateFilePreview();
+    if (filePreviewEl) {
+      filePreviewEl.style.display = 'none';
+      if (filePreviewContent) filePreviewContent.innerHTML = '';
+    }
+    if (dropContent) dropContent.style.display = 'flex';
   });
 }
 

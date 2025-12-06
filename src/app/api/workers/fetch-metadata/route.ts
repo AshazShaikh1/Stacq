@@ -105,7 +105,48 @@ export async function POST(request: NextRequest) {
         }
         
         // Store metadata in metadata JSONB field
-        updateData.metadata = metadata.metadata;
+        updateData.metadata = {
+          ...metadata.metadata,
+          ...(card.metadata || {}), // Preserve existing metadata (like affiliate_url)
+        };
+        
+        // Process Amazon affiliate links in the background (non-blocking)
+        // This ensures metadata processing doesn't slow down
+        const processAffiliateLink = async () => {
+          try {
+            const { isAmazonLink, addAmazonAffiliateTag, getAmazonAffiliateConfig } = await import('@/lib/affiliate/amazon');
+            const config = getAmazonAffiliateConfig();
+            
+            if (config && isAmazonLink(card.canonical_url)) {
+              const affiliateUrl = addAmazonAffiliateTag(card.canonical_url, config);
+              
+              if (affiliateUrl && affiliateUrl !== card.canonical_url) {
+                // Update with affiliate URL
+                await supabase
+                  .from('cards')
+                  .update({ 
+                    metadata: { 
+                      ...updateData.metadata,
+                      affiliate_url: affiliateUrl,
+                      is_amazon_product: true,
+                    } 
+                  })
+                  .eq('id', card.id)
+                  .then(() => {
+                    // Silently succeed
+                  })
+                  .catch(() => {
+                    // Silently fail
+                  });
+              }
+            }
+          } catch (error) {
+            // Silently fail - affiliate processing is optional
+          }
+        };
+        
+        // Start affiliate processing but don't wait
+        processAffiliateLink();
         
         // Upload thumbnail if we have one and card doesn't
         if (metadata.thumbnailUrl && !card.thumbnail_url && card.created_by) {

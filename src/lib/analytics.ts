@@ -28,22 +28,75 @@ class Analytics {
     // Initialize Mixpanel if token is provided
     if (this.mixpanelToken && typeof window !== 'undefined') {
       try {
+        // Suppress Mixpanel console errors when blocked by ad blockers
+        this.suppressMixpanelErrors();
+        
         // Dynamic import to avoid loading Mixpanel in SSR
         const mixpanelModule = await import('mixpanel-browser');
         const mixpanel = mixpanelModule.default || mixpanelModule;
         if (mixpanel && typeof mixpanel.init === 'function') {
           mixpanel.init(this.mixpanelToken, {
-            debug: process.env.NODE_ENV === 'development',
+            debug: false, // Disable debug to reduce console noise
             track_pageview: false, // We'll track pageviews manually
             persistence: 'localStorage',
+            ignore_dnt: true, // Respect user privacy but don't fail
           });
           this.isInitialized = true;
         }
       } catch (error) {
-        console.warn('Failed to initialize Mixpanel:', error);
-        // Continue without Mixpanel - analytics will just log to console
+        // Silently fail - analytics is optional and often blocked by ad blockers
+        // Don't log errors to avoid console noise
       }
     }
+  }
+
+  /**
+   * Suppress Mixpanel console errors when blocked by ad blockers
+   */
+  private suppressMixpanelErrors() {
+    if (typeof window === 'undefined') return;
+
+    // Only set up error suppression once
+    if ((window as any).__mixpanelErrorSuppressed) return;
+    (window as any).__mixpanelErrorSuppressed = true;
+
+    // Override console.error to filter out Mixpanel errors
+    const originalError = console.error;
+    console.error = (...args: any[]) => {
+      const message = String(args[0] || '');
+      const fullMessage = args.map(String).join(' ');
+      
+      // Filter out Mixpanel-related errors
+      if (
+        message.includes('Mixpanel error') ||
+        message.includes('Bad HTTP status: 0') ||
+        fullMessage.includes('api-js.mixpanel.com') ||
+        fullMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
+        fullMessage.includes('mixpanel.com/track') ||
+        fullMessage.includes('mixpanel.com/engage')
+      ) {
+        // Silently ignore - these are expected when ad blockers are active
+        return;
+      }
+      // Call original console.error for other errors
+      originalError.apply(console, args);
+    };
+
+    // Also suppress network errors in console
+    const originalWarn = console.warn;
+    console.warn = (...args: any[]) => {
+      const message = String(args[0] || '');
+      const fullMessage = args.map(String).join(' ');
+      
+      // Filter out Mixpanel warnings
+      if (
+        fullMessage.includes('Mixpanel') ||
+        fullMessage.includes('mixpanel.com')
+      ) {
+        return;
+      }
+      originalWarn.apply(console, args);
+    };
   }
 
   /**
@@ -63,22 +116,33 @@ class Analytics {
         const mixpanelModule = await import('mixpanel-browser');
         const mixpanel = mixpanelModule.default || mixpanelModule;
         if (mixpanel && typeof mixpanel.track === 'function') {
-          mixpanel.track(event.name, {
-            ...event.properties,
-            timestamp: new Date().toISOString(),
-          });
+          // Wrap in try-catch to handle network errors silently
+          try {
+            mixpanel.track(event.name, {
+              ...event.properties,
+              timestamp: new Date().toISOString(),
+            });
 
-          // Identify user if userId is provided
-          if (event.userId && typeof mixpanel.identify === 'function') {
-            mixpanel.identify(event.userId);
+            // Identify user if userId is provided
+            if (event.userId && typeof mixpanel.identify === 'function') {
+              mixpanel.identify(event.userId);
+            }
+          } catch (trackError: any) {
+            // Silently ignore network errors (often caused by ad blockers)
+            // Only log in development if it's not a network/blocking error
+            if (
+              process.env.NODE_ENV === 'development' &&
+              trackError?.message &&
+              !trackError.message.includes('network') &&
+              !trackError.message.includes('blocked')
+            ) {
+              console.warn('Failed to track event:', trackError);
+            }
           }
         }
       }
     } catch (error) {
-      // Silently fail - analytics is optional
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Failed to track event:', error);
-      }
+      // Silently fail - analytics is optional and often blocked
     }
   }
 
@@ -93,17 +157,18 @@ class Analytics {
         const mixpanelModule = await import('mixpanel-browser');
         const mixpanel = mixpanelModule.default || mixpanelModule;
         if (mixpanel && typeof mixpanel.identify === 'function') {
-          mixpanel.identify(userId);
-          if (traits && mixpanel.people && typeof mixpanel.people.set === 'function') {
-            mixpanel.people.set(traits);
+          try {
+            mixpanel.identify(userId);
+            if (traits && mixpanel.people && typeof mixpanel.people.set === 'function') {
+              mixpanel.people.set(traits);
+            }
+          } catch (identifyError) {
+            // Silently ignore - often blocked by ad blockers
           }
         }
       }
     } catch (error) {
       // Silently fail - analytics is optional
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Failed to identify user:', error);
-      }
     }
   }
 
@@ -131,14 +196,15 @@ class Analytics {
         const mixpanelModule = await import('mixpanel-browser');
         const mixpanel = mixpanelModule.default || mixpanelModule;
         if (mixpanel && mixpanel.people && typeof mixpanel.people.set === 'function') {
-          mixpanel.people.set(properties);
+          try {
+            mixpanel.people.set(properties);
+          } catch (setError) {
+            // Silently ignore - often blocked by ad blockers
+          }
         }
       }
     } catch (error) {
       // Silently fail - analytics is optional
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Failed to set user properties:', error);
-      }
     }
   }
 }

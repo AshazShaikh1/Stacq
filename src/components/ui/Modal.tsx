@@ -63,12 +63,17 @@ export const Modal: React.FC<ModalProps> = ({
       }
     };
 
-    if (isOpen) {
+    if (isOpen && modalRef.current) {
       document.addEventListener('keydown', handleEscape);
-      // Trap focus within modal
-      const cleanup = focusManagement.trapFocus(modalRef.current);
+      // Trap focus within modal - delay to avoid interfering with typing
+      let cleanup: (() => void) | undefined;
+      const timer = setTimeout(() => {
+        cleanup = focusManagement.trapFocus(modalRef.current);
+      }, 100);
+      
       return () => {
         document.removeEventListener('keydown', handleEscape);
+        clearTimeout(timer);
         if (cleanup) cleanup();
       };
     }

@@ -2,8 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { HomeIcon, FeedIcon, ExploreIcon, CreateIcon, MyStacksIcon } from '@/components/ui/Icons';
 
 // Saved icon (bookmark)
@@ -19,24 +19,8 @@ import { CreateOptionsModal } from '@/components/create/CreateOptionsModal';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const navItems = [
     { href: '/', icon: HomeIcon, label: 'Home', auth: false },

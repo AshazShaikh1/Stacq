@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { Button } from '@/components/ui/Button';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { EditCardModal } from '@/components/card/EditCardModal';
 import { createClient } from '@/lib/supabase/client';
 import { useSaves } from '@/hooks/useSaves';
@@ -25,6 +26,8 @@ interface CardPreviewProps {
     metadata?: {
       saves?: number;
       upvotes?: number;
+      affiliate_url?: string;
+      is_amazon_product?: boolean;
     };
     created_by?: string; // Card creator ID
   };
@@ -41,6 +44,7 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
   const { showSuccess, showError } = useToast();
   const [user, setUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   
@@ -105,18 +109,24 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete this card? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteClick = () => {
+    setIsDeleteConfirmOpen(true);
+  };
 
+  const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      // If card is in a collection/stack, include that in the query
+      // If card is in a collection/stack, include that in the query to remove it
+      // Otherwise, delete the card entirely (only if user created it)
       let url = `/api/cards/${card.id}`;
       if (id) {
-        const queryParam = collectionId ? `collection_id=${collectionId}` : `stack_id=${stackId}`;
-        url += `?${queryParam}`;
+        // Prefer collection_id over stack_id
+        const queryParam = collectionId 
+          ? `collection_id=${collectionId}` 
+          : (stackId ? `stack_id=${stackId}` : '');
+        if (queryParam) {
+          url += `?${queryParam}`;
+        }
       }
       
       const response = await fetch(url, {
@@ -129,7 +139,7 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
         throw new Error(data.error || 'Failed to delete card');
       }
 
-      showSuccess('Card deleted successfully');
+      showSuccess(id ? 'Card removed from collection successfully' : 'Card deleted successfully');
       // Force page reload to update the grid
       window.location.reload();
     } catch (error: any) {
@@ -217,13 +227,14 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
       navigator.share({
         title: card.title || 'Check this out',
         text: card.description || '',
-        url: card.canonical_url,
+        url: (card.metadata as any)?.affiliate_url || card.canonical_url,
       }).catch(() => {
         // User cancelled or error occurred
       });
     } else {
       // Fallback: copy to clipboard
-      navigator.clipboard.writeText(card.canonical_url).then(() => {
+      const urlToCopy = (card.metadata as any)?.affiliate_url || card.canonical_url;
+      navigator.clipboard.writeText(urlToCopy).then(() => {
         showSuccess('Link copied to clipboard!');
       }).catch(() => {
         showError('Failed to copy link');
@@ -238,7 +249,11 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <Link href={card.canonical_url} target="_blank" rel="noopener noreferrer">
+        <Link 
+          href={(card.metadata as any)?.affiliate_url || card.canonical_url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+        >
           <Card hover={false} className="overflow-hidden h-full flex flex-col bg-white rounded-card border border-gray-light shadow-card hover:shadow-cardHover transition-all duration-300">
             {/* Image Section with Overlays - Variable height based on card ID */}
             <div 
@@ -315,7 +330,7 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
                         },
                         {
                           label: 'Delete',
-                          onClick: handleDelete,
+                          onClick: handleDeleteClick,
                           variant: 'danger',
                           icon: (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,6 +465,21 @@ export function CardPreview({ card, stackId, stackOwnerId, collectionId, collect
           }}
         />
       )}
+
+      <ConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title={id ? 'Remove Card from Collection' : 'Delete Card'}
+        message={
+          id
+            ? 'Are you sure you want to remove this card from the collection? This action cannot be undone.'
+            : 'Are you sure you want to delete this card permanently? This action cannot be undone.'
+        }
+        confirmText={id ? 'Remove' : 'Delete'}
+        cancelText="Cancel"
+        variant="danger"
+      />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
+import { createServiceClient } from '@/lib/supabase/api-service';
 
 // GET card by ID
 export async function GET(
@@ -60,7 +61,7 @@ export async function GET(
   }
 }
 
-// DELETE card from database
+// DELETE card from collection/stack or remove from collection/stack
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -68,7 +69,8 @@ export async function DELETE(
   try {
     const { id } = await params;
     const searchParams = request.nextUrl.searchParams;
-    const stackId = searchParams.get('stack_id');
+    const collectionId = searchParams.get('collection_id');
+    const stackId = searchParams.get('stack_id'); // Legacy support
     
     const supabase = await createClient(request);
 
@@ -78,27 +80,6 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
-      );
-    }
-
-    if (!stackId) {
-      return NextResponse.json(
-        { error: 'stack_id is required' },
-        { status: 400 }
-      );
-    }
-
-    // Check if stack exists and user is owner
-    const { data: stack, error: stackError } = await supabase
-      .from('stacks')
-      .select('id, owner_id')
-      .eq('id', stackId)
-      .single();
-
-    if (stackError || !stack) {
-      return NextResponse.json(
-        { error: 'Stack not found' },
-        { status: 404 }
       );
     }
 
@@ -116,49 +97,172 @@ export async function DELETE(
       );
     }
 
-    // Check if user is stack owner or the one who added the card
-    const { data: stackCard } = await supabase
-      .from('stack_cards')
-      .select('added_by')
-      .eq('stack_id', stackId)
-      .eq('card_id', id)
-      .maybeSingle();
+    // If collection_id or stack_id is provided, remove card from collection/stack
+    // Otherwise, delete the card entirely (only if user created it)
+    if (collectionId || stackId) {
+      const targetId = collectionId || stackId;
+      const isCollection = !!collectionId;
+      const tableName = isCollection ? 'collection_cards' : 'stack_cards';
+      const idField = isCollection ? 'collection_id' : 'stack_id';
+      const collectionTable = isCollection ? 'collections' : 'stacks';
 
-    const canDelete = stack.owner_id === user.id || 
-                      (stackCard && stackCard.added_by === user.id) ||
-                      (card.created_by === user.id);
+      // Check if collection/stack exists and user is owner
+      const { data: collection, error: collectionError } = await supabase
+        .from(collectionTable)
+        .select('id, owner_id')
+        .eq('id', targetId)
+        .single();
 
-    if (!canDelete) {
-      return NextResponse.json(
-        { error: 'Forbidden: You can only delete cards from your own stacks, cards you added, or cards you created' },
-        { status: 403 }
-      );
+      if (collectionError || !collection) {
+        return NextResponse.json(
+          { error: `${isCollection ? 'Collection' : 'Stack'} not found` },
+          { status: 404 }
+        );
+      }
+
+      // Check if user is collection/stack owner or the one who added the card
+      const { data: mapping } = await supabase
+        .from(tableName)
+        .select('added_by')
+        .eq(idField, targetId)
+        .eq('card_id', id)
+        .maybeSingle();
+
+      const isOwner = collection.owner_id === user.id;
+      const canDelete = isOwner || 
+                        (mapping && mapping.added_by === user.id) ||
+                        (card.created_by === user.id);
+
+      if (!canDelete) {
+        return NextResponse.json(
+          { error: `Forbidden: You can only remove cards from your own ${isCollection ? 'collections' : 'stacks'}, cards you added, or cards you created` },
+          { status: 403 }
+        );
+      }
+
+      // If user is the collection/stack owner, delete the card from DB
+      // Otherwise, just remove it from the collection/stack
+      if (isOwner) {
+        // Check if card is in other collections/stacks
+        const { data: otherMappings } = await supabase
+          .from(isCollection ? 'collection_cards' : 'stack_cards')
+          .select('id')
+          .eq('card_id', id)
+          .neq(idField, targetId)
+          .limit(1);
+
+        // If card is only in this collection/stack, delete it from DB
+        // Otherwise, just remove it from this collection/stack
+        if (!otherMappings || otherMappings.length === 0) {
+          // Also check legacy table if needed
+          const legacyTable = isCollection ? 'stack_cards' : 'collection_cards';
+          const legacyField = isCollection ? 'stack_id' : 'collection_id';
+          
+          const { data: legacyMappings } = await supabase
+            .from(legacyTable)
+            .select('id')
+            .eq('card_id', id)
+            .limit(1);
+
+          if (!legacyMappings || legacyMappings.length === 0) {
+            // Card is not in any other collection/stack - delete from DB
+            // Use service client to bypass RLS for deletion
+            const serviceClient = createServiceClient();
+            const { error: deleteError } = await serviceClient
+              .from('cards')
+              .delete()
+              .eq('id', id);
+
+            if (deleteError) {
+              console.error('Error deleting card:', deleteError);
+              return NextResponse.json(
+                { error: 'Failed to delete card' },
+                { status: 500 }
+              );
+            }
+
+            return NextResponse.json({ 
+              success: true, 
+              message: 'Card deleted successfully' 
+            });
+          }
+        }
+
+        // Card is in other collections/stacks - just remove from this one
+        const { error: removeError } = await supabase
+          .from(tableName)
+          .delete()
+          .eq(idField, targetId)
+          .eq('card_id', id);
+
+        if (removeError) {
+          console.error('Error removing card from collection/stack:', removeError);
+          return NextResponse.json(
+            { error: 'Failed to remove card from collection/stack' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Card removed from collection/stack successfully' 
+        });
+      } else {
+        // Non-owner - just remove from collection/stack
+        const { error: removeError } = await supabase
+          .from(tableName)
+          .delete()
+          .eq(idField, targetId)
+          .eq('card_id', id);
+
+        if (removeError) {
+          console.error('Error removing card from collection/stack:', removeError);
+          return NextResponse.json(
+            { error: 'Failed to remove card from collection/stack' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Card removed from collection/stack successfully' 
+        });
+      }
+    } else {
+      // No collection/stack ID provided - delete the card entirely
+      // Only allow if user created the card
+      if (card.created_by !== user.id) {
+        return NextResponse.json(
+          { error: 'Forbidden: You can only delete cards you created. To remove a card from a collection, provide collection_id or stack_id.' },
+          { status: 403 }
+        );
+      }
+
+      // Delete the card from the database (cascade will handle relationships)
+      const { error: deleteError, data: deleteData } = await supabase
+        .from('cards')
+        .delete()
+        .eq('id', id)
+        .select();
+
+      if (deleteError) {
+        console.error('Error deleting card:', deleteError);
+        console.error('Delete error details:', {
+          message: deleteError.message,
+          details: deleteError.details,
+          hint: deleteError.hint,
+          code: deleteError.code,
+        });
+        return NextResponse.json(
+          { error: deleteError.message || 'Failed to delete card. Check RLS policies.' },
+          { status: 500 }
+        );
+      }
+
+      console.log('Card deleted successfully:', { cardId: id, deletedRows: deleteData });
+
+      return NextResponse.json({ success: true, deleted: deleteData });
     }
-
-    // Delete the card from the database (cascade will handle stack_cards relationships)
-    const { error: deleteError, data: deleteData } = await supabase
-      .from('cards')
-      .delete()
-      .eq('id', id)
-      .select();
-
-    if (deleteError) {
-      console.error('Error deleting card:', deleteError);
-      console.error('Delete error details:', {
-        message: deleteError.message,
-        details: deleteError.details,
-        hint: deleteError.hint,
-        code: deleteError.code,
-      });
-      return NextResponse.json(
-        { error: deleteError.message || 'Failed to delete card. Check RLS policies.' },
-        { status: 500 }
-      );
-    }
-
-    console.log('Card deleted successfully:', { cardId: id, deletedRows: deleteData });
-
-    return NextResponse.json({ success: true, deleted: deleteData });
   } catch (error) {
     console.error('Unexpected error deleting card:', error);
     return NextResponse.json(

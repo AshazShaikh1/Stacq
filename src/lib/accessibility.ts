@@ -93,7 +93,12 @@ export const focusManagement = {
     };
 
     container.addEventListener('keydown', handleTabKey);
-    firstElement?.focus();
+    
+    // Only focus first element if nothing is currently focused within the container
+    // This prevents stealing focus from inputs the user is typing in
+    if (!container.contains(document.activeElement)) {
+      firstElement?.focus();
+    }
 
     return () => {
       container.removeEventListener('keydown', handleTabKey);

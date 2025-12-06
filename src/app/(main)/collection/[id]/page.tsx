@@ -2,12 +2,17 @@ import { createClient } from '@/lib/supabase/server';
 import { CollectionHeader } from '@/components/collection/CollectionHeader';
 import { CardPreview } from '@/components/card/CardPreview';
 import { AddCardButton } from '@/components/card/AddCardButton';
-import { EmptyCardsState } from '@/components/ui/EmptyState';
+import { EmptyCardsWithAdd } from '@/components/card/EmptyCardsWithAdd';
 import { generateMetadata as generateSEOMetadata } from '@/lib/seo';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Suspense, lazy } from 'react';
 import { CommentSkeleton } from '@/components/ui/Skeleton';
+import { cached } from '@/lib/redis';
+import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
+
+// Enable ISR with 60 second revalidation
+export const revalidate = 60;
 
 // Lazy load comments section - it's heavy and not always needed immediately
 const CommentsSection = lazy(() => import('@/components/comments/CommentsSection').then(m => ({ default: m.CommentsSection })));
@@ -76,144 +81,189 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       return uuidRegex.test(str);
     };
 
-    // Get collection with owner and tags
-    // Try by UUID first if it looks like a UUID, otherwise try by slug
-    let collection: any = null;
-    let collectionError: any = null;
+    // Generate cache key for collection data
+    const cacheKey = getCacheKey('collection', { id, userId: user?.id || 'anonymous' });
     
-    if (isUUID(id)) {
-      // Try by UUID first
-      const result = await supabase
-        .from('collections')
-        .select(`
-          id,
-          title,
-          description,
-          cover_image_url,
-          owner_id,
-          stats,
-          is_public,
-          is_hidden,
-          slug,
-          owner:users!collections_owner_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          ),
-          tags:collection_tags (
-            tag:tags (
+    // Fetch collection data with Redis caching (120s TTL)
+    // Use batch RPC function for optimal performance
+    const collectionData = await cached(
+      cacheKey,
+      async () => {
+        // Try using batch RPC function first (more efficient)
+        const { data: batchData, error: rpcError } = await supabase.rpc(
+          'get_collection_with_cards',
+          {
+            collection_identifier: id,
+            requesting_user_id: user?.id || null,
+          }
+        );
+
+        if (!rpcError && batchData) {
+          // Transform RPC response to match expected format
+          const collection = batchData.collection;
+          const owner = batchData.owner;
+          const tags = batchData.tags || [];
+          const cards = (batchData.cards || []).map((card: any) => ({
+            ...card,
+            addedBy: card.added_by,
+          }));
+
+          return {
+            collection: {
+              ...collection,
+              owner,
+              tags: tags.map((t: any) => ({ tag: t })),
+            },
+            cards,
+          };
+        }
+
+        // Fallback to individual queries if RPC function doesn't exist or fails
+        console.warn('Batch RPC function not available, using fallback queries:', rpcError?.message);
+        
+        // Get collection with owner and tags
+        // Try by UUID first if it looks like a UUID, otherwise try by slug
+        let collection: any = null;
+        let collectionError: any = null;
+        
+        if (isUUID(id)) {
+          // Try by UUID first
+          const result = await supabase
+            .from('collections')
+            .select(`
               id,
-              name
-            )
-          )
-        `)
-        .eq('id', id)
-        .maybeSingle();
-      
-      collection = result.data;
-      collectionError = result.error;
+              title,
+              description,
+              cover_image_url,
+              owner_id,
+              stats,
+              is_public,
+              is_hidden,
+              slug,
+              owner:users!collections_owner_id_fkey (
+                username,
+                display_name,
+                avatar_url
+              ),
+              tags:collection_tags (
+                tag:tags (
+                  id,
+                  name
+                )
+              )
+            `)
+            .eq('id', id)
+            .maybeSingle();
+          
+          collection = result.data;
+          collectionError = result.error;
+        }
+
+        // If not found by UUID (or not a UUID), try by slug
+        if (!collection && !collectionError) {
+          const result = await supabase
+            .from('collections')
+            .select(`
+              id,
+              title,
+              description,
+              cover_image_url,
+              owner_id,
+              stats,
+              is_public,
+              is_hidden,
+              slug,
+              owner:users!collections_owner_id_fkey (
+                username,
+                display_name,
+                avatar_url
+              ),
+              tags:collection_tags (
+                tag:tags (
+                  id,
+                  name
+                )
+              )
+            `)
+            .eq('slug', id)
+            .maybeSingle();
+          
+          collection = result.data;
+          collectionError = result.error;
+        }
+
+        if (collectionError) {
+          throw collectionError;
+        }
+
+        if (!collection) {
+          return null;
+        }
+
+        // Get cards in this collection with ownership info (batch fetch)
+        const { data: collectionCards, error: cardsError } = await supabase
+          .from('collection_cards')
+          .select(`
+            card:cards (
+              id,
+              title,
+              description,
+              thumbnail_url,
+              canonical_url,
+              domain
+            ),
+            added_by
+          `)
+          .eq('collection_id', collection.id)
+          .order('added_at', { ascending: false });
+
+        if (cardsError) {
+          console.error('Error fetching cards:', cardsError);
+        }
+
+        const cards = collectionCards?.map((cc: any) => ({
+          ...cc.card,
+          addedBy: cc.added_by,
+        })).filter((c: any) => c.id) || [];
+
+        return {
+          collection,
+          cards,
+        };
+      },
+      CACHE_TTL.COLLECTIONS
+    );
+
+    if (!collectionData || !collectionData.collection) {
+      console.error('Collection not found for id/slug:', id);
+      notFound();
     }
 
-    // If not found by UUID (or not a UUID), try by slug
-    if (!collection && !collectionError) {
-      const result = await supabase
-        .from('collections')
-        .select(`
-          id,
-          title,
-          description,
-          cover_image_url,
-          owner_id,
-          stats,
-          is_public,
-          is_hidden,
-          slug,
-          owner:users!collections_owner_id_fkey (
-            username,
-            display_name,
-            avatar_url
-          ),
-          tags:collection_tags (
-            tag:tags (
-              id,
-              name
-            )
-          )
-        `)
-        .eq('slug', id)
-        .maybeSingle();
-      
-      collection = result.data;
-      collectionError = result.error;
+    const { collection, cards } = collectionData;
+
+    // Check if user can view this collection (check after cache to avoid caching private data)
+    const canView = collection.is_public || 
+                    collection.owner_id === user?.id || 
+                    (collection.is_hidden && collection.owner_id === user?.id);
+
+    if (!canView) {
+      console.error('Access denied to collection:', {
+        collection_id: collection.id,
+        is_public: collection.is_public,
+        is_hidden: collection.is_hidden,
+        owner_id: collection.owner_id,
+        user_id: user?.id,
+      });
+      notFound();
     }
 
-  if (collectionError) {
-    // Log detailed error information
-    console.error('Error fetching collection:', {
-      message: collectionError.message,
-      details: collectionError.details,
-      hint: collectionError.hint,
-      code: collectionError.code,
-      id: id,
-      error: JSON.stringify(collectionError, Object.getOwnPropertyNames(collectionError)),
-    });
-    notFound();
-  }
+    const isOwner = collection.owner_id === user?.id;
 
-  if (!collection) {
-    console.error('Collection not found for id/slug:', id);
-    notFound();
-  }
+    // Transform tags
+    const transformedTags = collection.tags?.map((ct: any) => ct.tag).filter(Boolean) || [];
 
-  // Check if user can view this collection
-  const canView = collection.is_public || 
-                  collection.owner_id === user?.id || 
-                  (collection.is_hidden && collection.owner_id === user?.id);
-
-  if (!canView) {
-    console.error('Access denied to collection:', {
-      collection_id: collection.id,
-      is_public: collection.is_public,
-      is_hidden: collection.is_hidden,
-      owner_id: collection.owner_id,
-      user_id: user?.id,
-    });
-    notFound();
-  }
-
-  const isOwner = collection.owner_id === user?.id;
-
-  // Transform tags
-  const transformedTags = collection.tags?.map((ct: any) => ct.tag).filter(Boolean) || [];
-
-  // Ensure owner is a single object, not an array
-  const owner = Array.isArray(collection.owner) ? collection.owner[0] : collection.owner;
-
-  // Get cards in this collection with ownership info
-  const { data: collectionCards, error: cardsError } = await supabase
-    .from('collection_cards')
-    .select(`
-      card:cards (
-        id,
-        title,
-        description,
-        thumbnail_url,
-        canonical_url,
-        domain
-      ),
-      added_by
-    `)
-    .eq('collection_id', collection.id)
-    .order('added_at', { ascending: false });
-
-  if (cardsError) {
-    console.error('Error fetching cards:', cardsError);
-  }
-
-  const cards = collectionCards?.map((cc: any) => ({
-    ...cc.card,
-    addedBy: cc.added_by,
-  })).filter((c: any) => c.id) || [];
+    // Ensure owner is a single object, not an array
+    const owner = Array.isArray(collection.owner) ? collection.owner[0] : collection.owner;
 
   return (
     <div className="container mx-auto px-page py-section">
@@ -250,11 +300,10 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
         </div>
       ) : (
         <div>
-          <EmptyCardsState />
-          {isOwner && (
-            <div className="flex justify-center mt-4">
-              <AddCardButton collectionId={collection.id} />
-            </div>
+          {isOwner ? (
+            <EmptyCardsWithAdd collectionId={collection.id} />
+          ) : (
+            <EmptyCardsState />
           )}
         </div>
       )}

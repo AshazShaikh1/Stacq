@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -42,6 +42,9 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [isDraggingDocs, setIsDraggingDocs] = useState(false);
   const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] = useState(false);
+  const titleRef = useRef<string>('');
+  const descriptionRef = useRef<string>('');
+  const metadataFetchUrlRef = useRef<string>('');
 
   // Handle initial URL from extension
   useEffect(() => {
@@ -49,6 +52,8 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       setUrl(initialUrl);
       setCardType('link');
       setStep('details');
+      titleRef.current = '';
+      descriptionRef.current = '';
       fetchMetadata(initialUrl);
     }
   }, [isOpen, initialUrl]);
@@ -78,8 +83,14 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
           .catch(err => console.error('Error converting file:', err));
       }
 
-      if (initialFileData.title) setTitle(initialFileData.title);
-      if (initialFileData.description) setDescription(initialFileData.description);
+      if (initialFileData.title) {
+        setTitle(initialFileData.title);
+        titleRef.current = initialFileData.title;
+      }
+      if (initialFileData.description) {
+        setDescription(initialFileData.description);
+        descriptionRef.current = initialFileData.description;
+      }
     }
   }, [isOpen, initialFileData]);
 
@@ -104,6 +115,12 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
       return;
     }
 
+    // Store the URL we're fetching metadata for
+    metadataFetchUrlRef.current = urlToFetch;
+    // Store current values to check if user typed while fetching
+    const titleAtFetchStart = titleRef.current;
+    const descriptionAtFetchStart = descriptionRef.current;
+
     setIsFetchingMetadata(true);
     try {
       const response = await fetch('/api/cards/metadata', {
@@ -114,8 +131,24 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
 
       if (response.ok) {
         const data = await response.json();
-        if (data.title) setTitle(data.title);
-        if (data.description) setDescription(data.description);
+        // Only auto-fill if:
+        // 1. The URL hasn't changed (user didn't change URL while fetching)
+        // 2. The field was empty when we started fetching
+        // 3. The field is still empty (user hasn't typed while we were fetching)
+        if (metadataFetchUrlRef.current === urlToFetch) {
+          // Check current ref values (they update immediately when user types)
+          const currentTitle = titleRef.current;
+          const currentDescription = descriptionRef.current;
+          
+          if (data.title && !titleAtFetchStart && !currentTitle.trim()) {
+            setTitle(data.title);
+            titleRef.current = data.title;
+          }
+          if (data.description && !descriptionAtFetchStart && !currentDescription.trim()) {
+            setDescription(data.description);
+            descriptionRef.current = data.description;
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching metadata:', err);
@@ -149,12 +182,12 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     }
   };
 
-  const handleCardTypeSelect = (type: CardType) => {
+  const handleCardTypeSelect = useCallback((type: CardType) => {
     setCardType(type);
     setStep('details');
     setIsDraggingImage(false);
     setIsDraggingDocs(false);
-  };
+  }, []);
 
   const handleFileSelect = (file: File, type: 'image' | 'docs') => {
     if (type === 'image') {
@@ -214,17 +247,19 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     if (file) handleFileSelect(file, type);
   };
 
-  const handleUrlChange = async (newUrl: string) => {
+  const handleUrlChange = useCallback(async (newUrl: string) => {
     setUrl(newUrl);
     
     if (!newUrl.trim()) {
       setTitle('');
       setDescription('');
+      titleRef.current = '';
+      descriptionRef.current = '';
       return;
     }
 
     await fetchMetadata(newUrl);
-  };
+  }, []);
 
   const handleDetailsNext = () => {
     if (cardType === 'link' && !url.trim()) {
@@ -362,6 +397,9 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     setUrl('');
     setTitle('');
     setDescription('');
+    titleRef.current = '';
+    descriptionRef.current = '';
+    metadataFetchUrlRef.current = '';
     setImageFile(null);
     setImagePreview(null);
     setImageUrl('');
@@ -388,29 +426,30 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
     <Modal isOpen={isOpen} onClose={handleClose} size="md">
       <div className="relative overflow-hidden">
         {/* Step 1: Card Type Selection */}
-        <div
-          className={`transition-transform duration-300 ease-in-out ${
-            step === 'type' ? 'translate-x-0' : '-translate-x-full absolute inset-0'
-          }`}
-        >
-          <CardTypeSelector onSelect={handleCardTypeSelect} />
-        </div>
+        {step === 'type' && (
+          <div className="transition-transform duration-300 ease-in-out">
+            <CardTypeSelector onSelect={handleCardTypeSelect} />
+          </div>
+        )}
 
         {/* Step 2: Card Details */}
-        <div
-          className={`transition-transform duration-300 ease-in-out ${
-            step === 'details' ? 'translate-x-0' : step === 'type' ? 'translate-x-full absolute inset-0' : '-translate-x-full absolute inset-0'
-          }`}
-        >
-          {cardType && (
+        {step === 'details' && cardType && (
+          <div key={`card-details-wrapper-${cardType}`} className="transition-transform duration-300 ease-in-out">
             <CardDetailsStep
+              key={`card-details-${cardType}`}
               cardType={cardType}
               url={url}
               onUrlChange={handleUrlChange}
               title={title}
-              onTitleChange={setTitle}
+              onTitleChange={(value) => {
+                setTitle(value);
+                titleRef.current = value;
+              }}
               description={description}
-              onDescriptionChange={setDescription}
+              onDescriptionChange={(value) => {
+                setDescription(value);
+                descriptionRef.current = value;
+              }}
               imageFile={imageFile}
               imagePreview={imagePreview}
               imageUrl={imageUrl}
@@ -432,30 +471,28 @@ export function CreateCardModal({ isOpen, onClose, initialUrl, initialFileData }
               onBack={handleBack}
               onNext={handleDetailsNext}
             />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Step 3: Stack Selection */}
-        <div
-          className={`transition-transform duration-300 ease-in-out ${
-            step === 'stack' ? 'translate-x-0' : 'translate-x-full absolute inset-0'
-          }`}
-        >
-          <StackSelector
-            collections={collections}
-            selectedCollectionId={selectedCollectionId}
-            selectedStackId={selectedStackId}
-            onSelect={(id) => {
-              setSelectedCollectionId(id);
-              setSelectedStackId(id); // Legacy support
-            }}
-            onCreateNew={() => setIsCreateCollectionModalOpen(true)}
-            onBack={handleBack}
-            onSubmit={handleSubmit}
-            isLoading={isLoading}
-            error={error}
-          />
-        </div>
+        {step === 'stack' && (
+          <div className="transition-transform duration-300 ease-in-out">
+            <StackSelector
+              collections={collections}
+              selectedCollectionId={selectedCollectionId}
+              selectedStackId={selectedStackId}
+              onSelect={(id) => {
+                setSelectedCollectionId(id);
+                setSelectedStackId(id); // Legacy support
+              }}
+              onCreateNew={() => setIsCreateCollectionModalOpen(true)}
+              onBack={handleBack}
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              error={error}
+            />
+          </div>
+        )}
       </div>
 
       {/* Create Collection Modal */}

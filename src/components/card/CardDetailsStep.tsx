@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FileUploadZone } from './FileUploadZone';
@@ -35,7 +36,7 @@ interface CardDetailsStepProps {
   onNext: () => void;
 }
 
-export function CardDetailsStep({
+export const CardDetailsStep = memo(function CardDetailsStep({
   cardType,
   url,
   onUrlChange,
@@ -64,6 +65,68 @@ export function CardDetailsStep({
   onBack,
   onNext,
 }: CardDetailsStepProps) {
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const descriptionInputRef = useRef<HTMLInputElement>(null);
+  const focusedInputIdRef = useRef<string | null>(null);
+  const cursorPositionRef = useRef<number>(0);
+
+  // Restore focus after re-render if an input was focused
+  useEffect(() => {
+    if (focusedInputIdRef.current) {
+      const inputRef = focusedInputIdRef.current === 'card-title-input' 
+        ? titleInputRef 
+        : descriptionInputRef;
+      
+      if (inputRef.current && document.activeElement !== inputRef.current) {
+        // Use requestAnimationFrame to ensure DOM has updated
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            // Restore cursor position
+            if (cursorPositionRef.current > 0) {
+              inputRef.current.setSelectionRange(
+                cursorPositionRef.current, 
+                cursorPositionRef.current
+              );
+            }
+          }
+        });
+      }
+    }
+  }, [title, description]);
+
+  const handleTitleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    focusedInputIdRef.current = 'card-title-input';
+    cursorPositionRef.current = e.target.selectionStart || 0;
+  };
+
+  const handleDescriptionFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    focusedInputIdRef.current = 'card-description-input';
+    cursorPositionRef.current = e.target.selectionStart || 0;
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    cursorPositionRef.current = e.target.selectionStart || e.target.value.length;
+    onTitleChange(e.target.value);
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    cursorPositionRef.current = e.target.selectionStart || e.target.value.length;
+    onDescriptionChange(e.target.value);
+  };
+
+  const handleTitleBlur = () => {
+    if (document.activeElement?.id !== 'card-title-input') {
+      focusedInputIdRef.current = null;
+    }
+  };
+
+  const handleDescriptionBlur = () => {
+    if (document.activeElement?.id !== 'card-description-input') {
+      focusedInputIdRef.current = null;
+    }
+  };
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); onNext(); }} className="p-6 space-y-4 max-w-sm mx-auto">
       <h2 className="text-h1 font-bold text-jet-dark mb-6">Card Details</h2>
@@ -71,6 +134,8 @@ export function CardDetailsStep({
       {/* Link Input */}
       {cardType === 'link' && (
         <Input
+          key="card-url-input"
+          id="card-url-input"
           type="url"
           label="URL"
           placeholder="https://example.com"
@@ -121,21 +186,31 @@ export function CardDetailsStep({
       )}
 
       <Input
+        key="card-title-input"
+        id="card-title-input"
         type="text"
         label="Title"
         placeholder="Card title"
         value={title}
-        onChange={(e) => onTitleChange(e.target.value)}
+        onChange={handleTitleChange}
+        onFocus={handleTitleFocus}
+        onBlur={handleTitleBlur}
+        ref={titleInputRef}
         required
         disabled={isLoading}
       />
 
       <Input
+        key="card-description-input"
+        id="card-description-input"
         type="text"
         label="Description"
         placeholder="Card description (optional)"
         value={description}
-        onChange={(e) => onDescriptionChange(e.target.value)}
+        onChange={handleDescriptionChange}
+        onFocus={handleDescriptionFocus}
+        onBlur={handleDescriptionBlur}
+        ref={descriptionInputRef}
         disabled={isLoading}
       />
 
@@ -166,5 +241,5 @@ export function CardDetailsStep({
       </div>
     </form>
   );
-}
+});
 

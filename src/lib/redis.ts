@@ -10,8 +10,11 @@ const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_RE
   : null;
 
 /**
- * Cache utility with logging
+ * Cache utility with logging and cache stampede protection
  * Wraps expensive operations with Redis caching
+ * 
+ * Cache stampede protection: Uses a lock key to prevent multiple concurrent
+ * requests from hitting the database when cache expires
  */
 export async function cached<T>(
   queryKey: string,
@@ -19,6 +22,8 @@ export async function cached<T>(
   ttl: number = 60
 ): Promise<T> {
   const startTime = Date.now();
+  const lockKey = `${queryKey}:lock`;
+  const lockTTL = 10; // Lock expires after 10 seconds (should be enough for most queries)
   
   // If Redis is not configured, just execute the fetcher
   if (!redis) {
@@ -41,16 +46,53 @@ export async function cached<T>(
       return cached as T;
     }
 
-    // Cache miss - execute fetcher
-    console.log(`[Cache] ❌ Redis MISS: ${queryKey}`);
-    const data = await fetcherFn();
-    const duration = Date.now() - startTime;
+    // Cache miss - check for lock (cache stampede protection)
+    const lockExists = await redis.exists(lockKey);
+    if (lockExists) {
+      // Another request is already fetching, wait a bit and retry cache
+      console.log(`[Cache] ⏳ Lock exists, waiting for other request: ${queryKey}`);
+      await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms
+      
+      // Retry cache read
+      const retryCached = await redis.get(queryKey);
+      if (retryCached !== null) {
+        const duration = Date.now() - startTime;
+        console.log(`[Cache] ✅ Redis HIT (after lock wait): ${queryKey} (${duration}ms)`);
+        return retryCached as T;
+      }
+      
+      // If still not cached, wait a bit more and try one more time
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const finalRetry = await redis.get(queryKey);
+      if (finalRetry !== null) {
+        const duration = Date.now() - startTime;
+        console.log(`[Cache] ✅ Redis HIT (after second wait): ${queryKey} (${duration}ms)`);
+        return finalRetry as T;
+      }
+    }
+
+    // Set lock to prevent concurrent fetches
+    await redis.set(lockKey, '1', { ex: lockTTL });
+    console.log(`[Cache] ❌ Redis MISS: ${queryKey} (acquired lock)`);
     
-    // Store in cache - Upstash Redis handles JSON serialization automatically
-    await redis.set(queryKey, data as any, { ex: ttl });
-    console.log(`[Cache] 💾 Cached: ${queryKey} (TTL: ${ttl}s, DB time: ${duration}ms)`);
-    
-    return data;
+    try {
+      // Execute fetcher
+      const data = await fetcherFn();
+      const duration = Date.now() - startTime;
+      
+      // Store in cache - Upstash Redis handles JSON serialization automatically
+      await redis.set(queryKey, data as any, { ex: ttl });
+      console.log(`[Cache] 💾 Cached: ${queryKey} (TTL: ${ttl}s, DB time: ${duration}ms)`);
+      
+      // Remove lock
+      await redis.del(lockKey);
+      
+      return data;
+    } catch (fetchError) {
+      // Remove lock on error
+      await redis.del(lockKey);
+      throw fetchError;
+    }
   } catch (error) {
     // If Redis fails, fall back to direct execution
     console.error(`[Cache] Redis error for ${queryKey}, falling back to direct:`, error);

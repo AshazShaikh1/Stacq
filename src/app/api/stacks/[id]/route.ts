@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
+import { createServiceClient } from '@/lib/supabase/api-service';
 
 // GET stack
 export async function GET(
@@ -148,7 +149,47 @@ export async function DELETE(
       );
     }
 
-    // Delete stack (cascade will handle related records)
+    // Get all cards in this stack before deleting
+    const { data: stackCards } = await supabase
+      .from('stack_cards')
+      .select('card_id')
+      .eq('stack_id', id);
+
+    // Use service client to delete cards that are only in this stack
+    const serviceClient = createServiceClient();
+
+    if (stackCards && stackCards.length > 0) {
+      const cardIds = stackCards.map(sc => sc.card_id);
+
+      // For each card, check if it's only in this stack
+      for (const cardId of cardIds) {
+        // Check if card is in other stacks
+        const { data: otherStacks } = await serviceClient
+          .from('stack_cards')
+          .select('id')
+          .eq('card_id', cardId)
+          .neq('stack_id', id)
+          .limit(1);
+
+        // Also check collections
+        const { data: collections } = await serviceClient
+          .from('collection_cards')
+          .select('id')
+          .eq('card_id', cardId)
+          .limit(1);
+
+        // If card is not in any other stack or collection, delete it
+        if ((!otherStacks || otherStacks.length === 0) &&
+            (!collections || collections.length === 0)) {
+          await serviceClient
+            .from('cards')
+            .delete()
+            .eq('id', cardId);
+        }
+      }
+    }
+
+    // Delete stack (cascade will handle stack_cards relationships)
     const { error: deleteError } = await supabase
       .from('stacks')
       .delete()

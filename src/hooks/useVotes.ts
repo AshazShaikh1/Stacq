@@ -61,26 +61,12 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
     // This prevents overwriting the initial value from the feed API
     if (initialUpvotes === 0 && upvotes === 0) {
       fetchVoteCount();
-    } else {
-      // Still fetch user's vote status even if we have initial count
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          const voteType = targetType === 'stack' ? 'collection' : targetType;
-          supabase
-            .from('votes')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('target_type', voteType)
-            .eq('target_id', targetId)
-            .maybeSingle()
-            .then(({ data: userVote }) => {
-              setVoted(!!userVote);
-            });
-        }
-      });
+    } else if (!initialVoted) {
+      // Only fetch user's vote status if we don't have initial value
+      // Use fetchVoteCount which already handles user check efficiently
+      fetchVoteCount();
     }
-  }, [targetType, targetId]);
+  }, [targetType, targetId, fetchVoteCount, initialUpvotes, initialVoted, upvotes]);
 
   const toggleVote = async () => {
     const supabase = createClient();

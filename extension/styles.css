@@ -461,7 +461,7 @@ body {
   margin-top: 4px;
 }
 
-/* Input Fields */
+/* Input Fields - Matching Website Theme */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -552,9 +552,9 @@ body {
 }
 
 .link-preview:hover {
-  color: #312F2C;
-  border-color: #312F2C;
-  background: #FAFAFA;
+  color: var(--jet);
+  border-color: var(--emerald);
+  background: var(--cloud);
 }
 
 .link-text {

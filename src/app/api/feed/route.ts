@@ -13,7 +13,8 @@ import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
  * - type: 'card' | 'collection' | 'both' (default: 'both')
  * - mix: 'cards:0.6,collections:0.4' (default ratio)
  * - limit: number (default: 50)
- * - offset: number (default: 0)
+ * - offset: number (default: 0) - DEPRECATED: Use cursor instead
+ * - cursor: string (optional) - Cursor for pagination (format: "score:timestamp:itemId")
  */
 export async function GET(request: NextRequest) {
   try {
@@ -26,6 +27,53 @@ export async function GET(request: NextRequest) {
     const mixParam = searchParams.get('mix') || 'cards:0.6,collections:0.4';
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
+    const cursor = searchParams.get('cursor'); // Cursor for pagination
+    
+    // Generate cache key
+    const cacheKey = getCacheKey('feed', {
+      type,
+      mix: mixParam,
+      limit,
+      offset,
+      cursor: cursor || 'none',
+    });
+    
+    // Use Redis cache with 60s TTL
+    const cachedResult = await cached(
+      cacheKey,
+      async () => {
+        return await fetchFeedData(supabase, type, mixParam, limit, offset, cursor);
+      },
+      CACHE_TTL.FEED
+    );
+    
+    // Return with cache headers
+    return cachedJsonResponse(cachedResult, 'PUBLIC_READ');
+  } catch (error: any) {
+    console.error('Error in feed route:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
+    return NextResponse.json(
+      { error: 'Internal server error', details: process.env.NODE_ENV === 'development' ? error?.message : undefined },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Fetch feed data (extracted for caching)
+ */
+async function fetchFeedData(
+  supabase: any,
+  type: string,
+  mixParam: string,
+  limit: number,
+  offset: number,
+  cursor: string | null
+) {
 
     // Parse mix ratios
     const mixRatios: Record<string, number> = {};
@@ -60,8 +108,8 @@ export async function GET(request: NextRequest) {
       let cardIds: string[] = [];
       
       if (useNewRanking) {
-        // Use new ranking_scores table
-        const { data, error } = await supabase
+        // Use new ranking_scores table with cursor-based pagination
+        let query = supabase
           .from('ranking_scores')
           .select('item_id, norm_score, last_event_at')
           .eq('item_type', 'card')
@@ -69,6 +117,24 @@ export async function GET(request: NextRequest) {
           .order('norm_score', { ascending: false })
           .order('last_event_at', { ascending: false, nullsFirst: false })
           .limit(cardsLimit);
+        
+        // Apply cursor if provided (cursor format: "score:timestamp:itemId")
+        if (cursor && type === 'card' || type === 'both') {
+          try {
+            const [cursorScore, cursorTimestamp, cursorItemId] = cursor.split(':');
+            const score = parseFloat(cursorScore);
+            const timestamp = cursorTimestamp;
+            
+            // Fetch items after cursor (lower score or same score with later timestamp)
+            query = query.or(
+              `norm_score.lt.${score},and(norm_score.eq.${score},last_event_at.lt.${timestamp})`
+            );
+          } catch (e) {
+            console.warn('Invalid cursor format, ignoring:', cursor);
+          }
+        }
+        
+        const { data, error } = await query;
         
         rankedItems = data || [];
         itemsError = error;
@@ -244,8 +310,8 @@ export async function GET(request: NextRequest) {
       let collectionIds: string[] = [];
       
       if (useNewRanking) {
-        // Use new ranking_scores table
-        const { data, error } = await supabase
+        // Use new ranking_scores table with cursor-based pagination
+        let query = supabase
           .from('ranking_scores')
           .select('item_id, norm_score, last_event_at')
           .eq('item_type', 'collection')
@@ -253,6 +319,24 @@ export async function GET(request: NextRequest) {
           .order('norm_score', { ascending: false })
           .order('last_event_at', { ascending: false, nullsFirst: false })
           .limit(collectionsLimit);
+        
+        // Apply cursor if provided (cursor format: "score:timestamp:itemId")
+        if (cursor && (type === 'collection' || type === 'both')) {
+          try {
+            const [cursorScore, cursorTimestamp, cursorItemId] = cursor.split(':');
+            const score = parseFloat(cursorScore);
+            const timestamp = cursorTimestamp;
+            
+            // Fetch items after cursor (lower score or same score with later timestamp)
+            query = query.or(
+              `norm_score.lt.${score},and(norm_score.eq.${score},last_event_at.lt.${timestamp})`
+            );
+          } catch (e) {
+            console.warn('Invalid cursor format, ignoring:', cursor);
+          }
+        }
+        
+        const { data, error } = await query;
         
         rankedItems = data || [];
         itemsError = error;
@@ -463,27 +547,27 @@ export async function GET(request: NextRequest) {
 
     const finalFeed = dedupedResults.slice(0, limit);
     
+    // Generate next cursor from last item (for pagination)
+    let nextCursor: string | null = null;
+    if (finalFeed.length > 0 && finalFeed.length === limit) {
+      const lastItem = finalFeed[finalFeed.length - 1];
+      const score = lastItem.score || 0;
+      const timestamp = lastItem.last_event_at || lastItem.created_at || new Date().toISOString();
+      const itemId = lastItem.id || '';
+      nextCursor = `${score}:${timestamp}:${itemId}`;
+    }
+    
     // Debug logging
     const collectionCount = finalFeed.filter(item => item.type === 'collection').length;
     const cardCount = finalFeed.filter(item => item.type === 'card').length;
-    console.log(`[Feed API] Returning feed: ${collectionCount} collections, ${cardCount} cards, total: ${finalFeed.length}`);
+    console.log(`[Feed API] Returning feed: ${collectionCount} collections, ${cardCount} cards, total: ${finalFeed.length}, nextCursor: ${nextCursor || 'none'}`);
 
-    // Return with cache headers
-    return cachedJsonResponse({
+    // Return data (not response - this is called from cached wrapper)
+    return {
       feed: finalFeed,
       total: dedupedResults.length,
-    }, 'PUBLIC_READ');
-  } catch (error: any) {
-    console.error('Error in feed route:', error);
-    console.error('Error details:', {
-      message: error?.message,
-      stack: error?.stack,
-      name: error?.name,
-    });
-    return NextResponse.json(
-      { error: 'Internal server error', details: process.env.NODE_ENV === 'development' ? error?.message : undefined },
-      { status: 500 }
-    );
-  }
+      nextCursor,
+      hasMore: nextCursor !== null,
+    };
 }
 

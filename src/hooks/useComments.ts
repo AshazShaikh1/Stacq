@@ -109,10 +109,8 @@ export function useComments({ targetType, targetId }: UseCommentsOptions) {
         }
       }
 
-      // Refetch comments to ensure consistency (but don't show loading)
-      fetchComments().catch(err => {
-        console.error('Error refreshing comments:', err);
-      });
+      // Don't refetch - optimistic update is sufficient
+      // The server already returns the correct comment data
 
       // Track analytics
       const supabase = createClient();

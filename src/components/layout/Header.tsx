@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, lazy, Suspense } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, lazy, Suspense } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { SearchIcon } from '@/components/ui/Icons';
@@ -13,27 +13,9 @@ const LoginModal = lazy(() => import('@/components/auth/LoginModal').then(m => (
 const SignupModal = lazy(() => import('@/components/auth/SignupModal').then(m => ({ default: m.SignupModal })));
 
 export function Header() {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, isLoading } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setIsLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-light">

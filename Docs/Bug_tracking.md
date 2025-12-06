@@ -74,6 +74,277 @@ Realtime requires replication which may have cost implications. The app works pe
 - Updated documentation to reflect this change
 - App now uses optimistic updates + manual refetch pattern
 
+### Excessive Supabase Requests in Development
+**Date:** 2024-12-XX
+**Status:** Resolved
+**Severity:** High
+
+**Description:**
+Supabase was receiving excessive requests (13,000 REST, 8,457 auth, 99 storage, 88 real-time) in 24 hours during development with no real users. This was causing unnecessary API usage and potential cost issues.
+
+**Error Details:**
+- High number of auth requests (8,457 in 24 hours)
+- Multiple `supabase.auth.getUser()` calls on every page load
+- Redundant API calls in hooks after optimistic updates
+
+**Root Cause:**
+1. **Multiple independent `getUser()` calls**: `LayoutWrapper`, `Header`, and `Sidebar` components were all calling `supabase.auth.getUser()` independently on every page load, resulting in 3+ auth requests per page.
+2. **React Strict Mode**: In development, React Strict Mode causes components to mount twice, doubling all requests.
+3. **Redundant hook calls**: 
+   - `useVotes` hook was calling `getUser()` again inside useEffect even when it already had user data
+   - `useComments` hook was calling `fetchComments()` again after adding a comment, even though optimistic update was already applied
+4. **Missing dependency arrays**: `useVotes` useEffect was missing proper dependencies, potentially causing re-renders
+
+**Solution:**
+1. **Created AuthContext** (`src/contexts/AuthContext.tsx`): Centralized auth state management that fetches user once and shares it across all components
+2. **Updated components to use context**:
+   - `LayoutWrapper` now uses `useAuth()` hook instead of fetching independently
+   - `Header` now uses `useAuth()` hook
+   - `Sidebar` now uses `useAuth()` hook
+   - `CommentForm` now uses `useAuth()` hook
+3. **Fixed `useVotes` hook**:
+   - Removed redundant `getUser()` call inside useEffect
+   - Fixed dependency array to include all dependencies
+   - Simplified logic to use `fetchVoteCount` consistently
+4. **Fixed `useComments` hook**:
+   - Removed redundant `fetchComments()` call after adding comment (optimistic update is sufficient)
+
+**Prevention:**
+- Always use `useAuth()` hook from `AuthContext` instead of calling `supabase.auth.getUser()` directly in components
+- Only call `getUser()` in API routes or server components when absolutely necessary
+- Avoid redundant refetches after optimistic updates - trust the server response
+- Ensure useEffect dependency arrays are complete to prevent unnecessary re-renders
+- Consider React Strict Mode's double-mounting behavior when debugging request counts in development
+
+### Users Can Create Public Cards Without Stacker Role
+**Date:** 2024-12-XX
+**Status:** Resolved
+**Severity:** High
+
+**Description:**
+Any authenticated user was able to create public cards by setting `is_public: true` in the card creation API, even if they didn't have the "stacker" role. This violates the intended access control where only stackers should be able to publish standalone public cards.
+
+**Error Details:**
+- Regular users could create standalone public cards
+- No validation of user role before allowing `is_public: true`
+- Cards created outside of collections could be made public by anyone
+
+**Root Cause:**
+The card creation API (`src/app/api/cards/route.ts`) was accepting the `is_public` parameter directly from the request body without validating:
+1. Whether the user has the "stacker" role (for standalone cards)
+2. Whether the card is being added to a collection (should match collection visibility)
+
+**Solution:**
+1. Added role check to verify if user is a stacker/admin
+2. For cards added to collections: Card visibility now matches collection visibility automatically
+3. For standalone cards: Only stackers/admins can set `is_public: true`; regular users are forced to `is_public: false`
+4. Added warning log when regular users attempt to create standalone public cards
+
+**Code Changes:**
+- Updated `src/app/api/cards/route.ts` to:
+  - Fetch user role from database
+  - Check collection visibility if card is being added to a collection
+  - Enforce `is_public: false` for regular users creating standalone cards
+  - Allow stackers to set `is_public` as they wish for standalone cards
+- Created migration `035_restrict_public_card_creation.sql` to add database-level RLS policy as secondary defense
+
+**Prevention:**
+- Always validate user permissions before allowing public content creation
+- Check user role (stacker/admin) for operations that require elevated privileges
+- Match card visibility to collection visibility when cards are added to collections
+- Add RLS policies at the database level as a secondary defense (migration 035 adds this)
+- Test both API-level and database-level restrictions
+
+### Card Deletion Error: "stack_id is required"
+**Date:** 2024-12-XX
+**Status:** Resolved
+**Severity:** High
+
+**Description:**
+When trying to delete a card from a collection, users were getting an error "stack_id is required" even when the card was in a collection (not a stack). This happened because the DELETE endpoint only supported the legacy `stack_id` parameter and didn't support `collection_id`.
+
+**Error Details:**
+```
+stack_id is required
+src\components\card\CardPreview.tsx (129:15)
+```
+
+**Root Cause:**
+1. The DELETE endpoint (`src/app/api/cards/[id]/route.ts`) only checked for `stack_id` parameter
+2. It required `stack_id` to be present, even for collections
+3. The CardPreview component was trying to pass `collection_id` but the endpoint didn't support it
+4. When `collectionId` was provided but `stackId` was undefined, it resulted in `stack_id=undefined` in the URL
+
+**Solution:**
+1. **Updated DELETE endpoint** to support both `collection_id` and `stack_id` (legacy):
+   - If `collection_id` or `stack_id` is provided: Removes card from collection/stack (doesn't delete the card itself)
+   - If neither is provided: Deletes the card entirely (only if user created it)
+2. **Fixed CardPreview component** to properly handle `collectionId` vs `stackId`:
+   - Prefers `collection_id` over `stack_id` when both might be available
+   - Only includes query parameter if it exists
+   - Updated confirmation message to reflect whether removing from collection or deleting entirely
+3. **Improved logic**:
+   - Checks collection/stack ownership for removal permissions
+   - Allows card creator to delete their own cards
+   - Allows collection/stack owner to remove cards from their collections/stacks
+   - Allows user who added the card to remove it
+
+**Code Changes:**
+- Updated `src/app/api/cards/[id]/route.ts` DELETE handler to support `collection_id` and `stack_id`
+- Updated `src/components/card/CardPreview.tsx` handleDelete function to properly construct URL
+
+**Prevention:**
+- Always support both legacy (`stack_id`) and new (`collection_id`) parameters during migration period
+- Validate that at least one required parameter is provided before processing
+- Handle cases where parameters might be undefined gracefully
+- Test deletion flow for both collections and legacy stacks
+
+### Card and Collection Deletion Not Removing from Database
+**Date:** 2024-12-XX
+**Status:** Resolved
+**Severity:** High
+
+**Description:**
+When collection owners deleted cards or collections, the items were not being deleted from the database. Cards were only removed from collections (not deleted), and when collections were made private/unlisted, cards' visibility wasn't updated accordingly. This caused deleted cards to still appear in search results.
+
+**Error Details:**
+- Cards deleted by owners were still searchable by other users
+- Cards in private/unlisted collections were still showing as public
+- Collection deletion didn't clean up cards that were only in that collection
+
+**Root Cause:**
+1. Card deletion endpoint only removed cards from collections, never deleted them from DB
+2. Collection deletion didn't check for and delete cards that were only in that collection
+3. No automatic sync between collection visibility and card visibility
+4. Cards' `is_public` field wasn't updated when collection visibility changed
+
+**Solution:**
+1. **Updated card deletion logic** (`src/app/api/cards/[id]/route.ts`):
+   - When collection owner deletes a card: Check if card is in other collections/stacks
+   - If card is only in this collection: Delete card from database
+   - If card is in other collections: Just remove from this collection
+   - Use service client to bypass RLS for deletion
+
+2. **Updated collection deletion logic** (`src/app/api/collections/[id]/route.ts`):
+   - Before deleting collection: Check all cards in the collection
+   - Delete cards that are only in this collection (not in any other collection/stack)
+   - Use service client to bypass RLS for deletion
+
+3. **Created database trigger** (`supabase/migrations/036_sync_card_visibility_with_collection.sql`):
+   - Automatically updates card visibility when collection/stack visibility changes
+   - Cards are public if they're in at least one public collection/stack
+   - Cards are private if all collections/stacks containing them are private
+   - Works for both collections and legacy stacks
+
+**Code Changes:**
+- Updated `src/app/api/cards/[id]/route.ts` DELETE handler to delete cards from DB when owner deletes and card is only in that collection
+- Updated `src/app/api/collections/[id]/route.ts` DELETE handler to delete orphaned cards
+- Created migration `036_sync_card_visibility_with_collection.sql` for automatic card visibility sync
+- Removed manual card visibility update code (now handled by trigger)
+
+**Prevention:**
+- Always check if items are referenced elsewhere before deleting
+- Use database triggers for automatic consistency (visibility sync)
+- Test deletion scenarios: single collection, multiple collections, orphaned cards
+- Verify search results don't show deleted or private items
+
+### Input Fields Losing Focus in Card Creation Modal
+**Date:** 2024-12-XX
+**Status:** Resolved
+**Severity:** High
+
+**Description:**
+When creating a card from the sidebar (Create → Card), typing in the title or description input fields causes the fields to lose focus after typing one word. Users have to click on the field again to continue typing, making the form unusable.
+
+**Error Details:**
+- Input fields lose focus after each keystroke
+- Users cannot type continuously without clicking the field again
+- Affects both title and description fields in the card creation form
+
+**Root Cause:**
+1. The `CardDetailsStep` component was being recreated on each render due to the step transition logic in `CreateCardModal`
+2. Input components didn't have stable keys or IDs, causing React to remount them on re-renders
+3. The absolute positioning and transform-based step transitions combined with conditional rendering (`{cardType && ...}`) caused React to think components needed remounting
+4. The `Input` component uses `useId()` which generates new IDs when components are recreated
+
+**Solution:**
+1. **Added stable keys and IDs to Input components** in `CardDetailsStep`:
+   - Added `key="card-title-input"` and `id="card-title-input"` to title input
+   - Added `key="card-description-input"` and `id="card-description-input"` to description input
+   - Added `key="card-url-input"` and `id="card-url-input"` to URL input
+2. **Added stable keys to step containers** in `CreateCardModal`:
+   - Added `key="card-details-step"` to the step container div
+   - Added `key={`card-details-${cardType}`}` to `CardDetailsStep` component
+3. **Memoized CardDetailsStep component** using `React.memo()` to prevent unnecessary re-renders:
+   - Wrapped the component export with `memo()` to maintain component identity across renders
+
+**Code Changes:**
+- Updated `src/components/card/CardDetailsStep.tsx`:
+  - Added stable keys and IDs to all Input components
+  - Wrapped component with `React.memo()` to prevent unnecessary re-renders
+- Updated `src/components/card/CreateCardModal.tsx`:
+  - Added stable keys to step container and CardDetailsStep component
+
+**Prevention:**
+- Always add stable keys to form inputs, especially in modals with step transitions
+- Use `React.memo()` for components that render form inputs to prevent unnecessary re-renders
+- Provide explicit `id` props to Input components instead of relying solely on `useId()` when components might be recreated
+- Test form inputs in modals with complex rendering logic (step transitions, conditional rendering)
+- Ensure input components maintain their identity across re-renders to preserve focus
+
 ## Resolved Issues
 
 _Issues are moved here after being resolved and verified._
+
+---
+
+## Amazon Affiliate Link Integration
+
+**Date:** 2025-01-XX  
+**Status:** ✅ Implemented  
+**Priority:** Medium
+
+### Description
+Implemented automatic Amazon affiliate link processing for product links. When users add Amazon product links, the system automatically detects them and adds the affiliate tag in the background without affecting UI/UX performance.
+
+### Root Cause
+N/A - Feature implementation
+
+### Solution
+1. Created `src/lib/affiliate/amazon.ts` utility with:
+   - `isAmazonLink()` - Detects Amazon product URLs across all major domains
+   - `extractAmazonASIN()` - Extracts ASIN from various URL patterns
+   - `addAmazonAffiliateTag()` - Adds affiliate tag while preserving important query parameters
+   - `getAmazonAffiliateConfig()` - Reads configuration from environment variables
+
+2. Integrated into card creation flow (`src/app/api/cards/route.ts`):
+   - Processes affiliate links asynchronously in the background
+   - Does not block card creation or slow down the API
+   - Updates card metadata with `affiliate_url` and `is_amazon_product` flags
+
+3. Updated metadata worker (`src/app/api/workers/fetch-metadata/route.ts`):
+   - Processes affiliate links for existing cards during metadata updates
+   - Runs in background without blocking metadata extraction
+
+4. Updated UI components (`src/components/card/CardPreview.tsx`):
+   - Uses `affiliate_url` from metadata when available
+   - Falls back to `canonical_url` if affiliate URL not available
+   - Applies to all link interactions (click, share, copy)
+
+### Configuration
+Set `AMAZON_AFFILIATE_TAG` environment variable with your Amazon Associates tag:
+```bash
+AMAZON_AFFILIATE_TAG=your-tag-20
+```
+
+### Testing
+- ✅ Amazon product links are detected correctly
+- ✅ Affiliate tags are added without breaking URLs
+- ✅ Processing happens in background without blocking UI
+- ✅ Card creation remains fast (< 200ms)
+- ✅ Existing cards get affiliate links during metadata updates
+
+### Prevention
+- Affiliate processing is completely optional and fails silently
+- No impact on card creation if affiliate processing fails
+- Works for all major Amazon domains (US, UK, CA, DE, FR, ES, IT, JP, IN, AU, BR, MX, etc.)

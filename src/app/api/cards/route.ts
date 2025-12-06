@@ -64,9 +64,102 @@ export async function POST(request: NextRequest) {
     const id = collection_id || stack_id;
     const attributionSource = source || (id ? 'collection' : 'manual');
 
+    // Check if user is a stacker/admin (can publish standalone public cards)
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    const isStacker = userProfile?.role === 'stacker' || userProfile?.role === 'admin';
+    
+    // Determine card visibility based on user role and collection visibility
+    let cardIsPublic = false;
+    
+    if (id) {
+      // Card is being added to a collection/stack - check collection visibility
+      const { data: collection } = await supabase
+        .from('collections')
+        .select('is_public, owner_id')
+        .eq('id', id)
+        .maybeSingle();
+      
+      // Fallback to stacks table if not found in collections (legacy support)
+      let stackData = null;
+      if (!collection) {
+        const { data: stack } = await supabase
+          .from('stacks')
+          .select('is_public, owner_id')
+          .eq('id', id)
+          .maybeSingle();
+        stackData = stack;
+      }
+      
+      const targetCollection = collection || stackData;
+      
+      if (targetCollection) {
+        // Card visibility matches collection visibility
+        cardIsPublic = targetCollection.is_public === true;
+      } else {
+        // Collection not found - default to private for safety
+        cardIsPublic = false;
+      }
+    } else {
+      // Standalone card (not in a collection)
+      // Only stackers can create standalone public cards
+      if (isStacker) {
+        // Stackers can set is_public as they wish
+        cardIsPublic = is_public !== undefined ? is_public : false;
+      } else {
+        // Regular users cannot create standalone public cards
+        cardIsPublic = false;
+        
+        // Warn if they tried to set it to public
+        if (is_public === true) {
+          console.warn(`User ${user.id} attempted to create standalone public card but is not a stacker`);
+        }
+      }
+    }
+
     // Canonicalize URL using normalize-url library
     const { canonicalizeUrl } = await import('@/lib/metadata/extractor');
     const normalizedUrl = canonicalizeUrl(url);
+    
+    // Process Amazon affiliate links in the background (async, non-blocking)
+    // This function will be called after card is created
+    const processAffiliateLink = async (cardIdToUpdate: string, existingMetadata: any = {}) => {
+      try {
+        const { isAmazonLink, addAmazonAffiliateTag, getAmazonAffiliateConfig } = await import('@/lib/affiliate/amazon');
+        const config = getAmazonAffiliateConfig();
+        
+        if (config && isAmazonLink(normalizedUrl)) {
+          const affiliateUrl = addAmazonAffiliateTag(normalizedUrl, config);
+          
+          // Update the card with affiliate URL if it was created and different
+          if (affiliateUrl && affiliateUrl !== normalizedUrl) {
+            await serviceClient
+              .from('cards')
+              .update({ 
+                metadata: { 
+                  ...existingMetadata,
+                  affiliate_url: affiliateUrl,
+                  is_amazon_product: true,
+                } 
+              })
+              .eq('id', cardIdToUpdate)
+              .then(() => {
+                // Silently succeed - this is background processing
+              })
+              .catch(() => {
+                // Silently fail - don't log to avoid noise
+                // Affiliate link processing is optional
+              });
+          }
+        }
+      } catch (error) {
+        // Silently fail - affiliate processing is optional and shouldn't block card creation
+      }
+    };
 
     // Check if card already exists, use INSERT ... ON CONFLICT pattern
     const domain = new URL(normalizedUrl).hostname.replace('www.', '');
@@ -82,7 +175,8 @@ export async function POST(request: NextRequest) {
         domain,
         created_by: user.id,
         status: 'active',
-        is_public: is_public !== undefined ? is_public : true,
+        is_public: cardIsPublic,
+        metadata: {}, // Initialize metadata for affiliate URL storage
       })
       .select()
       .single();
@@ -94,12 +188,14 @@ export async function POST(request: NextRequest) {
       if (cardError.code === '23505') {
         const { data: existingCard } = await supabase
           .from('cards')
-          .select('id')
+          .select('id, metadata')
           .eq('canonical_url', normalizedUrl)
           .single();
         
         if (existingCard) {
           cardId = existingCard.id;
+          // Update affiliate link for existing card if needed (background)
+          processAffiliateLink(cardId, existingCard.metadata || {});
         } else {
           return NextResponse.json(
             { error: 'Failed to create or find card' },
@@ -124,6 +220,8 @@ export async function POST(request: NextRequest) {
       }
     } else {
       cardId = card.id;
+      // Process affiliate link for newly created card (background)
+      processAffiliateLink(cardId, card.metadata || {});
     }
 
     // Create card attribution (always)
