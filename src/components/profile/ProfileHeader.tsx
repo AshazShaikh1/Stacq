@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/Button';
-import { useFollow } from '@/hooks/useFollow';
-import { ProfilePictureEditor } from './ProfilePictureEditor';
-import { EditProfileModal } from './EditProfileModal';
-import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { useToast } from '@/contexts/ToastContext';
-import { useState } from 'react';
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/Button";
+import { useFollow } from "@/hooks/useFollow";
+import { ProfilePictureEditor } from "./ProfilePictureEditor";
+import { EditProfileModal } from "./EditProfileModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/contexts/ToastContext";
+import { useState } from "react";
 
 interface ProfileHeaderProps {
   profile: {
@@ -17,6 +18,7 @@ interface ProfileHeaderProps {
     username: string;
     display_name: string;
     avatar_url?: string;
+    role?: string;
     stats?: {
       collections_created: number;
       collections_saved: number;
@@ -29,7 +31,10 @@ interface ProfileHeaderProps {
   isOwnProfile?: boolean;
 }
 
-export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderProps) {
+export function ProfileHeader({
+  profile,
+  isOwnProfile = false,
+}: ProfileHeaderProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
@@ -62,9 +67,9 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    showSuccess('Logged out successfully');
+    showSuccess("Logged out successfully");
     // Redirect to home page which will show landing page for signed out users
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   const handleShareProfile = async () => {
@@ -78,25 +83,25 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
         });
       } catch (err) {
         // User cancelled or error occurred
-        if ((err as Error).name !== 'AbortError') {
-          console.error('Error sharing:', err);
+        if ((err as Error).name !== "AbortError") {
+          console.error("Error sharing:", err);
         }
       }
     } else {
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(profileUrl);
-        showSuccess('Link copied to clipboard!');
+        showSuccess("Link copied to clipboard!");
       } catch (err) {
-        console.error('Failed to copy:', err);
+        console.error("Failed to copy:", err);
         // Fallback for older browsers
-        const textArea = document.createElement('textarea');
+        const textArea = document.createElement("textarea");
         textArea.value = profileUrl;
         document.body.appendChild(textArea);
         textArea.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(textArea);
-        showSuccess('Link copied to clipboard!');
+        showSuccess("Link copied to clipboard!");
       }
     }
   };
@@ -124,7 +129,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
               unoptimized
               onError={(e) => {
                 // Hide image on error
-                e.currentTarget.style.display = 'none';
+                e.currentTarget.style.display = "none";
               }}
             />
           ) : (
@@ -139,22 +144,65 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
           <h1 className="text-h1 font-bold text-jet-dark mb-2">
             {displayName}
           </h1>
-          <p className="text-body text-gray-muted mb-4">
-            @{profile.username}
-          </p>
+          <p className="text-body text-gray-muted mb-4">@{profile.username}</p>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             {isOwnProfile ? (
               <>
-                <Button variant="outline" size="sm" onClick={handleShareProfile}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShareProfile}
+                >
                   Share profile
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditModalOpen(true)}
+                >
                   Edit profile
                 </Button>
-                <Button 
-                  variant="outline" 
+
+                {/* ROLE BASED BUTTONS */}
+                {(profile.role === "stacker" || profile.role === "admin") && (
+                  <Link href="/stacker/dashboard">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-emerald hover:text-emerald-dark hover:border-emerald"
+                    >
+                      Creator Dashboard
+                    </Button>
+                  </Link>
+                )}
+
+                {profile.role === "admin" && (
+                  <>
+                    <Link href="/admin/reports">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-amber-600 hover:text-amber-700 hover:border-amber-600"
+                      >
+                        Reports
+                      </Button>
+                    </Link>
+                    <Link href="/admin/ranking">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-purple-600 hover:text-purple-700 hover:border-purple-600"
+                      >
+                        Ranking
+                      </Button>
+                    </Link>
+                  </>
+                )}
+
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => setShowLogoutConfirm(true)}
                   className="text-red-600 hover:text-red-700 hover:border-red-600"
@@ -165,14 +213,22 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
             ) : (
               <>
                 <Button
-                  variant={isFollowing ? 'outline' : 'primary'}
+                  variant={isFollowing ? "outline" : "primary"}
                   size="sm"
                   onClick={toggleFollow}
                   disabled={isFollowLoading}
                 >
-                  {isFollowLoading ? '...' : isFollowing ? 'Unfollow' : 'Follow'}
+                  {isFollowLoading
+                    ? "..."
+                    : isFollowing
+                    ? "Unfollow"
+                    : "Follow"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleShareProfile}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShareProfile}
+                >
                   Share profile
                 </Button>
               </>
@@ -193,9 +249,7 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
           <div className="text-small text-gray-muted">Collections</div>
         </div>
         <div>
-          <div className="text-h2 font-bold text-jet-dark">
-            {followerCount}
-          </div>
+          <div className="text-h2 font-bold text-jet-dark">{followerCount}</div>
           <div className="text-small text-gray-muted">Followers</div>
         </div>
         <div>
@@ -246,4 +300,3 @@ export function ProfileHeader({ profile, isOwnProfile = false }: ProfileHeaderPr
     </div>
   );
 }
-
