@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react"; // Add useState
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,8 +10,8 @@ import { useFollow } from "@/hooks/useFollow";
 import { ProfilePictureEditor } from "./ProfilePictureEditor";
 import { EditProfileModal } from "./EditProfileModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { FollowListModal } from "./FollowListModal"; // Import the new modal
 import { useToast } from "@/contexts/ToastContext";
-import { useState } from "react";
 
 interface ProfileHeaderProps {
   profile: {
@@ -41,6 +42,12 @@ export function ProfileHeader({
   const [displayName, setDisplayName] = useState(profile.display_name);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // NEW: State for follow list modal
+  const [followListType, setFollowListType] = useState<
+    "followers" | "following" | null
+  >(null);
+
   const stats = profile.stats || {
     collections_created: 0,
     collections_saved: 0,
@@ -68,7 +75,6 @@ export function ProfileHeader({
     const supabase = createClient();
     await supabase.auth.signOut();
     showSuccess("Logged out successfully");
-    // Redirect to home page which will show landing page for signed out users
     window.location.href = "/";
   };
 
@@ -82,26 +88,17 @@ export function ProfileHeader({
           url: profileUrl,
         });
       } catch (err) {
-        // User cancelled or error occurred
         if ((err as Error).name !== "AbortError") {
           console.error("Error sharing:", err);
         }
       }
     } else {
-      // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(profileUrl);
         showSuccess("Link copied to clipboard!");
       } catch (err) {
         console.error("Failed to copy:", err);
-        // Fallback for older browsers
-        const textArea = document.createElement("textarea");
-        textArea.value = profileUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-        showSuccess("Link copied to clipboard!");
+        showError("Failed to copy link");
       }
     }
   };
@@ -128,7 +125,6 @@ export function ProfileHeader({
               className="rounded-full border-4 border-white shadow-card"
               unoptimized
               onError={(e) => {
-                // Hide image on error
                 e.currentTarget.style.display = "none";
               }}
             />
@@ -165,7 +161,6 @@ export function ProfileHeader({
                   Edit profile
                 </Button>
 
-                {/* ROLE BASED BUTTONS */}
                 {(profile.role === "stacker" || profile.role === "admin") && (
                   <Link href="/stacker/dashboard">
                     <Button
@@ -248,16 +243,27 @@ export function ProfileHeader({
           </div>
           <div className="text-small text-gray-muted">Collections</div>
         </div>
-        <div>
+
+        {/* Followers - Clickable */}
+        <button
+          onClick={() => setFollowListType("followers")}
+          className="text-left hover:opacity-70 transition-opacity"
+        >
           <div className="text-h2 font-bold text-jet-dark">{followerCount}</div>
           <div className="text-small text-gray-muted">Followers</div>
-        </div>
-        <div>
+        </button>
+
+        {/* Following - Clickable */}
+        <button
+          onClick={() => setFollowListType("following")}
+          className="text-left hover:opacity-70 transition-opacity"
+        >
           <div className="text-h2 font-bold text-jet-dark">
             {followingCount}
           </div>
           <div className="text-small text-gray-muted">Following</div>
-        </div>
+        </button>
+
         <div>
           <div className="text-h2 font-bold text-jet-dark">
             {stats.total_upvotes}
@@ -271,6 +277,16 @@ export function ProfileHeader({
           <div className="text-small text-gray-muted">Views</div>
         </div>
       </div>
+
+      {/* Follow List Modal */}
+      {followListType && (
+        <FollowListModal
+          isOpen={!!followListType}
+          onClose={() => setFollowListType(null)}
+          userId={profile.id}
+          type={followListType}
+        />
+      )}
 
       {/* Edit Profile Modal */}
       {isOwnProfile && (
