@@ -10,6 +10,7 @@ import { generateMetadata as generateSEOMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { getCacheKey, CACHE_TTL } from '@/lib/cache/supabase-cache';
 import { cached } from '@/lib/redis';
+import { CreatorInfo } from '@/components/card/CreatorInfo';
 
 interface CardPageProps {
   params: Promise<{ id: string }>;
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: CardPageProps): Promise<Metad
   
   const { data: card } = await supabase
     .from('cards')
-    .select('title, description, thumbnail_url')
+    .select('title, description, thumbnail_url, canonical_url')
     .eq('id', id)
     .single();
 
@@ -127,12 +128,6 @@ export default async function CardPage({ params }: CardPageProps) {
                   </svg>
                   {domain}
                 </a>
-                <span>•</span>
-                {card.creator && (
-                  <Link href={`/profile/${card.creator.username}`} className="hover:underline">
-                    Added by {card.creator.display_name}
-                  </Link>
-                )}
               </div>
             </div>
 
@@ -174,12 +169,17 @@ export default async function CardPage({ params }: CardPageProps) {
                 title={card.title || 'Check this resource on Stacq'}
               />
 
-              {/* 4. Description (Read More) */}
+              {/* 4. Creator Info (YouTube Style) */}
+              {card.creator && (
+                <CreatorInfo creator={card.creator} />
+              )}
+
+              {/* 5. Description (Read More) */}
               <ExpandableDescription description={card.description} />
             </div>
           </div>
 
-          {/* 5. Comments Section */}
+          {/* 6. Comments Section */}
           <div className="bg-white rounded-xl border border-gray-light shadow-sm p-6">
             <CommentsSection targetType="card" targetId={id} />
           </div>

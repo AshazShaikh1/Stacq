@@ -554,13 +554,20 @@ export function CardPreview({
                 </span>
               </div>
 
+              {/* Creator Name Link - Add this inside the Content Section div */}
               {card.creator?.display_name && (
-                <span
-                  className="text-xs text-gray-400 truncate max-w-[40%] text-right"
-                  title={`Created by ${card.creator.display_name}`}
+                <div
+                  className="mt-auto pt-2 flex justify-end"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  By {card.creator.display_name}
-                </span>
+                  <Link
+                    href={`/profile/${card.creator.username}`}
+                    className="text-xs text-gray-400 hover:text-emerald hover:underline transition-colors"
+                    title={`Created by ${card.creator.display_name}`}
+                  >
+                    By {card.creator.display_name}
+                  </Link>
+                </div>
               )}
             </div>
           </div>
