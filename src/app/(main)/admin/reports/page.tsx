@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { ReportsList } from "@/components/admin/ReportsList";
-import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import { Card } from "@/components/ui/Card";
 
 export default async function AdminReportsPage({
   searchParams,
@@ -14,52 +14,33 @@ export default async function AdminReportsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
-  // Check if user is admin
+  // Check admin role
   const { data: userProfile } = await supabase
     .from("users")
     .select("role")
     .eq("id", user.id)
     .single();
 
-  if (userProfile?.role !== "admin") {
-    redirect("/");
-  }
+  if (userProfile?.role !== "admin") redirect("/");
 
   const resolvedSearchParams = await searchParams;
-  const status = resolvedSearchParams.status || "open";
+  const currentStatus = resolvedSearchParams.status || "open";
 
-  // Fetch reports
+  // Fetch reports with counts for tabs
   const { data: rawReports, error } = await supabase
     .from("reports")
     .select(
       `
-      id,
-      reporter_id,
-      target_type,
-      target_id,
-      reason,
-      data,
-      status,
-      created_at,
-      reporter:users!reports_reporter_id_fkey (
-        id,
-        username,
-        display_name,
-        avatar_url
-      )
+      id, reporter_id, target_type, target_id, reason, data, status, created_at,
+      reporter:users!reports_reporter_id_fkey ( id, username, display_name, avatar_url )
     `
     )
-    .eq("status", status)
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (error) {
-    console.error("Error fetching reports:", error);
-  }
+  if (error) console.error("Error fetching reports:", error);
 
   const reports = (rawReports || []).map((report: any) => ({
     ...report,
@@ -68,52 +49,71 @@ export default async function AdminReportsPage({
       : report.reporter,
   }));
 
-  return (
-    <div className="container mx-auto px-page py-section">
-      <div className="mb-8">
-        <h1 className="text-h1 font-bold text-jet-dark mb-2">
-          Admin - Reports
-        </h1>
-        <p className="text-body text-gray-muted mb-6">
-          Review and moderate user reports
-        </p>
+  // Calculate counts for tabs
+  const counts = {
+    open: reports.filter((r: any) => r.status === "open").length,
+    resolved: reports.filter((r: any) => r.status === "resolved").length,
+    dismissed: reports.filter((r: any) => r.status === "dismissed").length,
+  };
 
-        {/* Status Filters */}
-        <div className="flex gap-2 mb-6">
-          <Link href="/admin/reports?status=open">
-            <Button
-              variant={status === "open" ? "primary" : "outline"}
-              size="sm"
-            >
-              Open (
-              {reports?.filter((r: any) => r.status === "open").length || 0})
-            </Button>
-          </Link>
-          <Link href="/admin/reports?status=resolved">
-            <Button
-              variant={status === "resolved" ? "primary" : "outline"}
-              size="sm"
-            >
-              Resolved (
-              {reports?.filter((r: any) => r.status === "resolved").length || 0}
-              )
-            </Button>
-          </Link>
-          <Link href="/admin/reports?status=dismissed">
-            <Button
-              variant={status === "dismissed" ? "primary" : "outline"}
-              size="sm"
-            >
-              Dismissed (
-              {reports?.filter((r: any) => r.status === "dismissed").length ||
-                0}
-              )
-            </Button>
-          </Link>
+  const filteredReports = reports.filter(
+    (r: any) => r.status === currentStatus
+  );
+
+  return (
+    <div className="container mx-auto px-page py-section max-w-6xl">
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-jet-dark mb-2">
+            Moderation Queue
+          </h1>
+          <p className="text-gray-muted">
+            Review and take action on user reports.
+          </p>
         </div>
       </div>
 
-      <ReportsList initialReports={reports} initialStatus={status} />
+      {/* Tabs */}
+      <div className="flex border-b border-gray-light mb-8">
+        {["open", "resolved", "dismissed"].map((tab) => (
+          <Link
+            key={tab}
+            href={`/admin/reports?status=${tab}`}
+            className={`
+              px-6 py-3 text-sm font-medium border-b-2 transition-colors relative top-[2px]
+              ${
+                currentStatus === tab
+                  ? "border-emerald text-emerald"
+                  : "border-transparent text-gray-500 hover:text-jet-dark hover:border-gray-300"
+              }
+            `}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            <span
+              className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                currentStatus === tab
+                  ? "bg-emerald/10 text-emerald"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {counts[tab as keyof typeof counts]}
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      {filteredReports.length > 0 ? (
+        <ReportsList
+          initialReports={filteredReports}
+          initialStatus={currentStatus}
+        />
+      ) : (
+        <Card className="p-12 text-center border-dashed border-2 border-gray-200 shadow-none bg-gray-50/50">
+          <div className="text-4xl mb-4">✨</div>
+          <h3 className="text-lg font-bold text-jet-dark mb-1">All clear!</h3>
+          <p className="text-gray-muted">No {currentStatus} reports found.</p>
+        </Card>
+      )}
     </div>
   );
 }
