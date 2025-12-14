@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { CreateCollectionModal } from "@/components/collection/CreateCollectionModal";
 import { CardTypeSelector } from "./CardTypeSelector";
 import { CardDetailsStep } from "./CardDetailsStep";
-import { OptionalDetailsStep } from "@/components/stack/OptionalDetailsStep";
+import { OptionalDetailsStep } from "@/components/collection/OptionalDetailsStep";
 import { StackSelector } from "./StackSelector";
 import { BecomeStackerModal } from "@/components/auth/BecomeStackerModal";
 import { useToast } from "@/contexts/ToastContext";

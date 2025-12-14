@@ -25,7 +25,7 @@ export function useSaves({
   initialSaved = false,
 }: UseSavesOptions) {
   // Resolve actual ID and Type
-  const id = targetId || collectionId || cardId || stackId;
+  const id = targetId || collectionId || cardId;
   const type = targetType || (cardId ? "card" : "collection");
 
   const [saves, setSaves] = useState(initialSaves);
