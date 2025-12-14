@@ -10,7 +10,6 @@ import type { Metadata } from "next";
 import { Suspense, lazy } from "react";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 
-// Lazy load comments
 const CommentsSection = lazy(() =>
   import("@/components/comments/CommentsSection").then((m) => ({
     default: m.CommentsSection,
@@ -70,7 +69,6 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
         id
       );
 
-    // 1. Fetch Collection (Standard Query)
     const collectionQuery = supabase.from("collections").select(`
         *,
         owner:users!collections_owner_id_fkey (
@@ -91,16 +89,10 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       : collectionQuery.eq("slug", id)
     ).maybeSingle();
 
-    if (collectionError) {
-      console.error("[CollectionPage] DB Error:", collectionError);
-      throw collectionError;
-    }
-
-    if (!collection) {
+    if (collectionError || !collection) {
       notFound();
     }
 
-    // 2. Access Control
     const isOwner = collection.owner_id === user?.id;
     const canView =
       collection.is_public || isOwner || (collection.is_hidden && isOwner);
@@ -109,7 +101,6 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       notFound();
     }
 
-    // 3. Fetch Cards
     const { data: collectionCards } = await supabase
       .from("collection_cards")
       .select(
@@ -127,7 +118,6 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       .eq("collection_id", collection.id)
       .order("added_at", { ascending: false });
 
-    // Extract cards safely
     const cards = (collectionCards || [])
       .map((cc: any) => ({
         ...cc.card,
@@ -136,13 +126,11 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       }))
       .filter((c: any) => c && c.id);
 
-    // 4. Safe Data Mapping
     const owner = Array.isArray(collection.owner)
       ? collection.owner[0]
       : collection.owner;
     const tags = collection.tags?.map((t: any) => t.tag).filter(Boolean) || [];
 
-    // Calculate stats safely
     const stats = collection.stats || {
       cards_count: cards.length,
       views: 0,
@@ -206,7 +194,6 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       </div>
     );
   } catch (error) {
-    console.error("[CollectionPage] Error:", error);
     notFound();
   }
 }

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
           cursor
         );
       },
-      CACHE_TTL.FEED
+      CACHE_TTL
     );
 
     // Return with cache headers

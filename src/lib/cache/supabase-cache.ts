@@ -1,66 +1,46 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { cached } from '@/lib/redis';
+import { redis } from "@/lib/redis";
 
-/**
- * Cached Supabase query wrapper
- * Automatically caches query results with a configurable TTL
- */
-export async function cachedQuery<T>(
-  queryKey: string,
-  queryFn: () => Promise<{ data: T | null; error: any }>,
+export const CACHE_TTL = 60;
+
+export function getCacheKey(key: string, params: Record<string, any> = {}): string {
+  const paramString = Object.entries(params)
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+    .map(([key, value]) => `${key}:${value}`)
+    .join("|");
+  
+  return `supabase:${key}:${paramString}`;
+}
+
+export async function cached<T>(
+  key: string,
+  fetcher: () => Promise<T>,
   ttl: number = 60
-): Promise<{ data: T | null; error: any }> {
-  return cached(
-    queryKey,
-    async () => {
-      const result = await queryFn();
-      return result;
-    },
-    ttl
-  );
+): Promise<T> {
+  const start = Date.now();
+
+  try {
+    // 1. Try to get from Redis
+    if (redis) {
+      const cachedData = await redis.get(key);
+      if (cachedData) {
+        return cachedData as T;
+      }
+    }
+  } catch (err) {
+    // Redis error - ignore and fetch fresh
+  }
+
+  // 2. Fetch fresh data
+  const data = await fetcher();
+
+  try {
+    // 3. Save to Redis
+    if (redis && data) {
+      await redis.set(key, data, { ex: ttl });
+    }
+  } catch (err) {
+    // Redis set error - ignore
+  }
+
+  return data;
 }
-
-/**
- * Helper to generate cache keys for Supabase queries
- */
-export function getCacheKey(
-  table: string,
-  filters: Record<string, any> = {},
-  options: { select?: string; order?: string; limit?: number } = {}
-): string {
-  const filterStr = Object.entries(filters)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, v]) => `${k}:${JSON.stringify(v)}`)
-    .join('|');
-  
-  const optionsStr = [
-    options.select ? `select:${options.select}` : '',
-    options.order ? `order:${options.order}` : '',
-    options.limit ? `limit:${options.limit}` : '',
-  ]
-    .filter(Boolean)
-    .join('|');
-  
-  return `supabase:${table}:${filterStr}${optionsStr ? `:${optionsStr}` : ''}`;
-}
-
-/**
- * Cache TTL presets
- */
-export const CACHE_TTL = {
-  // Public, read-heavy data
-  FEED: 60, // 1 minute
-  EXPLORE: 120, // 2 minutes
-  COLLECTIONS: 120, // 2 minutes
-  CARDS: 120, // 2 minutes
-  SEARCH: 300, // 5 minutes (search results change less frequently)
-  
-  // User-specific data (shorter TTL)
-  USER_PROFILE: 30, // 30 seconds
-  USER_SAVES: 30, // 30 seconds
-  
-  // Static/semi-static data
-  METADATA: 3600, // 1 hour
-  RANKING: 60, // 1 minute (ranking updates frequently)
-} as const;
-
