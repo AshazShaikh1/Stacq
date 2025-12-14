@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react"; // Add useState
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import { useFollow } from "@/hooks/useFollow";
 import { ProfilePictureEditor } from "./ProfilePictureEditor";
 import { EditProfileModal } from "./EditProfileModal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { FollowListModal } from "./FollowListModal"; // Import the new modal
+import { FollowListModal } from "./FollowListModal";
 import { useToast } from "@/contexts/ToastContext";
 
 interface ProfileHeaderProps {
@@ -36,14 +36,11 @@ export function ProfileHeader({
   profile,
   isOwnProfile = false,
 }: ProfileHeaderProps) {
-  const router = useRouter();
   const { showSuccess, showError } = useToast();
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [displayName, setDisplayName] = useState(profile.display_name);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  // NEW: State for follow list modal
   const [followListType, setFollowListType] = useState<
     "followers" | "following" | null
   >(null);
@@ -87,28 +84,24 @@ export function ProfileHeader({
           text: `Check out ${profile.display_name}'s profile on Stacq`,
           url: profileUrl,
         });
-      } catch (err) {
-        if ((err as Error).name !== "AbortError") {
-          console.error("Error sharing:", err);
-        }
-      }
+      } catch (err) {}
     } else {
       try {
         await navigator.clipboard.writeText(profileUrl);
         showSuccess("Link copied to clipboard!");
       } catch (err) {
-        console.error("Failed to copy:", err);
         showError("Failed to copy link");
       }
     }
   };
 
   return (
-    <div className="mb-8">
-      {/* Profile Picture and Info */}
-      <div className="flex items-start gap-6 mb-6">
+    <div className="mb-6 md:mb-8">
+      {/* 1. Header Section: Avatar & Info */}
+      {/* Mobile: Flex Column (Center) | Desktop: Flex Row (Left) */}
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Avatar */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           {isOwnProfile ? (
             <ProfilePictureEditor
               currentAvatarUrl={avatarUrl}
@@ -117,90 +110,71 @@ export function ProfileHeader({
               onUpdate={(newUrl) => setAvatarUrl(newUrl || undefined)}
             />
           ) : avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt={profile.display_name}
-              width={120}
-              height={120}
-              className="rounded-full border-4 border-white shadow-card"
-              unoptimized
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
+            <div className="w-24 h-24 md:w-32 md:h-32 relative rounded-full border-4 border-white shadow-card overflow-hidden">
+              <Image
+                src={avatarUrl}
+                alt={profile.display_name}
+                fill
+                className="object-cover"
+                unoptimized
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
           ) : (
-            <div className="w-30 h-30 rounded-full bg-gradient-to-br from-jet/20 to-gray-light border-4 border-white shadow-card flex items-center justify-center text-4xl font-bold text-jet">
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gradient-to-br from-jet/20 to-gray-light border-4 border-white shadow-card flex items-center justify-center text-3xl md:text-4xl font-bold text-jet">
               {profile.display_name.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
 
-        {/* Profile Info */}
-        <div className="flex-1">
-          <h1 className="text-h1 font-bold text-jet-dark mb-2">
+        {/* Info & Actions */}
+        <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left w-full">
+          <h1 className="text-2xl md:text-4xl font-bold text-jet-dark mb-1">
             {displayName}
           </h1>
-          <p className="text-body text-gray-muted mb-4">@{profile.username}</p>
+          <p className="text-sm md:text-base text-gray-muted mb-4 md:mb-6">
+            @{profile.username}
+          </p>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3 w-full">
             {isOwnProfile ? (
               <>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleShareProfile}
+                  className="flex-1 md:flex-none"
                 >
-                  Share profile
+                  Share
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditModalOpen(true)}
+                  className="flex-1 md:flex-none"
                 >
-                  Edit profile
+                  Edit
                 </Button>
 
                 {(profile.role === "stacker" || profile.role === "admin") && (
-                  <Link href="/stacker/dashboard">
+                  <Link href="/stacker/dashboard" className="hidden md:block">
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-emerald hover:text-emerald-dark hover:border-emerald"
                     >
-                      Creator Dashboard
+                      Dashboard
                     </Button>
                   </Link>
-                )}
-
-                {profile.role === "admin" && (
-                  <>
-                    <Link href="/admin/reports">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-amber-600 hover:text-amber-700 hover:border-amber-600"
-                      >
-                        Reports
-                      </Button>
-                    </Link>
-                    <Link href="/admin/ranking">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-purple-600 hover:text-purple-700 hover:border-purple-600"
-                      >
-                        Ranking
-                      </Button>
-                    </Link>
-                  </>
                 )}
 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowLogoutConfirm(true)}
-                  className="text-red-600 hover:text-red-700 hover:border-red-600"
+                  className="text-red-600 hover:text-red-700 hover:border-red-600 hidden md:block"
                 >
                   Sign out
                 </Button>
@@ -212,6 +186,7 @@ export function ProfileHeader({
                   size="sm"
                   onClick={toggleFollow}
                   disabled={isFollowLoading}
+                  className="w-32"
                 >
                   {isFollowLoading
                     ? "..."
@@ -224,7 +199,7 @@ export function ProfileHeader({
                   size="sm"
                   onClick={handleShareProfile}
                 >
-                  Share profile
+                  Share
                 </Button>
               </>
             )}
@@ -235,50 +210,62 @@ export function ProfileHeader({
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="flex gap-8">
-        <div>
-          <div className="text-h2 font-bold text-jet-dark">
-            {stats.collections_created}
+      {/* 2. Stats Section: Horizontal Scroll on Mobile */}
+      <div className="border-t border-b border-gray-light md:border-none py-4 md:py-0">
+        <div className="flex md:gap-8 justify-around md:justify-start overflow-x-auto no-scrollbar items-center">
+          <div className="flex flex-col items-center md:items-start min-w-[70px]">
+            <div className="text-lg md:text-2xl font-bold text-jet-dark">
+              {stats.collections_created}
+            </div>
+            <div className="text-[10px] md:text-sm text-gray-muted uppercase tracking-wide md:normal-case">
+              Stacks
+            </div>
           </div>
-          <div className="text-small text-gray-muted">Collections</div>
-        </div>
 
-        {/* Followers - Clickable */}
-        <button
-          onClick={() => setFollowListType("followers")}
-          className="text-left hover:opacity-70 transition-opacity"
-        >
-          <div className="text-h2 font-bold text-jet-dark">{followerCount}</div>
-          <div className="text-small text-gray-muted">Followers</div>
-        </button>
+          <button
+            onClick={() => setFollowListType("followers")}
+            className="flex flex-col items-center md:items-start min-w-[70px] hover:opacity-70"
+          >
+            <div className="text-lg md:text-2xl font-bold text-jet-dark">
+              {followerCount}
+            </div>
+            <div className="text-[10px] md:text-sm text-gray-muted uppercase tracking-wide md:normal-case">
+              Followers
+            </div>
+          </button>
 
-        {/* Following - Clickable */}
-        <button
-          onClick={() => setFollowListType("following")}
-          className="text-left hover:opacity-70 transition-opacity"
-        >
-          <div className="text-h2 font-bold text-jet-dark">
-            {followingCount}
-          </div>
-          <div className="text-small text-gray-muted">Following</div>
-        </button>
+          <button
+            onClick={() => setFollowListType("following")}
+            className="flex flex-col items-center md:items-start min-w-[70px] hover:opacity-70"
+          >
+            <div className="text-lg md:text-2xl font-bold text-jet-dark">
+              {followingCount}
+            </div>
+            <div className="text-[10px] md:text-sm text-gray-muted uppercase tracking-wide md:normal-case">
+              Following
+            </div>
+          </button>
 
-        <div>
-          <div className="text-h2 font-bold text-jet-dark">
-            {stats.total_upvotes}
+          <div className="flex flex-col items-center md:items-start min-w-[70px]">
+            <div className="text-lg md:text-2xl font-bold text-jet-dark">
+              {stats.total_upvotes}
+            </div>
+            <div className="text-[10px] md:text-sm text-gray-muted uppercase tracking-wide md:normal-case">
+              Upvotes
+            </div>
           </div>
-          <div className="text-small text-gray-muted">Upvotes</div>
-        </div>
-        <div>
-          <div className="text-h2 font-bold text-jet-dark">
-            {stats.total_views}
+
+          <div className="hidden xs:flex flex-col items-center md:items-start min-w-[70px]">
+            <div className="text-lg md:text-2xl font-bold text-jet-dark">
+              {stats.total_views}
+            </div>
+            <div className="text-[10px] md:text-sm text-gray-muted uppercase tracking-wide md:normal-case">
+              Views
+            </div>
           </div>
-          <div className="text-small text-gray-muted">Views</div>
         </div>
       </div>
 
-      {/* Follow List Modal */}
       {followListType && (
         <FollowListModal
           isOpen={!!followListType}
@@ -288,7 +275,6 @@ export function ProfileHeader({
         />
       )}
 
-      {/* Edit Profile Modal */}
       {isOwnProfile && (
         <EditProfileModal
           isOpen={isEditModalOpen}
@@ -300,13 +286,12 @@ export function ProfileHeader({
         />
       )}
 
-      {/* Logout Confirmation Modal */}
       {isOwnProfile && (
         <ConfirmModal
           isOpen={showLogoutConfirm}
           onClose={() => setShowLogoutConfirm(false)}
           onConfirm={handleSignOut}
-          title="Confirm Sign Out"
+          title="Sign Out"
           message="Are you sure you want to sign out?"
           confirmText="Sign out"
           cancelText="Cancel"
