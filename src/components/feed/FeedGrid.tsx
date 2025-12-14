@@ -1,47 +1,72 @@
-import { FeedItem } from './FeedItem';
-import { CollectionGridSkeleton } from '@/components/ui/Skeleton';
-import { EmptyStacksState } from '@/components/ui/EmptyState';
+"use client";
 
-interface FeedItem {
-  type: 'card' | 'collection';
+import { FeedItem } from "./FeedItem";
+import { CollectionGridSkeleton } from "@/components/ui/Skeleton";
+import { EmptyStacksState } from "@/components/ui/EmptyState";
+
+export interface FeedGridItem {
+  type: "card" | "collection";
   id: string;
   [key: string]: any;
 }
 
 interface FeedGridProps {
-  items?: FeedItem[];
-  collections?: any[]; // Legacy support (stacks)
+  items?: FeedGridItem[];
+  collections?: any[]; // legacy
   isLoading?: boolean;
   onCreateCollection?: () => void;
-  hideHoverButtons?: boolean; // Hide hover buttons (for landing page)
+  hideHoverButtons?: boolean;
 }
 
-export function FeedGrid({ items, collections, isLoading, onCreateCollection, hideHoverButtons = false }: FeedGridProps) {
+export function FeedGrid({
+  items,
+  collections,
+  isLoading,
+  onCreateCollection,
+  hideHoverButtons = false,
+}: FeedGridProps) {
+  /* 1. Loading */
   if (isLoading) {
-    return <CollectionGridSkeleton count={12} />;
+    return <CollectionGridSkeleton count={8} />;
   }
 
-  // Support both new items format and legacy collections format
-  const feedItems = items || (collections ? collections.map(c => ({ type: 'collection' as const, ...c })) : []);
+  /* 2. Normalize data (WITHOUT lying about types) */
+  const feedItems: FeedGridItem[] =
+    items ??
+    (collections
+      ? collections.map((c) => ({
+          ...c,
+          type: "collection" as const,
+        }))
+      : []);
 
+  /* 3. Empty state */
   if (feedItems.length === 0) {
     return <EmptyStacksState onCreateStack={onCreateCollection} />;
   }
 
-  // Use masonry-style layout for cards (columns layout)
-  // This allows cards with different heights to flow naturally
+  /* 4. Responsive Grid (from v2, safe) */
   return (
-    <div 
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-      style={{
-        gridAutoRows: 'auto', // Allow rows to auto-size based on content
-        gridTemplateRows: 'auto', // Use auto-sizing for rows
-      }}
+    <div
+      className="
+        grid
+        grid-cols-1
+        sm:grid-cols-2
+        lg:grid-cols-3
+        xl:grid-cols-4
+        gap-4
+        md:gap-6
+        pb-24
+        md:pb-8
+      "
     >
       {feedItems.map((item) => (
-        <FeedItem key={`${item.type}-${item.id}`} item={item} hideHoverButtons={hideHoverButtons} />
+        <FeedItem
+          key={`${item.type}-${item.id}`}
+          item={item}
+          hideHoverButtons={hideHoverButtons}
+        />
       ))}
     </div>
   );
 }
-
