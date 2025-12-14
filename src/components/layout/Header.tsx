@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
-import { useState, lazy, Suspense } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { SearchIcon } from '@/components/ui/Icons';
-import { AccountDropdown } from './AccountDropdown';
-import { NotificationDropdown } from './NotificationDropdown';
+import { useState, lazy, Suspense } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/Button";
+import { AccountDropdown } from "./AccountDropdown";
+import { NotificationDropdown } from "./NotificationDropdown";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete"; // <-- IMPORT THIS
 
-// Lazy load modals - only load when needed
-const LoginModal = lazy(() => import('@/components/auth/LoginModal').then(m => ({ default: m.LoginModal })));
-const SignupModal = lazy(() => import('@/components/auth/SignupModal').then(m => ({ default: m.SignupModal })));
+const LoginModal = lazy(() =>
+  import("@/components/auth/LoginModal").then((m) => ({
+    default: m.LoginModal,
+  }))
+);
+const SignupModal = lazy(() =>
+  import("@/components/auth/SignupModal").then((m) => ({
+    default: m.SignupModal,
+  }))
+);
 
 export function Header() {
   const { user, isLoading } = useAuth();
@@ -18,59 +24,47 @@ export function Header() {
   const [isSignupOpen, setIsSignupOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-light">
-      <div className="container mx-auto px-page">
-        <div className="flex items-center justify-between h-16 gap-4">
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl">
-            <form action="/search" method="get" className="w-full">
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-light rounded-lg hover:bg-gray-light/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald focus-within:border-emerald transition-all duration-200 border border-transparent">
-                <SearchIcon size={18} className="text-gray-muted" />
-                <input
-                  type="text"
-                  name="q"
-                  placeholder="Search collections, cards, and stacqers..."
-                  className="flex-1 bg-transparent border-none outline-none text-body text-jet-dark placeholder:text-gray-muted"
-                />
-              </div>
-            </form>
-          </div>
+    <header className="sticky top-0 z-40 bg-white border-b border-gray-light w-full">
+      <div className="px-6 md:px-8 h-16 flex items-center justify-between gap-4 w-full">
+        {/* Search Bar Area */}
+        <div className="flex-1 max-w-2xl">
+          <SearchAutocomplete /> {/* <-- USE THE NEW COMPONENT */}
+        </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            {isLoading ? (
-              <div className="w-20 h-10 bg-gray-light animate-pulse rounded-md" />
-            ) : user ? (
-              <>
-                <NotificationDropdown user={user} />
-                <AccountDropdown user={user} />
-              </>
-            ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setIsLoginOpen(true)}
-                >
-                  Sign in
-                </Button>
-                <Button 
-                  variant="primary" 
-                  size="sm"
-                  onClick={() => setIsSignupOpen(true)}
-                >
-                  Sign up
-                </Button>
-              </>
-            )}
-          </div>
+        {/* Right Actions */}
+        <div className="flex items-center gap-4 flex-shrink-0">
+          {isLoading ? (
+            <div className="w-20 h-10 bg-gray-light animate-pulse rounded-md" />
+          ) : user ? (
+            <>
+              <NotificationDropdown user={user} />
+              <AccountDropdown user={user} />
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsLoginOpen(true)}
+              >
+                Sign in
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsSignupOpen(true)}
+              >
+                Sign up
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
       {isLoginOpen && (
         <Suspense fallback={null}>
-          <LoginModal 
-            isOpen={isLoginOpen} 
+          <LoginModal
+            isOpen={isLoginOpen}
             onClose={() => setIsLoginOpen(false)}
             onSwitchToSignup={() => {
               setIsLoginOpen(false);
@@ -82,8 +76,8 @@ export function Header() {
 
       {isSignupOpen && (
         <Suspense fallback={null}>
-          <SignupModal 
-            isOpen={isSignupOpen} 
+          <SignupModal
+            isOpen={isSignupOpen}
             onClose={() => setIsSignupOpen(false)}
             onSwitchToLogin={() => {
               setIsSignupOpen(false);
@@ -95,4 +89,3 @@ export function Header() {
     </header>
   );
 }
-

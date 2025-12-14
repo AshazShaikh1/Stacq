@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { SignupModal } from "@/components/auth/SignupModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react"; // Assuming you have lucide-react or similar, otherwise I'll use SVGs
+import { MenuIcon, XIcon } from "@/components/ui/Icons"; // Use local icons
 
 export function LandingHeader() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -79,9 +79,9 @@ export function LandingHeader() {
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
-                <X className="w-6 h-6 text-white" />
+                <XIcon className="text-white" size={24} />
               ) : (
-                <Menu className="w-6 h-6" />
+                <MenuIcon size={24} />
               )}
             </button>
           </div>
