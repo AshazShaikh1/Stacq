@@ -21,76 +21,71 @@ const steps = [
   {
     icon: Share2,
     title: 'Share & Discover',
-    description: 'Publish your collections, follow Stacqers, explore trending topics, and',
-    details: 'find high-quality resources curated by real people.',
+    description: 'Publish your collections, follow Stacqers, and find high-quality resources.',
+    details: 'Build your reputation as a curator and help others learn.',
     imageSide: 'right' as const,
   },
 ];
 
 export function HowItWorksSection() {
   return (
-    <section className="container mx-auto px-4 md:px-page py-12 md:py-16 lg:py-20 xl:py-24 bg-white">
-      {/* Divider */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-light to-transparent mb-12 md:mb-16"></div>
-      
-      <div className="max-w-6xl mx-auto">
+      <section className="py-16 md:py-32 overflow-hidden bg-grey-100">
+      <div className="container mx-auto px-4 md:px-8">
         <motion.div 
-          className="text-center mb-8 md:mb-12 lg:mb-16"
+          className="text-center mb-16 md:mb-24"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-jet-dark mb-3 md:mb-4">
-            How Stacq works
+          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+            How Stacq Works
           </h2>
-          <div className="w-12 md:w-16 h-1 bg-emerald mx-auto rounded-full"></div>
+          <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto">
+            Three simple steps to curb information overload.
+          </p>
         </motion.div>
         
-        <div className="space-y-12 md:space-y-16 lg:space-y-24">
+        <div className="space-y-20 md:space-y-32">
           {steps.map((step, index) => {
             const Icon = step.icon;
-            const isEven = index % 2 === 0;
             const isLeft = step.imageSide === 'left';
             
             return (
               <motion.div
                 key={index}
-                className={`flex flex-col ${isLeft ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-6 md:gap-8 lg:gap-12`}
+                className={`flex flex-col ${isLeft ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-10 md:gap-16 lg:gap-24`}
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
               >
-                {/* Content */}
-                <div className={`flex-1 w-full ${isLeft ? 'lg:text-right' : 'lg:text-left'} text-center lg:text-left`}>
-                  <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-emerald text-white rounded-xl mb-4 md:mb-6 shadow-button">
-                    <Icon className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10" />
+                {/* Text Content */}
+                <div className="flex-1 w-full text-center lg:text-left">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl mb-6 shadow-sm">
+                    <Icon className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-jet-dark mb-3 md:mb-4">
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
                     {step.title}
                   </h3>
-                  <p className="text-base sm:text-lg md:text-xl text-gray-muted mb-2 md:mb-3 leading-relaxed">
+                  <p className="text-lg text-gray-600 mb-4 font-medium">
                     {step.description}
                   </p>
-                  <p className="text-sm sm:text-base md:text-lg text-gray-muted leading-relaxed">
+                  <p className="text-gray-500 leading-relaxed">
                     {step.details}
                   </p>
                 </div>
 
-                {/* Image Placeholder */}
-                <div className={`flex-1 w-full ${isLeft ? 'lg:pr-4 lg:pr-8' : 'lg:pl-4 lg:pl-8'}`}>
-                  <div className="relative w-full h-48 sm:h-64 md:h-80 lg:h-96 rounded-card bg-gradient-to-br from-emerald/10 via-emerald/5 to-cloud border border-gray-light overflow-hidden shadow-card">
-                    {/* Decorative illustration placeholder */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-5xl sm:text-6xl md:text-8xl opacity-20">
-                        {index === 0 && '📁'}
-                        {index === 1 && '🔗'}
-                        {index === 2 && '🌐'}
-                      </div>
+                {/* Visual Placeholder */}
+                <div className="flex-1 w-full relative group">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-3xl transform rotate-3 opacity-50 group-hover:rotate-6 transition-transform duration-500"></div>
+                  <div className="relative aspect-[4/3] bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden flex items-center justify-center">
+                    <div className="text-9xl opacity-10 filter grayscale select-none">
+                      {index === 0 && '📁'}
+                      {index === 1 && '🔗'}
+                      {index === 2 && '🚀'}
                     </div>
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-emerald/20 to-transparent"></div>
+                    {/* In a real app, put screenshots here */}
                   </div>
                 </div>
               </motion.div>
@@ -101,4 +96,3 @@ export function HowItWorksSection() {
     </section>
   );
 }
-
