@@ -1,19 +1,18 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { Dropdown } from '@/components/ui/Dropdown';
-import { EditCollectionModal } from '@/components/collection/EditCollectionModal';
-import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { useVotes } from '@/hooks/useVotes';
-import { useSaves } from '@/hooks/useSaves';
-import { ReportButton } from '@/components/report/ReportButton';
-import { createClient } from '@/lib/supabase/client';
-import { trackEvent } from '@/lib/analytics';
-import { useToast } from '@/contexts/ToastContext';
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/Button";
+import { useSaves } from "@/hooks/useSaves";
+import { useVotes } from "@/hooks/useVotes";
+import { EditCollectionModal } from "./EditCollectionModal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/contexts/ToastContext";
+import { ReportButton } from "@/components/report/ReportButton";
+import { trackEvent } from "@/lib/analytics";
 
 interface CollectionHeaderProps {
   collection: {
@@ -22,11 +21,15 @@ interface CollectionHeaderProps {
     description?: string;
     cover_image_url?: string;
     owner_id: string;
-    stats: {
-      views: number;
-      upvotes: number;
-      saves: number;
-      comments: number;
+    is_public?: boolean;
+    is_hidden?: boolean;
+    stats?: {
+      views?: number;
+      upvotes?: number;
+      saves?: number;
+      comments?: number;
+      cards_count?: number;
+      followers?: number;
     };
     owner?: {
       username: string;
@@ -37,337 +40,331 @@ interface CollectionHeaderProps {
       id: string;
       name: string;
     }>;
-    is_public?: boolean;
-    is_hidden?: boolean;
   };
   isOwner?: boolean;
 }
 
-export function CollectionHeader({ collection, isOwner = false }: CollectionHeaderProps) {
+export function CollectionHeader({
+  collection,
+  isOwner = false,
+}: CollectionHeaderProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
-  const { upvotes, voted, isLoading, error, toggleVote } = useVotes({
-    targetType: 'collection',
-    targetId: collection.id,
-    initialUpvotes: collection.stats.upvotes || 0,
-    initialVoted: false, // Will be fetched by hook
-  });
-
-  const { saves: saveCount, saved: isSaved, isLoading: isSaving, isAnimating, toggleSave } = useSaves({
-    collectionId: collection.id,
-    initialSaves: collection.stats.saves || 0,
-    initialSaved: false, // Will be fetched by hook
-  });
   const [user, setUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const stats = collection.stats || {
+    views: 0,
+    upvotes: 0,
+    saves: 0,
+    comments: 0,
+    cards_count: 0,
+    followers: 0,
+  };
+
+  const {
+    saves: saveCount,
+    saved: isSaved,
+    toggleSave,
+    isLoading: isSaveLoading,
+    isAnimating,
+  } = useSaves({
+    targetType: "collection",
+    targetId: collection.id,
+    initialSaves: stats.saves,
+    initialSaved: false,
+  } as any);
+
+  const {
+    upvotes,
+    voted,
+    toggleVote,
+    isLoading: isVoteLoading,
+    error: voteError,
+  } = useVotes({
+    targetType: "collection",
+    targetId: collection.id,
+    initialUpvotes: stats.upvotes,
+    initialVoted: false,
+  });
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-    });
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
   }, []);
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: collection.title,
-          text: collection.description,
-          url: window.location.href,
-        });
-      } catch (err) {
-        // User cancelled or error occurred
-        if ((err as Error).name !== 'AbortError') {
-          console.error('Error sharing:', err);
-        }
-      }
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        showSuccess('Link copied to clipboard!');
-      } catch (err) {
-        console.error('Failed to copy:', err);
-        showError('Failed to copy link');
-      }
-    }
-  };
-
-  const handleClone = async () => {
-    if (!user) {
-      showError('Please sign in to clone collections');
-      return;
-    }
-
-    if (isOwner) {
-      showError('You cannot clone your own collection');
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/collections/${collection.id}/clone`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to clone collection');
-      }
-
-      // Track analytics
-      if (data.collection?.id && user) {
-        trackEvent.cloneStack(user.id, collection.id, data.collection.id);
-      }
-
-      // Redirect to the cloned collection
-      if (data.collection?.id) {
-        showSuccess('Collection cloned successfully!');
-        window.location.href = `/collection/${data.collection.id}`;
-      } else {
-        showSuccess('Collection cloned successfully!');
-        // Refresh the page to show updated state
-        window.location.reload();
-      }
-    } catch (error: any) {
-      showError(error.message || 'Failed to clone collection. Please try again.');
-    }
-  };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/collections/${collection.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete collection');
-      }
-
-      showSuccess('Collection deleted successfully');
-      // Redirect to home page after deletion
-      router.push('/');
-    } catch (error: any) {
-      showError(error.message || 'Failed to delete collection');
+      if (!response.ok) throw new Error("Failed to delete");
+      showSuccess("Deleted successfully");
+      router.push("/");
+    } catch (error) {
+      showError("Failed to delete collection");
       setIsDeleting(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: collection.title,
+          text: collection.description,
+          url,
+        });
+      } catch (err) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        showSuccess("Link copied!");
+      } catch (err) {
+        showError("Failed to copy");
+      }
+    }
+  };
+
+  const handleClone = async () => {
+    if (!user) return showError("Please sign in to clone");
+    if (isOwner) return showError("Cannot clone your own collection");
+
+    try {
+      const response = await fetch(`/api/collections/${collection.id}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      if (data.collection?.id) {
+        trackEvent.cloneStack(user.id, collection.id, data.collection.id);
+        showSuccess("Cloned successfully!");
+        window.location.href = `/collection/${data.collection.id}`;
+      }
+    } catch (error: any) {
+      showError(error.message);
     }
   };
 
   return (
     <div className="mb-8">
-      {/* Cover Image */}
-      {collection.cover_image_url ? (
-        <div className="relative w-full h-96 rounded-lg overflow-hidden mb-6">
-          <Image
-            src={collection.cover_image_url}
-            alt={collection.title}
-            fill
-            className="object-cover"
-            priority
-            sizes="100vw"
-          />
+      {/* Top Section: Cover & Info (Responsive) */}
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
+        {/* Cover Image */}
+        <div className="w-full md:w-64 md:h-48 aspect-video md:aspect-auto relative rounded-xl overflow-hidden shadow-sm bg-gray-100 flex-shrink-0">
+          {collection.cover_image_url ? (
+            <Image
+              src={collection.cover_image_url}
+              alt={collection.title}
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 768px) 100vw, 300px"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 text-5xl">
+              📚
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="w-full h-64 bg-gradient-to-br from-jet/10 to-gray-light rounded-lg mb-6 flex items-center justify-center">
-          <div className="text-6xl">📚</div>
-        </div>
-      )}
 
-      {/* Title and Description */}
-      <div className="mb-6">
-        <h1 className="text-h1 font-bold text-jet-dark mb-3">
-          {collection.title}
-        </h1>
-        {collection.description && (
-          <p className="text-body text-gray-muted mb-4">
-            {collection.description}
-          </p>
-        )}
+        {/* Info Section */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-4xl font-bold text-jet-dark mb-3 leading-tight">
+              {collection.title}
+            </h1>
 
-        {/* Tags */}
-        {collection.tags && collection.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {collection.tags.map((tag) => (
-              <Link
-                key={tag.id}
-                href={`/explore?tag=${tag.name}`}
-                className="px-3 py-1 bg-gray-light rounded-full text-small text-jet-dark hover:bg-jet hover:text-white transition-colors"
-              >
-                #{tag.name}
-              </Link>
-            ))}
-          </div>
-        )}
+            {/* Owner & Meta */}
+            <div className="flex flex-wrap items-center gap-4 mb-4 text-sm">
+              {collection.owner && (
+                <Link
+                  href={`/profile/${collection.owner.username}`}
+                  className="inline-flex items-center gap-2 text-gray-600 hover:text-emerald-600 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden relative border border-gray-100">
+                    {collection.owner.avatar_url ? (
+                      <Image
+                        src={collection.owner.avatar_url}
+                        alt={collection.owner.username}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-emerald-600 text-white text-[8px] font-bold">
+                        {collection.owner.display_name?.[0]}
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-medium">
+                    {collection.owner.display_name}
+                  </span>
+                </Link>
+              )}
 
-        {/* Owner Info */}
-        {collection.owner && (
-          <div className="flex items-center gap-3 mb-6">
-            {collection.owner.avatar_url ? (
-              <Image
-                src={collection.owner.avatar_url}
-                alt={collection.owner.display_name}
-                width={32}
-                height={32}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-jet/20 flex items-center justify-center text-xs font-semibold text-jet">
-                {collection.owner.display_name.charAt(0).toUpperCase()}
-              </div>
+              {/* Tags */}
+              {collection.tags?.map((tag) => (
+                <Link
+                  key={tag.id}
+                  href={`/explore?tag=${tag.name}`}
+                  className="px-2.5 py-0.5 bg-gray-100 rounded-full text-xs text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  #{tag.name}
+                </Link>
+              ))}
+            </div>
+
+            {collection.description && (
+              <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-3xl mb-6">
+                {collection.description}
+              </p>
             )}
-            <Link
-              href={`/profile/${collection.owner.username}`}
-              className="text-body text-jet-dark hover:text-jet font-medium"
-            >
-              {collection.owner.display_name}
-            </Link>
-            <span className="text-small text-gray-muted">
-              @{collection.owner.username}
+
+            {/* Actions Row (Responsive) */}
+            <div className="flex flex-wrap gap-2 md:gap-3">
+              <Button
+                variant={voted ? "primary" : "outline"}
+                size="sm"
+                onClick={toggleVote}
+                disabled={isVoteLoading}
+                className={voted ? "bg-emerald-600 border-emerald-600" : ""}
+              >
+                <span className="mr-1.5">👍</span> {upvotes}
+              </Button>
+
+              {isOwner ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={handleShare}>
+                    Share
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditModalOpen(true)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsDeleteConfirmOpen(true)}
+                    className="text-red-600 hover:border-red-600 hover:bg-red-50"
+                  >
+                    Delete
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant={isSaved ? "primary" : "outline"}
+                    size="sm"
+                    onClick={toggleSave}
+                    disabled={isSaveLoading}
+                    className={`${
+                      isSaved ? "bg-emerald-600 border-emerald-600" : ""
+                    } ${isAnimating ? "scale-105" : ""} transition-transform`}
+                  >
+                    <span className="mr-1.5">💾</span>{" "}
+                    {isSaved ? "Saved" : "Save"} ({saveCount})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClone}
+                    disabled={!user}
+                  >
+                    Clone
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleShare}>
+                    Share
+                  </Button>
+                  <ReportButton
+                    targetType="collection"
+                    targetId={collection.id}
+                    variant="outline"
+                    size="sm"
+                  />
+                </>
+              )}
+            </div>
+            {voteError && (
+              <p className="text-xs text-red-500 mt-2">{voteError}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Bar - Scrollable on Mobile */}
+      <div className="border-t border-b border-gray-100 py-3 md:py-4">
+        <div className="flex md:gap-12 justify-around md:justify-start overflow-x-auto no-scrollbar">
+          <div className="flex flex-col items-center md:items-start min-w-[60px]">
+            <span className="text-lg md:text-xl font-bold text-jet-dark">
+              {stats.cards_count || 0}
+            </span>
+            <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">
+              Cards
             </span>
           </div>
-        )}
-      </div>
-
-      {/* Action Bar */}
-      <div className="flex items-center gap-4 pb-6 border-b border-gray-light">
-        <Button
-          variant={voted ? 'primary' : 'outline'}
-          size="sm"
-          onClick={toggleVote}
-          disabled={isLoading}
-        >
-          <span className="mr-2">👍</span>
-          {upvotes} {upvotes === 1 ? 'Upvote' : 'Upvotes'}
-        </Button>
-        {error && (
-          <span className="text-small text-red-500 ml-2">{error}</span>
-        )}
-
-        {isOwner ? (
-          // Owner sees save count only (not clickable)
-          <div className="px-4 py-2 rounded-md border border-gray-light text-sm font-medium text-jet-dark">
-            <span className="mr-2">💾</span>
-            {saveCount} {saveCount === 1 ? 'Save' : 'Saves'}
+          <div className="flex flex-col items-center md:items-start min-w-[60px]">
+            <span className="text-lg md:text-xl font-bold text-jet-dark">
+              {stats.views || 0}
+            </span>
+            <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">
+              Views
+            </span>
           </div>
-        ) : user ? (
-          // Logged-in visitor can save/unsave
-          <Button
-            variant={isSaved ? 'primary' : 'outline'}
-            size="sm"
-            onClick={toggleSave}
-            disabled={isSaving}
-            className={`relative ${isAnimating ? 'animate-pulse scale-110' : ''} transition-all duration-300`}
-          >
-            <span className={`mr-2 inline-block ${isAnimating ? 'animate-bounce' : ''}`}>💾</span>
-            {isSaved ? 'Saved' : 'Save'} {saveCount > 0 && `(${saveCount})`}
-          </Button>
-        ) : (
-          // Not logged in - show save count only
-          <div className="px-4 py-2 rounded-md border border-gray-light text-sm font-medium text-jet-dark">
-            <span className="mr-2">💾</span>
-            {saveCount} {saveCount === 1 ? 'Save' : 'Saves'}
+          <div className="flex flex-col items-center md:items-start min-w-[60px]">
+            <span className="text-lg md:text-xl font-bold text-jet-dark">
+              {stats.comments || 0}
+            </span>
+            <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">
+              Comments
+            </span>
           </div>
-        )}
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleShare}
-        >
-          <span className="mr-2">🔗</span>
-          Share
-        </Button>
-
-
-        {isOwner ? (
-          <Dropdown
-            items={[
-              {
-                label: 'Edit',
-                onClick: () => setIsEditModalOpen(true),
-                icon: (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                ),
-              },
-              {
-                label: 'Delete',
-                onClick: () => setShowDeleteConfirm(true),
-                variant: 'danger',
-                icon: (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                ),
-              },
-            ]}
-          />
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClone}
-              disabled={!user}
-            >
-              <span className="mr-2">📋</span>
-              Clone
-            </Button>
-            <ReportButton
-              targetType="collection"
-              targetId={collection.id}
-              variant="outline"
-              size="sm"
-            />
-          </>
-        )}
-
-        {/* Stats */}
-        <div className="ml-auto flex items-center gap-6 text-small text-gray-muted">
-          <span>{collection.stats.views || 0} views</span>
-          <span>{collection.stats.comments || 0} comments</span>
+          <div className="flex flex-col items-center md:items-start min-w-[60px]">
+            <span className="text-lg md:text-xl font-bold text-jet-dark">
+              {saveCount}
+            </span>
+            <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">
+              Saves
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Edit Modal */}
-      {isEditModalOpen && (
-        <EditCollectionModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          collection={{
-            id: collection.id,
-            title: collection.title,
-            description: collection.description,
-            cover_image_url: collection.cover_image_url,
-            is_public: collection.is_public ?? true,
-            is_hidden: collection.is_hidden ?? false,
-            tags: collection.tags || [],
-          }}
-        />
-      )}
-
-      {/* Delete Confirmation Modal */}
+      {/* Modals */}
       {isOwner && (
-        <ConfirmModal
-          isOpen={showDeleteConfirm}
-          onClose={() => setShowDeleteConfirm(false)}
-          onConfirm={handleDelete}
-          title="Delete Collection"
-          message={`Are you sure you want to delete "${collection.title}"? This action cannot be undone.`}
-          confirmText="Delete"
-          cancelText="Cancel"
-          variant="danger"
-        />
+        <>
+          <EditCollectionModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            collection={{
+              id: collection.id,
+              title: collection.title,
+              description: collection.description,
+              cover_image_url: collection.cover_image_url,
+              is_public: collection.is_public ?? true,
+              is_hidden: collection.is_hidden ?? false,
+              tags: collection.tags || [],
+            }}
+          />
+          <ConfirmModal
+            isOpen={isDeleteConfirmOpen}
+            onClose={() => setIsDeleteConfirmOpen(false)}
+            onConfirm={handleDelete}
+            title="Delete Collection"
+            message="Are you sure? This cannot be undone."
+            confirmText="Delete"
+            variant="danger"
+          />
+        </>
       )}
     </div>
   );
 }
-
