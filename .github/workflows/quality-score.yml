@@ -2,18 +2,29 @@ name: Quality Score Calculation
 
 on:
   schedule:
-    # Run daily at 2 AM UTC
     - cron: '0 2 * * *'
-  workflow_dispatch: # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   quality-score:
     runs-on: ubuntu-latest
     steps:
       - name: Calculate Quality Scores
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
         run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.WORKER_API_KEY }}" \
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "x-api-key: $WORKER_API_KEY" \
             -H "Content-Type: application/json" \
-            ${{ secrets.APP_URL }}/api/workers/quality-score
-
+            "$APP_URL/api/workers/quality-score")
+            
+          http_code=$(echo "$response" | tail -n1)
+          
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Quality scores updated"
+            exit 0
+          else
+            echo "::error::Quality score calculation failed (HTTP $http_code)"
+            exit 1
+          fi

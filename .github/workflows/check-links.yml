@@ -2,9 +2,8 @@ name: Check Links Health
 
 on:
   schedule:
-    # Run every 6 hours
     - cron: '0 */6 * * *'
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   check-links:
@@ -15,8 +14,16 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
           WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
         run: |
-          curl -X POST \
+          response=$(curl -s -w "\n%{http_code}" -X POST \
             -H "x-api-key: $WORKER_API_KEY" \
-            "$APP_URL/api/workers/check-links?limit=100" \
-            -w "\nHTTP Status: %{http_code}\n"
-
+            "$APP_URL/api/workers/check-links?limit=100")
+            
+          http_code=$(echo "$response" | tail -n1)
+          
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Link check completed"
+            exit 0
+          else
+            echo "::error::Link check failed (HTTP $http_code)"
+            exit 1
+          fi

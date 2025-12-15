@@ -2,18 +2,29 @@ name: Monitoring Alerts Check
 
 on:
   schedule:
-    # Run every hour
     - cron: '0 * * * *'
-  workflow_dispatch: # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   check-alerts:
     runs-on: ubuntu-latest
     steps:
       - name: Check for Anomalies
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          MONITORING_SECRET: ${{ secrets.MONITORING_SECRET }}
         run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.MONITORING_SECRET }}" \
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer $MONITORING_SECRET" \
             -H "Content-Type: application/json" \
-            ${{ secrets.APP_URL }}/api/monitoring/check-alerts
-
+            "$APP_URL/api/monitoring/check-alerts")
+            
+          http_code=$(echo "$response" | tail -n1)
+          
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Monitoring check passed"
+            exit 0
+          else
+            echo "::error::Monitoring check failed (HTTP $http_code)"
+            exit 1
+          fi

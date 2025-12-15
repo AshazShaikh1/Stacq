@@ -2,9 +2,8 @@ name: Fetch Metadata
 
 on:
   schedule:
-    # Run every 15 minutes
     - cron: '*/15 * * * *'
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   fetch-metadata:
@@ -16,41 +15,30 @@ jobs:
           WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
         run: |
           if [ -z "$APP_URL" ]; then
-            echo "Error: APP_URL secret is not set"
-            echo "Please set APP_URL in GitHub repository settings > Secrets"
+            echo "::error::APP_URL secret is not set"
             exit 1
           fi
           
-          echo "Fetching metadata for cards..."
+          echo "Fetching metadata..."
           
-          # Build curl command
-          CURL_CMD="curl -s -w \"\n%{http_code}\" -X POST"
-          CURL_CMD="$CURL_CMD -H \"Content-Type: application/json\""
+          # Capture HTTP status code and response body
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Content-Type: application/json" \
+            -H "x-api-key: $WORKER_API_KEY" \
+            -d '{"limit": 50}' \
+            "$APP_URL/api/workers/fetch-metadata")
           
-          if [ -n "$WORKER_API_KEY" ]; then
-            CURL_CMD="$CURL_CMD -H \"x-api-key: $WORKER_API_KEY\""
-            echo "Using API key authentication"
-          else
-            echo "Warning: WORKER_API_KEY not set. Worker may require authentication."
-          fi
-          
-          CURL_CMD="$CURL_CMD -d '{\"limit\": 50}'"
-          CURL_CMD="$CURL_CMD \"$APP_URL/api/workers/fetch-metadata\""
-          
-          response=$(eval $CURL_CMD)
-          
+          # Split response into body and status code
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | head -n-1)
           
-          echo "Response code: $http_code"
-          echo "Response body: $body"
+          echo "Response Body: $body"
+          echo "HTTP Status: $http_code"
           
           if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
             echo "✅ Metadata fetch completed successfully"
             exit 0
           else
-            echo "❌ Failed to fetch metadata (HTTP $http_code)"
-            echo "Response: $body"
-            # Don't exit with error - metadata fetch failures are non-critical
-            exit 0
+            echo "::error::Failed to fetch metadata (HTTP $http_code)"
+            exit 1
           fi

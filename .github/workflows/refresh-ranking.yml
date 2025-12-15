@@ -2,53 +2,39 @@ name: Refresh Explore Ranking
 
 on:
   schedule:
-    # Run every 10 minutes
     - cron: '*/10 * * * *'
-  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - name: Refresh Explore Ranking
+      - name: Refresh Ranking
         env:
           APP_URL: ${{ secrets.APP_URL }}
           RANKING_REFRESH_API_KEY: ${{ secrets.RANKING_REFRESH_API_KEY }}
         run: |
           if [ -z "$APP_URL" ]; then
-            echo "Error: APP_URL secret is not set"
-            echo "Please set APP_URL in GitHub repository settings > Secrets"
+            echo "::error::APP_URL secret is not set"
             exit 1
           fi
           
-          echo "Refreshing explore ranking..."
+          echo "Refreshing ranking..."
           
-          # Build curl command with optional API key
-          CURL_CMD="curl -s -w \"\n%{http_code}\" -X POST"
-          
-          if [ -n "$RANKING_REFRESH_API_KEY" ]; then
-            CURL_CMD="$CURL_CMD -H \"x-api-key: $RANKING_REFRESH_API_KEY\""
-            echo "Using API key authentication"
-          else
-            echo "Warning: RANKING_REFRESH_API_KEY not set, using user auth (may fail)"
-          fi
-          
-          CURL_CMD="$CURL_CMD \"$APP_URL/api/admin/refresh-ranking\""
-          
-          response=$(eval $CURL_CMD)
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "x-api-key: $RANKING_REFRESH_API_KEY" \
+            "$APP_URL/api/admin/refresh-ranking")
           
           http_code=$(echo "$response" | tail -n1)
           body=$(echo "$response" | head -n-1)
           
-          echo "Response code: $http_code"
-          echo "Response body: $body"
+          echo "Response Body: $body"
+          echo "HTTP Status: $http_code"
           
-          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 201 ]; then
-            echo "✅ Ranking refreshed successfully"
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Ranking refreshed"
             exit 0
           else
-            echo "❌ Failed to refresh ranking (HTTP $http_code)"
-            echo "Response: $body"
+            echo "::error::Failed to refresh ranking (HTTP $http_code)"
             exit 1
           fi
-

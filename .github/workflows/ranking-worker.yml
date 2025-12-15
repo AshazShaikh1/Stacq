@@ -2,18 +2,36 @@ name: Ranking Worker
 
 on:
   schedule:
-    # Run every 15 minutes
     - cron: '*/15 * * * *'
-  workflow_dispatch: # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   ranking:
     runs-on: ubuntu-latest
     steps:
       - name: Run Ranking Worker
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
         run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.WORKER_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            ${{ secrets.APP_URL }}/api/workers/ranking
+          if [ -z "$APP_URL" ]; then
+            echo "::error::APP_URL secret is not set"
+            exit 1
+          fi
 
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "x-api-key: $WORKER_API_KEY" \
+            -H "Content-Type: application/json" \
+            "$APP_URL/api/workers/ranking")
+            
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+          
+          echo "Response Body: $body"
+          
+          if [ "$http_code" -eq 200 ]; then
+            exit 0
+          else
+            echo "::error::Ranking worker failed (HTTP $http_code)"
+            exit 1
+          fi
