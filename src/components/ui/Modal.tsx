@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { focusManagement } from "@/lib/accessibility";
 
 interface ModalProps {
@@ -20,8 +21,14 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -66,7 +73,7 @@ export const Modal: React.FC<ModalProps> = ({
     }
   }, [isOpen, onClose]);
 
-  if (!shouldRender) return null;
+  if (!shouldRender || !mounted) return null;
 
   const sizeStyles = {
     sm: "max-w-md", // Great for Login/Signup
@@ -74,7 +81,7 @@ export const Modal: React.FC<ModalProps> = ({
     lg: "max-w-4xl", // Great for large forms
   };
 
-  return (
+  const modalNode = (
     <>
       {/* Backdrop (High Z-Index) */}
       <div
@@ -110,7 +117,7 @@ export const Modal: React.FC<ModalProps> = ({
           {/* Header */}
           {(title || true) && ( // Always render a header area for the close button
             <div
-              className={`flex items-center justify-between px-6 py-4 ${
+              className={`flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 ${
                 title
                   ? "border-b border-gray-100"
                   : "absolute right-0 top-0 z-10"
@@ -119,7 +126,7 @@ export const Modal: React.FC<ModalProps> = ({
               {title && (
                 <h2
                   id="modal-title"
-                  className="text-xl font-bold text-jet-dark"
+                  className="text-lg sm:text-xl font-bold text-jet-dark"
                 >
                   {title}
                 </h2>
@@ -147,9 +154,13 @@ export const Modal: React.FC<ModalProps> = ({
           )}
 
           {/* Scrollable Body */}
-          <div className="p-6 overflow-y-auto custom-scrollbar">{children}</div>
+          <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+            {children}
+          </div>
         </div>
       </div>
     </>
   );
+
+  return createPortal(modalNode, document.body);
 };

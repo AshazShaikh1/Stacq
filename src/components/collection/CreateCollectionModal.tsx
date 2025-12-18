@@ -32,7 +32,7 @@ export function CreateCollectionModal({
   const [step, setStep] = useState<Step>("basic");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [visibility, setVisibility] = useState<CollectionVisibility>("public");
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
@@ -52,7 +52,7 @@ export function CreateCollectionModal({
         setStep("basic");
         setTitle("");
         setDescription("");
-        setTags("");
+        setTags([]);
         setVisibility("public");
         setCoverImage(null);
         setCoverImagePreview(null);
@@ -166,10 +166,7 @@ export function CreateCollectionModal({
           title,
           slug,
           description: description || null,
-          tags: tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
+          tags,
           is_public: visibility === "public",
           is_hidden: visibility === "unlisted",
           cover_image_url: coverImageUrl,
@@ -213,7 +210,8 @@ export function CreateCollectionModal({
       title="Create Collection"
       size="md"
     >
-      <div className="relative overflow-hidden min-h-[450px]">
+      {/* Mobile-first: allow vertical scrolling and avoid clipping footer buttons/cover image */}
+      <div className="relative min-h-[60vh] md:min-h-[450px]">
         {/* Step 1 */}
         <div
           className={`absolute inset-0 transition-transform duration-300 ${

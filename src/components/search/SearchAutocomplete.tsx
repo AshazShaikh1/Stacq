@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { SearchIcon, XIcon } from '@/components/ui/Icons'; // Ensure XIcon exists or use SVG
 import { useDebounce } from '@/hooks/useDebounce';
 
 export function SearchAutocomplete() {
-  const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -61,10 +59,12 @@ export function SearchAutocomplete() {
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
+    // Prevent full-page navigation; keep results inline
     e.preventDefault();
-    setIsOpen(false);
-    if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query)}`);
+    if (!query.trim()) {
+      setIsOpen(false);
+    } else if (results) {
+      setIsOpen(true);
     }
   };
 
@@ -216,16 +216,7 @@ export function SearchAutocomplete() {
             </div>
           )}
 
-          {/* View All Link */}
-          {hasResults && (
-            <Link
-              href={`/search?q=${encodeURIComponent(query)}`}
-              onClick={() => setIsOpen(false)}
-              className="block p-3 text-center text-sm font-medium text-emerald-600 bg-gray-50 hover:bg-emerald-50 transition-colors border-t border-gray-100"
-            >
-              See all results for &quot;{query}&quot;
-            </Link>
-          )}
+          {/* No \"view all\" link; results stay inline to avoid redirects */}
         </div>
       )}
     </div>

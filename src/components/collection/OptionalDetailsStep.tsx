@@ -157,6 +157,7 @@ export function OptionalDetailsStep({
         <Button
           type="button"
           variant="outline"
+          size="sm"
           onClick={onBack}
           disabled={isLoading}
         >
@@ -165,6 +166,7 @@ export function OptionalDetailsStep({
         <Button
           type="submit"
           variant="primary"
+          size="sm"
           isLoading={isLoading}
           onClick={(e) => {
             if (onSubmit) {

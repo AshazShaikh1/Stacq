@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -23,6 +24,7 @@ export function LoginFormContent({
   isFullPage = false 
 }: LoginFormContentProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -36,7 +38,7 @@ export function LoginFormContent({
     try {
       const supabase = createClient();
       
-      // Construct redirect URL safely
+      // Construct redirect URL safely, preserving ?next= if present
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       if (!origin) {
         setError('Unable to determine origin. Please refresh the page.');
@@ -44,7 +46,8 @@ export function LoginFormContent({
         return;
       }
 
-      const redirectTo = `${origin}/auth/callback?next=/`;
+      const next = searchParams?.get('next') || '/';
+      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
       
       console.log('Initiating OAuth with redirectTo:', redirectTo);
       
@@ -100,13 +103,14 @@ export function LoginFormContent({
       }
 
       // Success - handle navigation
+      const next = searchParams?.get('next') || '/';
       if (isFullPage) {
-        router.push('/');
+        router.push(next);
         router.refresh();
       } else {
         onSuccess?.();
         // Force a hard navigation to ensure the page updates immediately
-        window.location.href = '/';
+        window.location.href = next;
       }
     } catch (err) {
       setError('An unexpected error occurred');

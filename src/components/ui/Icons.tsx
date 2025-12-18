@@ -22,13 +22,13 @@ const getIconProps = ({ size = 20, className = "" }: IconProps) => ({
 // --- Navigation Icons ---
 
 export const HomeIcon = (props: IconProps) => (
-  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5">
+  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5" fill="none">
     <path d="M10 2L3 7V17H7V12H13V17H17V7L10 2Z" />
   </svg>
 );
 
 export const FeedIcon = (props: IconProps) => (
-  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5">
+  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5" fill="none">
     <rect x="3" y="3" width="6" height="6" />
     <rect x="11" y="3" width="6" height="6" />
     <rect x="3" y="11" width="6" height="6" />
@@ -37,27 +37,27 @@ export const FeedIcon = (props: IconProps) => (
 );
 
 export const ExploreIcon = (props: IconProps) => (
-  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5">
+  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5" fill="none">
     <circle cx="10" cy="10" r="7" />
     <path d="M10 3V10L14 12" />
   </svg>
 );
 
 export const CreateIcon = (props: IconProps) => (
-  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5">
+  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5" fill="none">
     <path d="M10 4V16M4 10H16" />
   </svg>
 );
 
 export const ProfileIcon = (props: IconProps) => (
-  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5">
+  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5" fill="none">
     <circle cx="10" cy="7" r="3" />
     <path d="M4 17C4 14 6.5 12 10 12C13.5 12 16 14 16 17" />
   </svg>
 );
 
 export const MyStacksIcon = (props: IconProps) => (
-  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5">
+  <svg {...getIconProps(props)} viewBox="0 0 20 20" strokeWidth="1.5" fill="none">
     <rect x="3" y="3" width="14" height="14" rx="1" />
     <path d="M3 7H17" />
     <path d="M7 3V17" />

@@ -11,13 +11,15 @@ interface LoginModalProps {
 
 export function LoginModal({ isOpen, onClose, onSwitchToSignup }: LoginModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="sm" title="Welcome Back">
-      <LoginFormContent
-        onSuccess={onClose}
-        onSwitchToSignup={onSwitchToSignup}
-        showLogo={false} // Modal has its own title
-        isFullPage={false}
-      />
+    <Modal isOpen={isOpen} onClose={onClose} size="sm" title="">
+      <div className="bg-white rounded-lg shadow-card p-6 sm:p-8">
+        <LoginFormContent
+          onSuccess={onClose}
+          onSwitchToSignup={onSwitchToSignup}
+          showLogo={true}
+          isFullPage={false}
+        />
+      </div>
     </Modal>
   );
 }

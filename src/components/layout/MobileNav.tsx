@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreateOptionsModal } from '@/components/create/CreateOptionsModal';
 import { HomeIcon, ExploreIcon, CreateIcon } from '@/components/ui/Icons';
 import Image from 'next/image';
+import { createClient } from '@/lib/supabase/client';
 
 // Simple Saved Icon
 function SavedIcon({ size = 24 }: { size?: number }) {
@@ -22,17 +23,58 @@ export function MobileNav() {
   const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [profile, setProfile] = useState<{
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  } | null>(null);
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path);
 
-  // 1. Get safe user data
+  // 1. Load profile from DB so avatar updates propagate everywhere
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+
+    const supabase = createClient();
+    supabase
+      .from('users')
+      .select('username, display_name, avatar_url')
+      .eq('id', user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          // fall back silently to auth metadata below
+          console.error('Failed to load profile:', error);
+          return;
+        }
+        if (data) {
+          setProfile({
+            username: data.username ?? null,
+            display_name: data.display_name ?? null,
+            avatar_url: data.avatar_url ?? null,
+          });
+        }
+      });
+  }, [user?.id]);
+
+  // 2. Get safe user data (DB profile first, then auth metadata)
   const metadata = user?.user_metadata || {};
-  const username = metadata.username || user?.id;
-  const avatarUrl = metadata.avatar_url;
+  const username =
+    profile?.username || metadata.username || user?.id || null;
+  const avatarUrl =
+    profile?.avatar_url || metadata.avatar_url || null;
   const profileLink = username ? `/profile/${username}` : '/login';
   
-  // 2. Fallback Initial
-  const displayName = metadata.display_name || metadata.username || user?.email || 'U';
+  // 3. Fallback Initial
+  const displayName =
+    profile?.display_name ||
+    metadata.display_name ||
+    metadata.username ||
+    user?.email ||
+    'U';
   const initial = displayName[0]?.toUpperCase() || 'U';
 
   useEffect(() => {
@@ -47,7 +89,11 @@ export function MobileNav() {
           {/* Home */}
           <Link 
             href="/" 
-            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${isActive('/') && pathname === '/' ? 'text-emerald' : 'text-gray-muted'}`}
+            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${
+              isActive('/') && pathname === '/'
+                ? 'text-emerald'
+                : 'text-gray-muted hover:bg-emerald/10 hover:text-emerald'
+            }`}
           >
             <HomeIcon size={24} />
             <span className="text-[10px] font-medium">Home</span>
@@ -56,7 +102,11 @@ export function MobileNav() {
           {/* Explore */}
           <Link 
             href="/explore" 
-            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${isActive('/explore') ? 'text-emerald' : 'text-gray-muted'}`}
+            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${
+              isActive('/explore')
+                ? 'text-emerald'
+                : 'text-gray-muted hover:bg-emerald/10 hover:text-emerald'
+            }`}
           >
             <ExploreIcon size={24} />
             <span className="text-[10px] font-medium">Explore</span>
@@ -75,7 +125,11 @@ export function MobileNav() {
           {/* Saved */}
           <Link 
             href="/saved" 
-            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${isActive('/saved') ? 'text-emerald' : 'text-gray-muted'}`}
+            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${
+              isActive('/saved')
+                ? 'text-emerald'
+                : 'text-gray-muted hover:bg-emerald/10 hover:text-emerald'
+            }`}
           >
             <SavedIcon size={24} />
             <span className="text-[10px] font-medium">Saved</span>
@@ -84,14 +138,22 @@ export function MobileNav() {
           {/* Profile */}
           <Link 
             href={profileLink} 
-            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${isActive(profileLink) ? 'text-emerald' : 'text-gray-muted'}`}
+            className={`p-2 rounded-xl flex flex-col items-center gap-1 ${
+              isActive(profileLink)
+                ? 'text-emerald'
+                : 'text-gray-muted hover:bg-emerald/10 hover:text-emerald'
+            }`}
           >
-            <div className={`w-6 h-6 rounded-full overflow-hidden border-2 flex items-center justify-center ${isActive(profileLink) ? 'border-emerald' : 'border-transparent'}`}>
+            <div className={`w-6 h-6 rounded-full overflow-hidden border-2 flex items-center justify-center ${
+              isActive(profileLink) ? 'border-emerald' : 'border-transparent'
+            }`}>
                 {/* 3. Robust Avatar with Fallback */}
                 {user && avatarUrl && !imgError ? (
                    <Image 
                      src={avatarUrl} 
                      alt="Profile" 
+                     width={24}
+                     height={24}
                      className="w-full h-full object-cover"
                      onError={() => setImgError(true)}
                    />

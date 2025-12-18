@@ -5,6 +5,7 @@ import { HowItWorksSection } from './HowItWorksSection';
 import { TrendingSection } from './TrendingSection';
 import { HeroSection } from './HeroSection';
 import { CTASection } from './CTASection';
+import { LandingSignedInGuard } from './LandingSignedInGuard';
 
 export async function LandingPage() {
   const supabase = await createClient();
@@ -69,6 +70,9 @@ export async function LandingPage() {
         {/* Footer */}
         <LandingFooter />
       </div>
+
+      {/* If the client detects a signed-in user, overlay a skeleton instead of showing landing content */}
+      <LandingSignedInGuard />
     </LandingPageButtonsProvider>
   );
 }

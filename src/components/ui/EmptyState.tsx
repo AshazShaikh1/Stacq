@@ -40,16 +40,25 @@ export function EmptyState({
         {description}
       </p>
       {(action || secondaryAction) && (
-        <div className="flex gap-3 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
           {action && (
             action.href ? (
               <Link href={action.href}>
-                <Button variant="primary">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
                   {action.label}
                 </Button>
               </Link>
             ) : (
-              <Button variant="primary" onClick={action.onClick}>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={action.onClick}
+              >
                 {action.label}
               </Button>
             )
@@ -57,12 +66,21 @@ export function EmptyState({
           {secondaryAction && (
             secondaryAction.href ? (
               <Link href={secondaryAction.href}>
-                <Button variant="outline">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
                   {secondaryAction.label}
                 </Button>
               </Link>
             ) : (
-              <Button variant="outline" onClick={secondaryAction.onClick}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={secondaryAction.onClick}
+              >
                 {secondaryAction.label}
               </Button>
             )

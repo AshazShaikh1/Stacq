@@ -1,29 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SearchIcon } from '@/components/ui/Icons';
-import Image from "next/image";
+import { AccountDropdown } from './AccountDropdown';
+import { SearchAutocomplete } from '@/components/search/SearchAutocomplete';
 
 export function MobileHeader() {
   const { user } = useAuth();
-  const [imgError, setImgError] = useState(false);
-
-  // 1. Get safe user data
-  const metadata = user?.user_metadata || {};
-  const username = metadata.username || user?.id;
-  const avatarUrl = metadata.avatar_url;
-  
-  // 2. Determine Initials (Fallback)
-  // Tries: Display Name -> Username -> Email -> "U"
-  const displayName = metadata.display_name || metadata.username || user?.email || 'U';
-  const initial = displayName[0]?.toUpperCase() || 'U';
-
-  // Reset error state when user changes
-  useEffect(() => {
-    setImgError(false);
-  }, [avatarUrl]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-light z-40 px-4 flex items-center justify-between">
@@ -37,35 +23,35 @@ export function MobileHeader() {
 
       {/* Right Actions */}
       <div className="flex items-center gap-4">
-        {/* Mobile Search */}
-        <Link href="/search" className="p-2 text-gray-muted hover:text-jet-dark transition-colors">
+        {/* Mobile Search (inline, no redirect) */}
+        <button
+          type="button"
+          className="p-2 text-gray-muted hover:text-jet-dark transition-colors"
+          onClick={() => setIsSearchOpen((open) => !open)}
+          aria-label="Search"
+        >
           <SearchIcon size={22} />
-        </Link>
+        </button>
 
         {user ? (
-          <Link href={`/profile/${username}`}>
-            <div className="w-8 h-8 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
-              {/* 3. Robust Image Rendering */}
-              {avatarUrl && !imgError ? (
-                <Image 
-                  src={avatarUrl} 
-                  alt={username} 
-                  className="w-full h-full object-cover"
-                  onError={() => setImgError(true)} // <-- The Fix: Switches to fallback on error
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-emerald text-white text-xs font-bold">
-                  {initial}
-                </div>
-              )}
-            </div>
-          </Link>
+          // Reuse desktop account dropdown on mobile for a consistent profile menu
+          <div className="flex items-center">
+            <AccountDropdown user={user} />
+          </div>
         ) : (
-          <Link href="/login" className="px-4 py-1.5 rounded-full bg-emerald/10 text-emerald text-sm font-bold">
+          <Link
+            href="/login"
+            className="px-4 py-1.5 rounded-full bg-emerald/10 text-emerald text-sm font-bold"
+          >
             Login
           </Link>
         )}
       </div>
+      {isSearchOpen && (
+        <div className="absolute left-0 right-0 top-full mt-2 px-4 pb-2 bg-white border-b border-gray-light shadow-md">
+          <SearchAutocomplete />
+        </div>
+      )}
     </header>
   );
 }

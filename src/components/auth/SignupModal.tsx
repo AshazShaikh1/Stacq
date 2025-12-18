@@ -14,18 +14,23 @@ export function SignupModal({ isOpen, onClose, onSwitchToLogin }: SignupModalPro
   const { showSuccess } = useToast();
   
   const handleSuccess = () => {
-    showSuccess('Account created! Please check your email.');
+    showSuccess('Welcome to Stacq!');
     onClose();
+    // Force reload to refresh session
+    window.location.href = '/';
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="sm" title="Join Stacq">
-      <SignupFormContent
-        onSuccess={handleSuccess}
-        onSwitchToLogin={onSwitchToLogin}
-        showLogo={false}
-        isFullPage={false}
-      />
+    // title="" hides the default modal header text but keeps the close button
+    <Modal isOpen={isOpen} onClose={onClose} size="sm" title=""> 
+      <div className="bg-white rounded-lg shadow-card p-6 sm:p-8">
+        <SignupFormContent
+          onSuccess={handleSuccess}
+          onSwitchToLogin={onSwitchToLogin}
+          showLogo={true}
+          isFullPage={false}
+        />
+      </div>
     </Modal>
   );
 }

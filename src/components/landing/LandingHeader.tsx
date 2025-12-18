@@ -3,14 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { LoginModal } from "@/components/auth/LoginModal";
-import { SignupModal } from "@/components/auth/SignupModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { MenuIcon, XIcon } from "@/components/ui/Icons"; // Use local icons
+import { useModalContext } from "./LandingPageButtons";
 
 export function LandingHeader() {
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const { openLogin, openSignup } = useModalContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Lock body scroll when menu is open
@@ -59,14 +57,14 @@ export function LandingHeader() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsLoginOpen(true)}
+                onClick={openLogin}
               >
                 Sign in
               </Button>
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => setIsSignupOpen(true)}
+                onClick={openSignup}
               >
                 Sign up
               </Button>
@@ -117,7 +115,7 @@ export function LandingHeader() {
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    setIsLoginOpen(true);
+                    openLogin();
                   }}
                   className="w-full py-4 text-center rounded-xl bg-white text-emerald font-bold text-lg hover:bg-emerald-light transition-colors shadow-lg"
                 >
@@ -126,7 +124,7 @@ export function LandingHeader() {
                 <button
                   onClick={() => {
                     setIsMobileMenuOpen(false);
-                    setIsSignupOpen(true);
+                    openSignup();
                   }}
                   className="w-full py-4 text-center rounded-xl bg-emerald-dark text-white font-bold text-lg border-2 border-white/20 hover:bg-emerald-dark/80 transition-colors"
                 >
@@ -142,22 +140,6 @@ export function LandingHeader() {
         )}
       </AnimatePresence>
 
-      <LoginModal
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onSwitchToSignup={() => {
-          setIsLoginOpen(false);
-          setIsSignupOpen(true);
-        }}
-      />
-      <SignupModal
-        isOpen={isSignupOpen}
-        onClose={() => setIsSignupOpen(false)}
-        onSwitchToLogin={() => {
-          setIsSignupOpen(false);
-          setIsLoginOpen(true);
-        }}
-      />
     </>
   );
 }

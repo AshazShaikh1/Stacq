@@ -32,11 +32,13 @@ export function ConfirmModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <div className="space-y-4">
-        <p className="text-body text-gray-muted">{message}</p>
-        <div className="flex gap-3 justify-end pt-4">
+        <p className="text-body text-gray-muted text-center">{message}</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
             onClick={onClose}
           >
             {cancelText}
@@ -44,8 +46,9 @@ export function ConfirmModal({
           <Button
             type="button"
             variant={variant === 'danger' ? 'primary' : 'primary'}
+            size="sm"
+            className={`w-full sm:w-auto ${variant === 'danger' ? 'bg-red-500 hover:bg-red-600' : ''}`}
             onClick={handleConfirm}
-            className={variant === 'danger' ? 'bg-red-500 hover:bg-red-600' : ''}
           >
             {confirmText}
           </Button>
