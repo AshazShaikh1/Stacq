@@ -47,7 +47,6 @@ export function CollectionCard({
   const [user, setUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
 
   // Generate deterministic but varied image height based on collection ID
   const getImageHeight = (id: string): number => {
@@ -164,11 +163,7 @@ export function CollectionCard({
 
   return (
     <>
-      <div
-        className="relative h-full group"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <div className="relative h-full group">
         <Card
           hover={false}
           className="relative overflow-hidden h-full flex flex-col bg-white rounded-card border border-gray-light shadow-card hover:shadow-cardHover transition-all duration-300"
@@ -214,12 +209,10 @@ export function CollectionCard({
               </span>
             </div>
 
-            {/* Top Right - Share and More Options (shown on hover) */}
+            {/* Top Right - Share and More Options (shown on hover/mobile) */}
             {!hideHoverButtons && (
               <div
-                className={`absolute top-3 right-3 z-20 flex items-center gap-2 transition-opacity duration-200 ${
-                  isHovered ? "opacity-100" : "opacity-0"
-                }`}
+                className="absolute top-3 right-3 z-20 flex items-center gap-2 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                 onClick={(e) => e.preventDefault()}
               >
                 {/* Share Button - Always visible on hover */}
@@ -311,13 +304,9 @@ export function CollectionCard({
               </div>
             )}
 
-            {/* Bottom Left - Engagement Metrics (shown on hover) */}
+            {/* Bottom Left - Engagement Metrics (shown on hover/mobile) */}
             {!hideHoverButtons && (
-              <div
-                className={`absolute bottom-3 left-3 z-20 flex items-center gap-3 transition-opacity duration-200 ${
-                  isHovered ? "opacity-100" : "opacity-0"
-                }`}
-              >
+              <div className="absolute bottom-3 left-3 z-20 flex items-center gap-3 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100">
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -363,12 +352,10 @@ export function CollectionCard({
               </div>
             )}
 
-            {/* Bottom Right - Save Button (prominent, shown on hover) - Emerald color for collections */}
+            {/* Bottom Right - Save Button (prominent, shown on hover/mobile) - Emerald color for collections */}
             {!hideHoverButtons && user && !isOwner && (
               <div
-                className={`absolute bottom-3 right-3 z-20 transition-opacity duration-200 ${
-                  isHovered ? "opacity-100" : "opacity-0"
-                }`}
+                className="absolute bottom-3 right-3 z-20 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

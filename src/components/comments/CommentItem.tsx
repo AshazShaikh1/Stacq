@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { CommentForm } from './CommentForm';
-import { ReportButton } from '@/components/report/ReportButton';
-import { Dropdown } from '@/components/ui/Dropdown';
-import { EditCommentModal } from './EditCommentModal';
-import { useComments } from '@/hooks/useComments';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { CommentForm } from "./CommentForm";
+import { ReportButton } from "@/components/report/ReportButton";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { EditCommentModal } from "./EditCommentModal";
+import { useComments } from "@/hooks/useComments";
+import { createClient } from "@/lib/supabase/client";
 
 interface Comment {
   id: string;
@@ -28,7 +28,7 @@ interface Comment {
 
 interface CommentItemProps {
   comment: Comment;
-  targetType: 'collection' | 'card' | 'stack'; // 'stack' for legacy support
+  targetType: "collection" | "card" | "stack"; // 'stack' for legacy support
   targetId: string;
   depth: number;
   stackOwnerId?: string; // Legacy support
@@ -38,7 +38,15 @@ interface CommentItemProps {
 
 const MAX_DEPTH = 4;
 
-export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId, collectionOwnerId, onCommentUpdate }: CommentItemProps) {
+export function CommentItem({
+  comment,
+  targetType,
+  targetId,
+  depth,
+  stackOwnerId,
+  collectionOwnerId,
+  onCommentUpdate,
+}: CommentItemProps) {
   const router = useRouter();
   const [isReplying, setIsReplying] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -46,8 +54,11 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
   const [user, setUser] = useState<any>(null);
   const [localComment, setLocalComment] = useState(comment);
   // Convert 'stack' to 'collection' for the hook
-  const apiTargetType = targetType === 'stack' ? 'collection' : targetType;
-  const { addComment, refreshComments } = useComments({ targetType: apiTargetType, targetId });
+  const apiTargetType = targetType === "stack" ? "collection" : targetType;
+  const { addComment, refreshComments } = useComments({
+    targetType: apiTargetType,
+    targetId,
+  });
   const canReply = depth < MAX_DEPTH;
   const ownerId = collectionOwnerId || stackOwnerId;
 
@@ -65,14 +76,15 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
 
   // User can edit/delete if they are the comment author or collection/stack owner
   const canEdit = user?.id === localComment.user_id;
-  const canDelete = user?.id === localComment.user_id || (ownerId && user?.id === ownerId);
+  const canDelete =
+    user?.id === localComment.user_id || (ownerId && user?.id === ownerId);
 
   const handleReply = async (content: string) => {
     try {
       await addComment(content, comment.id);
       setIsReplying(false);
     } catch (error) {
-      console.error('Error replying to comment:', error);
+      console.error("Error replying to comment:", error);
     }
   };
 
@@ -83,20 +95,20 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
   const handleSaveEdit = async (content: string) => {
     try {
       const response = await fetch(`/api/comments/${localComment.id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ content }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update comment');
+        throw new Error(error.error || "Failed to update comment");
       }
 
       const data = await response.json();
-      
+
       // Update local comment immediately
       setLocalComment({
         ...localComment,
@@ -110,7 +122,7 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
       } else {
         await refreshComments();
       }
-      
+
       setIsEditModalOpen(false);
     } catch (error: any) {
       throw error;
@@ -118,27 +130,35 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete this comment? This action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete this comment? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
     setIsDeleting(true);
     try {
       // Support both collection and stack (legacy)
-      const collectionId = targetType === 'collection' ? targetId : undefined;
-      const stackId = targetType === 'stack' ? targetId : undefined;
-      const queryParam = collectionId ? `collection_id=${collectionId}` : (stackId ? `stack_id=${stackId}` : '');
-      const url = queryParam 
+      const collectionId = targetType === "collection" ? targetId : undefined;
+      const stackId = targetType === "stack" ? targetId : undefined;
+      const queryParam = collectionId
+        ? `collection_id=${collectionId}`
+        : stackId
+        ? `stack_id=${stackId}`
+        : "";
+      const url = queryParam
         ? `/api/comments/${localComment.id}?${queryParam}`
         : `/api/comments/${localComment.id}`;
-      
+
       const response = await fetch(url, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to delete comment');
+        throw new Error(error.error || "Failed to delete comment");
       }
 
       // Refresh comments to remove deleted comment
@@ -148,7 +168,7 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
         await refreshComments();
       }
     } catch (error: any) {
-      alert(error.message || 'Failed to delete comment');
+      alert(error.message || "Failed to delete comment");
       setIsDeleting(false);
     }
   };
@@ -161,7 +181,7 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'just now';
+    if (diffMins < 1) return "just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
@@ -169,16 +189,18 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
   };
 
   return (
-    <div className={`${depth > 0 ? 'ml-8 border-l-2 border-gray-light pl-4' : ''}`}>
+    <div
+      className={`${depth > 0 ? "ml-8 border-l-2 border-gray-light pl-4" : ""}`}
+    >
       <div className="flex gap-3">
         {/* Avatar */}
         {localComment.user.avatar_url ? (
           <Image
-            src={localComment.user.avatar_url}
-            alt={localComment.user.display_name}
+            src={comment.user.avatar_url || "/default-avatar.png"}
+            alt={comment.user.display_name}
             width={32}
             height={32}
-            className="rounded-full flex-shrink-0"
+            className="rounded-full object-cover shrink-0 self-start" // Added shrink-0 and self-start
           />
         ) : (
           <div className="w-8 h-8 rounded-full bg-jet/20 flex items-center justify-center text-xs font-semibold text-jet flex-shrink-0">
@@ -202,33 +224,60 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
             <span className="text-small text-gray-muted">
               {formatDate(localComment.created_at)}
             </span>
-            {localComment.updated_at && localComment.updated_at !== localComment.created_at && (
-              <>
-                <span className="text-small text-gray-muted">·</span>
-                <span className="text-small text-gray-muted italic">edited</span>
-              </>
-            )}
+            {localComment.updated_at &&
+              localComment.updated_at !== localComment.created_at && (
+                <>
+                  <span className="text-small text-gray-muted">·</span>
+                  <span className="text-small text-gray-muted italic">
+                    edited
+                  </span>
+                </>
+              )}
             {/* Dropdown Menu */}
             {(canEdit || canDelete) && (
               <div className="ml-auto">
                 <Dropdown
                   items={[
-                    ...(canEdit ? [{
-                      label: 'Edit',
-                      onClick: handleEdit,
-                      icon: (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      ),
-                    }] : []),
+                    ...(canEdit
+                      ? [
+                          {
+                            label: "Edit",
+                            onClick: handleEdit,
+                            icon: (
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            ),
+                          },
+                        ]
+                      : []),
                     {
-                      label: 'Delete',
+                      label: "Delete",
                       onClick: handleDelete,
-                      variant: 'danger' as const,
+                      variant: "danger" as const,
                       icon: (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       ),
                     },
@@ -249,7 +298,7 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
                 onClick={() => setIsReplying(!isReplying)}
                 className="text-small text-gray-muted hover:text-jet transition-colors"
               >
-                {isReplying ? 'Cancel' : 'Reply'}
+                {isReplying ? "Cancel" : "Reply"}
               </button>
             )}
             <ReportButton
@@ -306,4 +355,3 @@ export function CommentItem({ comment, targetType, targetId, depth, stackOwnerId
     </div>
   );
 }
-
