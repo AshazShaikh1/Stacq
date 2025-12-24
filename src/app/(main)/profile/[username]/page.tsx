@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
-import { FeedGrid } from "@/components/feed/FeedGrid";
+import { FeedGrid } from "@/components/feed/FeedGrid"; // Keep this if used elsewhere? It's not used anymore in this file, but removing it might be safer to do in the other chunk or let it be. Actually ProfilePage doesn't use FeedGrid anymore, it uses ProfileFeedClient.
+import { ProfileFeedClient } from "@/components/profile/ProfileFeedClient";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -226,7 +227,12 @@ export default async function ProfilePage({
         </div>
       </div>
 
-      <FeedGrid items={feedItems} />
+      <ProfileFeedClient 
+        items={feedItems} 
+        tab={tab} 
+        isOwnProfile={isOwnProfile} 
+        userId={profile.id} 
+      />
     </div>
   );
 }

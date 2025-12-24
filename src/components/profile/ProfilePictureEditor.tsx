@@ -44,7 +44,7 @@ export function ProfilePictureEditor({
         )}
         <button
           onClick={() => setIsModalOpen(true)}
-          className="absolute inset-0 rounded-full bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+          className="absolute inset-0 rounded-full bg-black/50 md:bg-black/70 backdrop-blur-[1px] md:backdrop-blur-sm opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center"
         >
           <span className="text-white text-body font-semibold drop-shadow-lg">
             Edit photo

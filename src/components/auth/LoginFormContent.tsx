@@ -49,8 +49,6 @@ export function LoginFormContent({
       const next = searchParams?.get('next') || '/';
       const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
       
-      console.log('Initiating OAuth with redirectTo:', redirectTo);
-      
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -68,7 +66,6 @@ export function LoginFormContent({
         setIsOAuthLoading(false);
       } else if (data?.url) {
         // OAuth URL generated successfully, redirect will happen automatically
-        console.log('OAuth URL generated successfully');
       }
       // Note: User will be redirected to Google, so we don't need to handle success here
     } catch (err) {

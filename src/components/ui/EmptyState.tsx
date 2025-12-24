@@ -39,7 +39,7 @@ export function EmptyState({
       <p className="text-body text-gray-muted mb-8 max-w-md mx-auto">
         {description}
       </p>
-      {(action || secondaryAction) && (
+      {(action || secondaryAction) && (action?.onClick || action?.href || secondaryAction?.onClick || secondaryAction?.href) && (
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           {action && (
             action.href ? (
@@ -116,10 +116,10 @@ export function EmptyCardsState({ onAddCard }: { onAddCard?: () => void }) {
   return (
     <EmptyState
       icon="🔗"
-      title="No cards yet"
-      description="Add your first card to this collection to get started"
+      title={onAddCard ? "No cards yet" : "No cards found"}
+      description={onAddCard ? "Add your first card to this collection to get started" : "This collection doesn't have any cards yet"}
       action={{
-        label: "Add Card",
+        label: "Create Card",
         onClick: onAddCard,
       }}
     />
@@ -168,7 +168,7 @@ export function EmptySavedCollectionsState() {
   return <EmptySavedStacksState />;
 }
 
-export function EmptyCollectionsState() {
-  return <EmptyStacksState />;
+export function EmptyCollectionsState({ onCreateStack }: { onCreateStack?: () => void }) {
+  return <EmptyStacksState onCreateStack={onCreateStack} />;
 }
 

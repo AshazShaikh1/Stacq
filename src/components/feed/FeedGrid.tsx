@@ -24,7 +24,8 @@ export function FeedGrid({
   isLoading,
   onCreateCollection,
   hideHoverButtons = false,
-}: FeedGridProps) {
+  emptyState,
+}: FeedGridProps & { emptyState?: React.ReactNode }) {
   /* 1. Loading */
   if (isLoading) {
     return <CollectionGridSkeleton count={8} />;
@@ -42,6 +43,7 @@ export function FeedGrid({
 
   /* 3. Empty state */
   if (feedItems.length === 0) {
+    if (emptyState) return <>{emptyState}</>;
     return <EmptyStacksState onCreateStack={onCreateCollection} />;
   }
 
