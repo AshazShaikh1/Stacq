@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FeedGrid, FeedGridItem } from "@/components/feed/FeedGrid";
 import { EmptyCollectionsState, EmptyCardsState, EmptySavedCollectionsState } from "@/components/ui/EmptyState";
 import { CreateCollectionModal } from "@/components/collection/CreateCollectionModal";
-import { AddCardModal } from "@/components/card/AddCardModal"; // This seems to be the one used in EmptyCardsWithAdd
+import { CreateCardModal } from "@/components/card/CreateCardModal";
 
 interface ProfileFeedClientProps {
   items: FeedGridItem[];
@@ -67,14 +67,9 @@ export function ProfileFeedClient({ items, tab, isOwnProfile, userId }: ProfileF
             isOpen={isCollectionModalOpen}
             onClose={() => setIsCollectionModalOpen(false)}
           />
-          {/* AddCardModal usually needs collectionId if adding TO a collection. 
-              If global add, it might need different handling or allow picking collection.
-              Let's assume AddCardModal handles global add if no ID passed (common pattern).
-          */}
-          <AddCardModal 
+          <CreateCardModal 
             isOpen={isCardModalOpen}
             onClose={() => setIsCardModalOpen(false)}
-            // No collectionId passed implies "pick one" or "create new"
           />
         </>
       )}

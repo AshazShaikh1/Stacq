@@ -58,13 +58,36 @@ export function CardPreview({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("");
+
+  // Determine Card Type
+  const getCardType = () => {
+    const url = card.canonical_url?.toLowerCase() || "";
+    const isImage = !!url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/);
+    const isDoc = !!url.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx|txt)$/);
+    
+    if (isImage) return "image";
+    if (isDoc) return "document";
+    return "link";
+  };
+
+  const cardType = getCardType();
+  const isDoc = cardType === "document";
+  const isImage = cardType === "image";
+  const isLink = cardType === "link";
+
+  const displayTitle = card.title || card.canonical_url;
+  const displayDomain =
+    card.domain ||
+    (card.canonical_url ? new URL(card.canonical_url).hostname : "");
 
   const getImageHeight = (id: string): number => {
+    if (isLink || isDoc) return 180;
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
-      const char = id.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
+        const char = id.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash;
     }
     const variation = Math.abs(hash) % 5;
     const heights = [200, 240, 280, 320, 360];
@@ -72,6 +95,20 @@ export function CardPreview({
   };
 
   const imageHeight = getImageHeight(card.id);
+
+  const placeholderUrl = useMemo(
+    () =>
+      generatePlaceholderImage(
+        imageHeight * 1.33,
+        imageHeight,
+        displayTitle.substring(0, 15) || "Card"
+      ),
+    [imageHeight, displayTitle]
+  );
+
+  useEffect(() => {
+    setImageUrl(card.thumbnail_url || placeholderUrl);
+  }, [card.thumbnail_url, placeholderUrl]);
 
   const {
     saves: saveCount,
@@ -155,108 +192,13 @@ export function CardPreview({
     } catch (error: any) {
       console.error("Error deleting card:", error);
       showError(error.message || "Failed to delete card");
-      setIsDeleting(false);
-    }
-  };
-
-  const displayTitle = card.title || card.canonical_url;
-  const displayDomain =
-    card.domain ||
-    (card.canonical_url ? new URL(card.canonical_url).hostname : "");
-
-  const placeholderUrl = useMemo(
-    () =>
-      generatePlaceholderImage(
-        imageHeight * 1.33,
-        imageHeight,
-        displayTitle.substring(0, 15) || "Card"
-      ),
-    [imageHeight, displayTitle]
-  );
-
-  const [imageUrl, setImageUrl] = useState<string>(
-    () => card.thumbnail_url || placeholderUrl
-  );
-  const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    if (card.thumbnail_url) {
-      setImageUrl(card.thumbnail_url);
-      setImageError(false);
-    } else {
-      setImageUrl(placeholderUrl);
-    }
-  }, [card.thumbnail_url, placeholderUrl]);
-
-  useEffect(() => {
-    if (
-      !card.thumbnail_url &&
-      card.canonical_url &&
-      !imageError &&
-      imageUrl === placeholderUrl
-    ) {
-      const controller = new AbortController();
-      let timeoutId: NodeJS.Timeout;
-
-      timeoutId = setTimeout(() => {
-        fetch(`/api/cards/metadata`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: card.canonical_url }),
-          signal: controller.signal,
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.thumbnail_url) {
-              setImageUrl(data.thumbnail_url);
-            }
-          })
-          .catch((err) => {
-            if (err.name !== "AbortError") {
-              setImageError(true);
-            }
-          });
-      }, 3000);
-
-      return () => {
-        clearTimeout(timeoutId);
-        controller.abort();
-      };
-    }
-  }, [
-    card.thumbnail_url,
-    card.canonical_url,
-    imageError,
-    imageUrl,
-    placeholderUrl,
-  ]);
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (navigator.share) {
-      navigator
-        .share({
-          title: card.title || "Check this out",
-          text: card.description || "",
-          url: `${window.location.origin}/card/${card.id}`,
-        })
-        .catch(() => {});
-    } else {
-      navigator.clipboard
-        .writeText(`${window.location.origin}/card/${card.id}`)
-        .then(() => {
-          showSuccess("Link copied to clipboard!");
-        })
-        .catch(() => {
-          showError("Failed to copy link");
-        });
+    } finally {
+        setIsDeleting(false);
     }
   };
 
   const externalUrl =
-    (card.metadata as any)?.affiliate_url || card.canonical_url;
+    card.metadata?.affiliate_url || card.canonical_url;
 
   return (
     <>
@@ -267,124 +209,183 @@ export function CardPreview({
       >
         <Card
           hover={false}
-          className="relative overflow-hidden h-full flex flex-col bg-white rounded-card border border-gray-light shadow-card hover:shadow-cardHover transition-all duration-300"
+          className={`
+            relative overflow-hidden h-full flex flex-col bg-white rounded-lg transition-all duration-200
+            ${isImage ? "border-none shadow-sm hover:shadow-md" : ""} 
+            ${isLink ? "border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-300" : ""}
+            ${isDoc ? "border border-gray-200 bg-gray-50/50 shadow-sm hover:shadow-md" : ""}
+          `}
         >
-          {/* Overlay Link: Covers the whole card to make it clickable 
-                z-10 ensures it's above basic content but below interactive buttons (z-20)
-            */}
-          <Link
-            href={`/card/${card.id}`}
+          {/* Overlay Link */}
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="absolute inset-0 z-10"
             aria-label={`View ${displayTitle}`}
           />
 
-          {/* Image Section */}
-          <div
-            className="relative w-full bg-gray-light overflow-hidden"
-            style={{ height: `${imageHeight}px` }}
-          >
-            {imageUrl ? (
-              <Image
-                src={imageUrl}
-                alt={displayTitle || "Card"}
-                fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-                unoptimized={imageUrl.startsWith("data:")}
-                loading="lazy"
-                priority={false}
-                onError={() => {
-                  if (!imageError && !imageUrl.startsWith("data:")) {
-                    setImageError(true);
-                    setImageUrl(placeholderUrl);
-                  }
-                }}
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-jet/10 via-gray-light to-jet/5 flex items-center justify-center">
-                <div className="text-5xl opacity-50">🔗</div>
-              </div>
-            )}
-
-            {card.domain && (
-              <div className="absolute top-3 left-3 z-20 pointer-events-none">
-                <span className="px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs font-medium text-jet-dark">
-                  {card.domain}
-                </span>
-              </div>
-            )}
-
-            {!hideHoverButtons && (
-              <div
-                className={`absolute top-3 right-3 z-20 flex gap-2 transition-opacity duration-200 ${
-                  isHovered ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                <button
-                  onClick={handleShare}
-                  className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm"
-                  aria-label="Share"
-                >
-                  <svg
-                    className="w-4 h-4 text-jet-dark"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+          {/* ================= IMAGE CARD DESIGN ================= */}
+          {isImage && (
+            <div className="relative w-full h-full min-h-[200px] flex flex-col">
+               {/* Full-bleed Image */}
+               <div className="relative flex-1 w-full bg-gray-100">
+                  {imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt={displayTitle || "Card"}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      unoptimized={imageUrl.startsWith("data:")}
                     />
-                  </svg>
-                </button>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-3xl opacity-20">🖼️</div>
+                  )}
+                  {/* Subtle Gradient Overlay for Text Readability */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+               </div>
 
-                {/* External Link Button */}
-                <a
-                  href={externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm"
-                  onClick={(e) => e.stopPropagation()}
-                  title="Open Link"
-                >
-                  <svg
-                    className="w-4 h-4 text-jet-dark"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+               {/* Minimal Chrome Overlay */}
+               <div className="absolute bottom-3 left-3 right-3 z-20 pointer-events-none">
+                  <h3 className="text-white text-sm font-medium drop-shadow-md line-clamp-2 leading-snug">
+                     {displayTitle}
+                  </h3>
+               </div>
+               
+               {/* Type Icon (Top Left) - Subtle */}
+               <div className="absolute top-2 left-2 z-20">
+                  <div className="p-1.5 bg-black/20 backdrop-blur-md rounded text-white/90">
+                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                     </svg>
+                  </div>
+               </div>
+            </div>
+          )}
+
+          {/* ================= DOCUMENT CARD DESIGN ================= */}
+          {isDoc && (
+             <div className="relative w-full h-full min-h-[180px] p-4 flex flex-col bg-white">
+                {/* Header (Icon + Type) */}
+                <div className="flex items-start justify-between mb-3">
+                   <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 flex items-center justify-center bg-blue-50 text-blue-500 rounded-lg">
+                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                         </svg>
+                      </div>
+                      <div className="flex flex-col">
+                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Document</span>
+                         {/* Extension Badge if possible to parse */}
+                         <span className="text-xs font-semibold text-gray-700">PDF</span> 
+                      </div>
+                   </div>
+                </div>
+
+                {/* Title & Info */}
+                <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-3 mb-auto">
+                   {displayTitle}
+                </h3>
+                
+                {/* Footer Metadata */}
+                <div className="pt-3 mt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                   <span>{displayDomain}</span>
+                   {/* Maybe file size if available, simplified for now */}
+                   <span>View</span>
+                </div>
+             </div>
+          )}
+
+          {/* ================= LINK CARD DESIGN (Bookmark) ================= */}
+          {isLink && (
+             <div className="relative w-full h-full min-h-[160px] flex flex-col p-4 bg-white">
+                {/* Domain / Favicon Header */}
+                <div className="flex items-center gap-2 mb-3 opacity-70">
+                   {/* Placeholder Favicon based on domain */}
+                   <div className="w-4 h-4 rounded-full bg-gray-200 flex-shrink-0 relative overflow-hidden">
+                       <Image 
+                          src={`https://www.google.com/s2/favicons?domain=${displayDomain}&sz=32`}
+                          alt="icon"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                       />
+                   </div>
+                   <span className="text-xs font-medium text-gray-500 truncate">{displayDomain}</span>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-base font-bold text-gray-900 leading-snug line-clamp-3 mb-2 group-hover:text-emerald transition-colors">
+                   {displayTitle}
+                </h3>
+
+                {/* Description (Optional, clamped) */}
+                {card.description && (
+                   <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-auto">
+                      {card.description}
+                   </p>
+                )}
+                
+                {/* Link Arrow visual */}
+                <div className="mt-3 flex justify-end">
+                   <svg className="w-4 h-4 text-gray-300 group-hover:text-emerald transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                   </svg>
+                </div>
+             </div>
+          )}
+
+          {/* ================= COMMON HOVER ACTIONS (All Types) ================= */}
+          {/* Only showing subtle hover buttons, not blocking content */}
+          {!hideHoverButtons && (
+             <div className="absolute top-2 right-2 z-30 flex items-center gap-1 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+                {/* Vote */}
+                 <button
+                   onClick={(e) => {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     toggleVote();
+                   }}
+                   className={`p-1.5 rounded bg-white/90 backdrop-blur shadow-sm hover:bg-white transition-colors ${
+                     voted ? "text-emerald" : "text-gray-500"
+                   }`}
+                   title="Upvote"
+                 >
+                    <svg className={`w-3.5 h-3.5 ${voted ? "fill-current" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                 </button>
+
+                 {/* Save */}
+                 {user && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleSave();
+                    }}
+                    className={`p-1.5 rounded bg-white/90 backdrop-blur shadow-sm hover:bg-white transition-colors ${
+                      isSaved ? "text-emerald" : "text-gray-500"
+                    }`}
+                    title="Save"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                </a>
+                     <svg className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                     </svg>
+                  </button>
+                 )}
 
-                {canEdit && (
-                  <div className="relative">
+                 {/* Options */}
+                 {canEdit && (
+                  <div className="relative" onClick={(e) => e.stopPropagation()}>
                     <Dropdown
                       items={[
                         {
                           label: "Edit",
                           onClick: handleEdit,
                           icon: (
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           ),
                         },
                         {
@@ -392,185 +393,20 @@ export function CardPreview({
                           onClick: handleDeleteClick,
                           variant: "danger",
                           icon: (
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                           ),
                         },
                       ]}
-                      className="w-8 h-8"
+                      className="w-7 h-7"
                     >
-                      <div className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm pointer-events-none">
-                        <svg
-                          className="w-4 h-4 text-jet-dark"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                          />
-                        </svg>
+                      <div className="p-1.5 rounded bg-white/90 backdrop-blur shadow-sm hover:bg-white transition-colors text-gray-500 cursor-pointer">
+                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
                       </div>
                     </Dropdown>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Bottom Actions (Save/Vote) */}
-            {!hideHoverButtons && (
-              <div
-                className={`absolute bottom-3 left-3 z-20 flex items-center gap-3 transition-opacity duration-200 ${
-                  isHovered ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleVote();
-                  }}
-                  disabled={isVoting}
-                  className="flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs font-medium text-jet-dark hover:bg-white transition-colors"
-                >
-                  <svg
-                    className={`w-4 h-4 ${
-                      voted ? "fill-red-500 text-red-500" : "text-jet-dark"
-                    }`}
-                    fill={voted ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                    />
-                  </svg>
-                  <span>{upvotes}</span>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleSave();
-                  }}
-                  disabled={isSaving}
-                  className={`flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md text-xs font-medium text-jet-dark hover:bg-white transition-colors ${
-                    isSaved ? "text-emerald" : ""
-                  }`}
-                >
-                  <svg
-                    className={`w-4 h-4 ${
-                      isSaved ? "fill-emerald text-emerald" : "text-jet-dark"
-                    }`}
-                    fill={isSaved ? "currentColor" : "none"}
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                    />
-                  </svg>
-                  <span>{saveCount}</span>
-                </button>
-              </div>
-            )}
-
-            {!hideHoverButtons && user && (
-              <div
-                className={`absolute bottom-3 right-3 z-20 transition-opacity duration-200 ${
-                  isHovered ? "opacity-100" : "opacity-0"
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleSave();
-                }}
-              >
-                <button
-                  disabled={isSaving}
-                  className={`
-                      px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 shadow-button hover:shadow-buttonHover
-                      ${
-                        isSaved
-                          ? "bg-emerald text-white hover:bg-emerald-dark"
-                          : "bg-emerald text-white hover:bg-emerald-dark"
-                      }
-                      ${isAnimating ? "animate-pulse scale-110" : ""}
-                    `}
-                >
-                  {isSaved ? "Saved" : "Save"}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Content Section */}
-          <div className="p-4 flex-1 flex flex-col relative pointer-events-none">
-            {/* Title */}
-            {card.title && (
-              <h3 className="text-lg font-bold text-jet-dark mb-2 line-clamp-2">
-                {card.title}
-              </h3>
-            )}
-
-            {/* Link and Creator */}
-            <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 overflow-hidden">
-                <svg
-                  className="w-4 h-4 text-gray-muted flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-                <span className="text-sm text-gray-muted truncate">
-                  {displayDomain}
-                </span>
-              </div>
-
-              {/* Creator Name Link - Add this inside the Content Section div */}
-              {card.creator?.display_name && (
-                <div
-                  className="mt-auto pt-2 flex justify-end"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Link
-                    href={`/profile/${card.creator.username}`}
-                    className="text-xs text-gray-400 hover:text-emerald hover:underline transition-colors"
-                    title={`Created by ${card.creator.display_name}`}
-                  >
-                    By {card.creator.display_name}
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
+                 )}
+             </div>
+          )}
         </Card>
       </div>
 
