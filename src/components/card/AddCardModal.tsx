@@ -32,10 +32,7 @@ export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCard
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  if (!id) {
-    console.error('AddCardModal: Either collectionId or stackId must be provided');
-    return null;
-  }
+
 
   const handleUrlChange = async (newUrl: string) => {
     setUrl(newUrl);

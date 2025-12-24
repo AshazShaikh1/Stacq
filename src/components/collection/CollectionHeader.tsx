@@ -285,7 +285,7 @@ export function CollectionHeader({
                     Share
                   </Button>
                   <ReportButton
-                    targetType="collection"
+                    targetType="stack"
                     targetId={collection.id}
                     variant="outline"
                     size="sm"

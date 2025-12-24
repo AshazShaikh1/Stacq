@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
 
 interface ReportButtonProps {
-  targetType: 'stack' | 'card' | 'comment' | 'user' | 'collection';
+  targetType: 'stack' | 'card' | 'comment' | 'user';
   targetId: string;
   variant?: 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
