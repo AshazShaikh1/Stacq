@@ -203,33 +203,34 @@ export function CardPreview({
   return (
     <>
       <div
-        className="relative h-full group"
+        className="relative group" // Removed h-full
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         <Card
           hover={false}
           className={`
-            relative overflow-hidden h-full flex flex-col bg-white rounded-lg transition-all duration-200
+            relative overflow-hidden flex flex-col bg-white rounded-lg transition-all duration-200
             ${isImage ? "border-none shadow-sm hover:shadow-md" : ""} 
             ${isLink ? "border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-300" : ""}
             ${isDoc ? "border border-gray-200 bg-gray-50/50 shadow-sm hover:shadow-md" : ""}
           `}
         >
-          {/* Overlay Link */}
-          <a
-            href={externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* Overlay Link: Go to Card Details */}
+          <Link
+            href={`/card/${card.id}`}
             className="absolute inset-0 z-10"
-            aria-label={`View ${displayTitle}`}
+            aria-label={`View details for ${displayTitle}`}
           />
 
           {/* ================= IMAGE CARD DESIGN ================= */}
           {isImage && (
-            <div className="relative w-full h-full min-h-[200px] flex flex-col">
-               {/* Full-bleed Image */}
-               <div className="relative flex-1 w-full bg-gray-100">
+            <div className="relative w-full flex flex-col">
+               {/* Full-bleed Image with Dynamic Height */}
+               <div 
+                 className="relative w-full bg-gray-100"
+                 style={{ height: `${imageHeight}px` }}
+               >
                   {imageUrl ? (
                     <Image
                       src={imageUrl}
@@ -327,11 +328,20 @@ export function CardPreview({
                    </p>
                 )}
                 
-                {/* Link Arrow visual */}
-                <div className="mt-3 flex justify-end">
-                   <svg className="w-4 h-4 text-gray-300 group-hover:text-emerald transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                   </svg>
+                {/* Link Arrow visual - Now a real external link */}
+                <div className="mt-3 flex justify-end relative z-20">
+                   <a 
+                     href={externalUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     onClick={(e) => e.stopPropagation()}
+                     className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                     title="Visit Source"
+                   >
+                     <svg className="w-4 h-4 text-gray-300 group-hover:text-emerald transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                     </svg>
+                   </a>
                 </div>
              </div>
           )}
@@ -339,7 +349,7 @@ export function CardPreview({
           {/* ================= COMMON HOVER ACTIONS (All Types) ================= */}
           {/* Only showing subtle hover buttons, not blocking content */}
           {!hideHoverButtons && (
-             <div className="absolute top-2 right-2 z-30 flex items-center gap-1 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+             <div className="absolute top-2 right-2 z-40 flex items-center gap-1 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
                 {/* Vote */}
                  <button
                    onClick={(e) => {

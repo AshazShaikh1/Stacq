@@ -238,11 +238,50 @@ export function CollectionCard({
                     className="absolute top-2 right-2 z-20 flex items-center gap-1.5 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                     onClick={(e) => e.preventDefault()}
                 >
+                    {/* Vote Button */}
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleVote();
+                        }}
+                        className={`w-7 h-7 rounded-md bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm ${
+                            voted ? "text-emerald" : "text-jet-dark"
+                        }`}
+                        aria-label="Upvote"
+                        title="Upvote"
+                    >
+                        <svg className={`w-3.5 h-3.5 ${voted ? "fill-current" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </button>
+
+                    {/* Save Button */}
+                    {user && (
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleSave();
+                            }}
+                            className={`w-7 h-7 rounded-md bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm ${
+                                isSaved ? "text-emerald" : "text-jet-dark"
+                            }`}
+                            aria-label="Save"
+                            title="Save"
+                        >
+                            <svg className={`w-3.5 h-3.5 ${isSaved ? "fill-current" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                        </button>
+                    )}
+
                     {/* Share Button - Always visible on hover */}
                     <button
                     onClick={handleShare}
                     className="w-7 h-7 rounded-md bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm text-jet-dark"
                     aria-label="Share"
+                    title="Share"
                     >
                     <svg
                         className="w-3.5 h-3.5"
