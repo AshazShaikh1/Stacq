@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
+import { getUnreadCount } from "@/features/notifications/server/notifications";
 
 /**
  * GET /api/notifications/unread-count
@@ -17,22 +18,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Count unread notifications
-    const { count, error } = await supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('read', false);
+    // Call server function
+    const count = await getUnreadCount(user.id);
 
-    if (error) {
-      console.error('Error counting unread notifications:', error);
-      return NextResponse.json(
-        { error: 'Failed to get unread count' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ count: count || 0 });
+    return NextResponse.json({ count });
   } catch (error) {
     console.error('Unexpected error in unread-count route:', error);
     return NextResponse.json(

@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 import { ExpandableDescription } from "@/components/card/ExpandableDescription";
 import { CreatorInfo } from "@/components/card/CreatorInfo";
@@ -10,6 +9,8 @@ import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
+import { getCardById } from "@/features/cards/server/getCardById";
+import { getRelatedCards } from "@/features/cards/server/getRelatedCards";
 
 interface CardPageProps {
   params: Promise<{ id: string }>;
@@ -19,13 +20,7 @@ export async function generateMetadata({
   params,
 }: CardPageProps): Promise<Metadata> {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const { data: card } = await supabase
-    .from("cards")
-    .select("title, description, thumbnail_url")
-    .eq("id", id)
-    .maybeSingle();
+  const card = await getCardById(id);
 
   if (!card) {
     return generateSEOMetadata({
@@ -48,44 +43,13 @@ export default async function CardPage({ params }: CardPageProps) {
     const { id } = await params;
     if (!id) notFound();
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const card = await getCardById(id);
 
-    const { data: card, error } = await supabase
-      .from("cards")
-      .select(
-        `
-        *,
-        creator:users!cards_created_by_fkey (
-          id,
-          username,
-          display_name,
-          avatar_url
-        )
-      `
-      )
-      .eq("id", id)
-      .maybeSingle();
-
-    if (error || !card) {
+    if (!card) {
       notFound();
     }
 
-    const { data: relatedCards } = await supabase
-      .from("cards")
-      .select(
-        `
-        id, title, description, thumbnail_url, canonical_url, domain,
-        upvotes_count, saves_count, created_by,
-        creator:users!cards_created_by_fkey(username, display_name, avatar_url)
-      `
-      )
-      .eq("status", "active")
-      .neq("id", id)
-      .or(`domain.eq.${card.domain},created_by.eq.${card.created_by}`)
-      .limit(4);
+    const relatedCards = await getRelatedCards(card);
 
     const targetUrl =
       (card.metadata as any)?.affiliate_url || card.canonical_url || "#";
@@ -183,13 +147,20 @@ export default async function CardPage({ params }: CardPageProps) {
                     />
                   </div>
 
-                  {card.creator && (
+                  {card.creator && card.creator.username && card.creator.display_name && (
                     <div className="mb-6">
-                      <CreatorInfo creator={card.creator} />
+                      <CreatorInfo 
+                        creator={{
+                          id: card.creator.id,
+                          username: card.creator.username,
+                          display_name: card.creator.display_name,
+                          avatar_url: card.creator.avatar_url || undefined
+                        }} 
+                      />
                     </div>
                   )}
 
-                  <ExpandableDescription description={card.description} />
+                  <ExpandableDescription description={card.description || ""} />
                 </div>
               </div>
 
@@ -214,12 +185,25 @@ export default async function CardPage({ params }: CardPageProps) {
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                 {relatedCards && relatedCards.length > 0 ? (
-                  relatedCards.map((relatedCard: any) => (
+                  relatedCards.map((relatedCard) => (
                     <div key={relatedCard.id} className="h-auto">
                       <CardPreview
                         card={{
-                          ...relatedCard,
-                          type: "card",
+                          id: relatedCard.id,
+                          title: relatedCard.title || undefined,
+                          description: relatedCard.description || undefined,
+                          thumbnail_url: relatedCard.thumbnail_url || undefined,
+                          canonical_url: relatedCard.canonical_url || "",
+                          domain: relatedCard.domain || undefined,
+                          metadata: {
+                            upvotes: relatedCard.upvotes_count || 0,
+                            saves: relatedCard.saves_count || 0,
+                          },
+                          created_by: relatedCard.created_by || undefined,
+                          creator: relatedCard.creator ? {
+                            username: relatedCard.creator.username || undefined,
+                            display_name: relatedCard.creator.display_name || undefined
+                          } : undefined
                         }}
                         hideHoverButtons={true}
                       />
@@ -236,7 +220,9 @@ export default async function CardPage({ params }: CardPageProps) {
         </div>
       </div>
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error("[CardPage] Error rendering page:", error);
+    if (error.digest) console.error("Digest:", error.digest);
     notFound();
   }
 }

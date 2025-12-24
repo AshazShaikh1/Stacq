@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
+import { getNotifications } from "@/features/notifications/server/notifications";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,33 +14,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { data: notifications, error } = await supabase
-      .from('notifications')
-      .select(`
-        id,
-        type,
-        actor_id,
-        data,
-        read,
-        created_at,
-        actor:users!notifications_actor_id_fkey (
-          id,
-          username,
-          display_name,
-          avatar_url
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error('Error fetching notifications:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch notifications' },
-        { status: 500 }
-      );
-    }
+    // Call server function
+    const notifications = await getNotifications(user.id, 50);
 
     return NextResponse.json({ notifications: notifications || [] });
   } catch (error) {
@@ -50,4 +26,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -9,6 +9,7 @@ import {
 } from "@/lib/rate-limit";
 import { checkShadowban } from "@/lib/anti-abuse/fingerprinting";
 import { logRankingEvent } from "@/lib/ranking/events";
+import { toggleVote } from "@/features/social/server/vote";
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,135 +77,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if vote already exists
-    const { data: existingVote } = await serviceClient
-      .from("votes")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("target_type", target_type)
-      .eq("target_id", target_id)
-      .maybeSingle();
+    // Call server function
+    const result = await toggleVote(user.id, target_type, target_id);
 
-    // Normalize target_type for events/logic
-    const normalizedTargetType =
-      target_type === "stack" ? "collection" : target_type;
-
-    if (existingVote) {
-      // Remove vote (toggle off)
-      await serviceClient.from("votes").delete().eq("id", existingVote.id);
-      await updateVoteStats(serviceClient, target_type, target_id, -1);
-      await logRankingEvent(
-        normalizedTargetType as "card" | "collection",
-        target_id,
-        "unvote"
-      );
-
-      return NextResponse.json({ success: true, voted: false });
-    }
-
-    // Create vote
-    const { error: voteError } = await serviceClient.from("votes").insert({
-      user_id: user.id,
-      target_type: normalizedTargetType,
-      target_id,
-    });
-
-    if (voteError) {
-      return NextResponse.json({ error: voteError.message }, { status: 400 });
-    }
-
-    // Update stats
-    await updateVoteStats(serviceClient, target_type, target_id, 1);
-
-    // Log ranking event
-    await logRankingEvent(
-      normalizedTargetType as "card" | "collection",
-      target_id,
-      "upvote"
-    );
-
-    // --- NOTIFICATION LOGIC START ---
-    // Run in background to avoid blocking response
-    (async () => {
-      try {
-        const table =
-          normalizedTargetType === "collection" ? "collections" : "cards";
-        const ownerField =
-          normalizedTargetType === "collection" ? "owner_id" : "created_by";
-
-        // Fetch target item to get owner and title
-        const { data: targetItem } = await serviceClient
-          .from(table)
-          .select(`id, title, ${ownerField}`)
-          .eq("id", target_id)
-          .single();
-
-        if (targetItem) {
-          // Cast targetItem to any to allow dynamic key access
-          const item = targetItem as any;
-          const ownerId = item[ownerField];
-
-          // Don't notify if user is voting on their own content
-          if (ownerId && ownerId !== user.id) {
-            const notificationData: any = {
-              [`${normalizedTargetType}_id`]: target_id,
-              [`${normalizedTargetType}_title`]: targetItem.title,
-            };
-
-            await serviceClient.from("notifications").insert({
-              user_id: ownerId, // Recipient
-              actor_id: user.id, // Triggered by
-              type: "upvote",
-              data: notificationData,
-              read: false,
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Error creating upvote notification:", err);
-      }
-    })();
-    // --- NOTIFICATION LOGIC END ---
-
-    return NextResponse.json({ success: true, voted: true });
+    return NextResponse.json({ success: true, voted: result.voted });
   } catch (error: any) {
     console.error("Error in votes route:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }
     );
-  }
-}
-
-async function updateVoteStats(
-  serviceClient: any,
-  targetType: string,
-  targetId: string,
-  delta: number
-) {
-  const table =
-    targetType === "stack" || targetType === "collection"
-      ? "collections"
-      : "cards";
-
-  const { data: target } = await serviceClient
-    .from(table)
-    .select("stats")
-    .eq("id", targetId)
-    .single();
-
-  if (target) {
-    const stats = target.stats || {};
-    const currentUpvotes = (stats.upvotes || 0) + delta;
-
-    await serviceClient
-      .from(table)
-      .update({
-        stats: {
-          ...stats,
-          upvotes: Math.max(0, currentUpvotes),
-        },
-      })
-      .eq("id", targetId);
   }
 }

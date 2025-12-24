@@ -1,6 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/api';
-import { createServiceClient } from '@/lib/supabase/api-service';
+import { getFollowers, getFollowing, unfollowUser } from "@/features/social/server/follow";
+
+/**
+ * GET /api/follows/[id]
+ * Get followers or following list for a user
+ * Query: type=followers|following
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type') as 'followers' | 'following';
+
+    if (!type || (type !== 'followers' && type !== 'following')) {
+      return NextResponse.json(
+        { error: 'Invalid type parameter' },
+        { status: 400 }
+      );
+    }
+
+    const data = type === 'followers' 
+      ? await getFollowers(id) 
+      : await getFollowing(id);
+
+    return NextResponse.json(data);
+  } catch (error: any) {
+    console.error('Error fetching follows:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 
 /**
  * DELETE /api/follows/[id]
@@ -22,38 +57,13 @@ export async function DELETE(
       );
     }
 
-    // Delete follow relationship
-    const serviceClient = createServiceClient();
-    const { error: deleteError } = await serviceClient
-      .from('follows')
-      .delete()
-      .eq('follower_id', user.id)
-      .eq('following_id', following_id);
-
-    if (deleteError) {
-      console.error('Error deleting follow:', deleteError);
-      
-      // If table doesn't exist, provide helpful error
-      if (deleteError.code === 'PGRST205') {
-        return NextResponse.json(
-          { 
-            error: 'Follow system not set up. Please run the migration in Supabase SQL Editor.',
-            details: 'Migration file: supabase/migrations/017_follows_table.sql'
-          },
-          { status: 503 }
-        );
-      }
-      
-      return NextResponse.json(
-        { error: 'Failed to unfollow user' },
-        { status: 500 }
-      );
-    }
+    // Call server function
+    await unfollowUser(user.id, following_id);
 
     return NextResponse.json({
       success: true,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in unfollow route:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
