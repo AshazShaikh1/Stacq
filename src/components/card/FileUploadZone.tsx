@@ -63,8 +63,8 @@ export function FileUploadZone({
                 disabled={disabled}
               />
               {imageUrl && (
-                <div className="mt-2 rounded-lg overflow-hidden bg-gray-light">
-                  <Image src={imageUrl} alt="Preview" className="w-full h-48 object-cover" />
+                <div className="mt-2 relative h-48 rounded-lg overflow-hidden bg-gray-light">
+                  <Image src={imageUrl} alt="Preview" fill className="object-cover" />
                 </div>
               )}
             </div>
@@ -99,7 +99,7 @@ export function FileUploadZone({
             {preview || (type === 'image' && imageUrl) ? (
               <div className="w-full">
                 <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-light mb-3">
-                  <Image src={preview || imageUrl || ''} alt="Preview" className="w-full h-full object-cover" />
+                  <Image src={preview || imageUrl || ''} alt="Preview" fill className="object-cover" />
                 </div>
                 <p className="text-center text-body text-jet-dark">
                   {file?.name || 'Image from URL'}

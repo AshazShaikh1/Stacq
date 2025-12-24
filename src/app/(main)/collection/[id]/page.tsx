@@ -10,6 +10,9 @@ import type { Metadata } from "next";
 import { Suspense, lazy } from "react";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 
+import { getCollectionById } from "@/features/collections/server/getCollectionById";
+import { getCollectionCards } from "@/features/collections/server/getCollectionCards";
+
 const CommentsSection = lazy(() =>
   import("@/components/comments/CommentsSection").then((m) => ({
     default: m.CommentsSection,
@@ -64,32 +67,10 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const isUUID =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        id
-      );
+    // Fetch Collection
+    const collection = await getCollectionById(id);
 
-    const collectionQuery = supabase.from("collections").select(`
-        *,
-        owner:users!collections_owner_id_fkey (
-          username,
-          display_name,
-          avatar_url
-        ),
-        tags:collection_tags (
-          tag:tags (
-            id,
-            name
-          )
-        )
-      `);
-
-    const { data: collection, error: collectionError } = await (isUUID
-      ? collectionQuery.eq("id", id)
-      : collectionQuery.eq("slug", id)
-    ).maybeSingle();
-
-    if (collectionError || !collection) {
+    if (!collection) {
       notFound();
     }
 
@@ -101,30 +82,8 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       notFound();
     }
 
-    const { data: collectionCards } = await supabase
-      .from("collection_cards")
-      .select(
-        `
-        added_by,
-        card:cards (
-          id, title, description, thumbnail_url, canonical_url, domain,
-          upvotes_count, saves_count, created_by, created_at,
-          creator:users!cards_created_by_fkey (
-            id, username, display_name, avatar_url
-          )
-        )
-      `
-      )
-      .eq("collection_id", collection.id)
-      .order("added_at", { ascending: false });
-
-    const cards = (collectionCards || [])
-      .map((cc: any) => ({
-        ...cc.card,
-        addedBy: cc.added_by,
-        type: "card" as const,
-      }))
-      .filter((c: any) => c && c.id);
+    // Fetch Cards
+    const cards = await getCollectionCards(collection.id);
 
     const owner = Array.isArray(collection.owner)
       ? collection.owner[0]
@@ -145,6 +104,8 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
           <CollectionHeader
             collection={{
               ...collection,
+              description: collection.description || undefined,
+              cover_image_url: collection.cover_image_url || undefined,
               owner: owner || {
                 username: "unknown",
                 display_name: "Unknown User",

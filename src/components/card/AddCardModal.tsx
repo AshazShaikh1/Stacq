@@ -236,7 +236,8 @@ export function AddCardModal({ isOpen, onClose, stackId, collectionId }: AddCard
             <Image
               src={thumbnailUrl}
               alt="Thumbnail preview"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
               onError={(e) => {
                 // Hide image on error
                 e.currentTarget.style.display = 'none';

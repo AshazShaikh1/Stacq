@@ -235,11 +235,16 @@ export async function POST(request: NextRequest) {
     }
 
     await updateCommentStats(serviceClient, dbTargetType, target_id, 1);
-    await logRankingEvent(
-      dbTargetType === "card" ? "card" : "collection",
-      target_id,
-      "comment"
-    );
+    // Log ranking event safely
+    try {
+      await logRankingEvent(
+        dbTargetType === "card" ? "card" : "collection",
+        target_id,
+        "comment"
+      );
+    } catch (rankingErr) {
+      console.error("[Comments] Warning: Failed to log ranking event:", rankingErr);
+    }
 
     // --- NOTIFICATION LOGIC START ---
     (async () => {
