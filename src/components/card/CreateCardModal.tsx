@@ -21,6 +21,7 @@ interface CreateCardModalProps {
   onClose: () => void;
   initialUrl?: string;
   initialFileData?: FileData;
+  initialCollectionId?: string;
 }
 
 export function CreateCardModal({
@@ -28,6 +29,7 @@ export function CreateCardModal({
   onClose,
   initialUrl,
   initialFileData,
+  initialCollectionId,
 }: CreateCardModalProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
@@ -43,7 +45,9 @@ export function CreateCardModal({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [useUrlForImage, setUseUrlForImage] = useState(false);
   const [docsFile, setDocsFile] = useState<File | null>(null);
+  const [useUrlForDoc, setUseUrlForDoc] = useState(false);
 
   const [visibility, setVisibility] = useState<StackVisibility>("private");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -52,7 +56,9 @@ export function CreateCardModal({
   );
 
   const [collections, setCollections] = useState<any[]>([]);
-  const [selectedCollectionId, setSelectedCollectionId] = useState("");
+  const [selectedCollectionId, setSelectedCollectionId] = useState(
+    initialCollectionId || ""
+  );
 
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -87,7 +93,7 @@ export function CreateCardModal({
         setDocsFile(null);
         setCoverImageFile(null);
         setCoverImagePreview(null);
-        setSelectedCollectionId("");
+        setSelectedCollectionId(initialCollectionId || "");
         setVisibility("private");
         setError("");
         setIsLoading(false);
@@ -270,6 +276,17 @@ export function CreateCardModal({
     if (cardType === "link" && !url.trim()) return setError("URL is required");
     if (!title.trim()) return setError("Title is required");
 
+    // Validation for Image
+    if (cardType === "image") {
+       if (useUrlForImage && !imageUrl.trim()) return setError("Image URL is required");
+       if (!useUrlForImage && !imageFile) return setError("Image file is required");
+    }
+    // Validation for Docs
+    if (cardType === "docs") {
+       if (useUrlForDoc && !url.trim()) return setError("Document URL is required");
+       if (!useUrlForDoc && !docsFile) return setError("Document file is required");
+    }
+
     if (cardType === "link" && (!titleRef.current || !coverImagePreview)) {
       await fetchMetadata(url);
     }
@@ -283,8 +300,14 @@ export function CreateCardModal({
       setShowBecomeStacker(true);
       return;
     }
-    fetchCollections();
-    setStep("stack");
+    
+    // IF we already have a collection (e.g. from context), skip selection
+    if (initialCollectionId) {
+        handleSubmit(); 
+    } else {
+        fetchCollections();
+        setStep("stack");
+    }
   };
 
   /* ================= SUBMIT ================= */
@@ -295,23 +318,39 @@ export function CreateCardModal({
     try {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
-      if (!data.user) throw new Error("Not logged in");
+      // Safe check for user
+      if (!data?.user?.id) throw new Error("Not logged in");
 
       // Upload Images
       let finalCardUrl = url;
       let finalThumbnailUrl = coverImagePreview || undefined;
 
-      if (cardType === "image" && imageFile) {
-        const fileName = `cards/${data.user.id}/${Date.now()}_${
-          imageFile.name
-        }`;
-        await supabase.storage.from("thumbnails").upload(fileName, imageFile);
-        const { data: publicUrl } = supabase.storage
-          .from("thumbnails")
-          .getPublicUrl(fileName);
-        finalCardUrl = publicUrl.publicUrl;
-        if (!finalThumbnailUrl) finalThumbnailUrl = publicUrl.publicUrl;
+      // Handle Image Type Logic
+      if (cardType === "image") {
+          if (useUrlForImage) {
+             finalCardUrl = imageUrl;
+             if (!finalThumbnailUrl) finalThumbnailUrl = imageUrl;
+          } else if (imageFile) {
+            const fileName = `cards/${data.user.id}/${Date.now()}_${imageFile.name}`;
+            await supabase.storage.from("thumbnails").upload(fileName, imageFile);
+            const { data: publicUrl } = supabase.storage.from("thumbnails").getPublicUrl(fileName);
+            finalCardUrl = publicUrl.publicUrl;
+            if (!finalThumbnailUrl) finalThumbnailUrl = publicUrl.publicUrl;
+          }
       }
+
+      // Handle Doc Type Logic
+       if (cardType === "docs") {
+          if (useUrlForDoc) {
+             // finalCardUrl already set to url from input
+          } else if (docsFile) {
+             // Upload doc as file (simulated by uploading to thumbnails bucket for now)
+             const fileName = `documents/${data.user.id}/${Date.now()}_${docsFile.name}`;
+             await supabase.storage.from("thumbnails").upload(fileName, docsFile);
+             const { data: publicUrl } = supabase.storage.from("thumbnails").getPublicUrl(fileName);
+             finalCardUrl = publicUrl.publicUrl;
+          }
+       }
 
       if (coverImageFile) {
         const fileName = `covers/${data.user.id}/${Date.now()}_cover_${
@@ -346,13 +385,19 @@ export function CreateCardModal({
       }
 
       const result = await res.json();
+      
+      // SAFE ID ACCESS
+      const createdCardId = result.card?.id || result.card_id;
+      if (!createdCardId) throw new Error("Card created but ID missing");
+
       const eventCardType: "link" | "image" | "document" =
         cardType === "docs"
           ? "document"
           : (cardType as "link" | "image" | "document");
+      
       trackEvent.addCard(
         data.user.id,
-        result.card.id,
+        createdCardId,
         selectedCollectionId,
         eventCardType
       );
@@ -361,6 +406,7 @@ export function CreateCardModal({
       onClose();
       router.refresh();
     } catch (err: any) {
+      console.error(err);
       setError(err.message);
       showError(err.message);
     } finally {
@@ -445,6 +491,10 @@ export function CreateCardModal({
               const file = e.target.files?.[0];
               if (file) handleFileSelect(file, "docs");
             }}
+            useUrlForImage={useUrlForImage}
+            onUseUrlForImageChange={setUseUrlForImage}
+            useUrlForDoc={useUrlForDoc}
+            onUseUrlForDocChange={setUseUrlForDoc}
             // Not used in this step anymore, but required by props
             isPublic={visibility === "public"}
             onIsPublicChange={() => {}}

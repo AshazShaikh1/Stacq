@@ -39,6 +39,10 @@ interface CardDetailsStepProps {
   canMakePublic: boolean;
   // FIXED: Added this missing prop definition
   onFetchMetadata: () => void;
+  useUrlForImage: boolean;
+  onUseUrlForImageChange: (useUrl: boolean) => void;
+  useUrlForDoc: boolean;
+  onUseUrlForDocChange: (useUrl: boolean) => void;
 }
 
 export const CardDetailsStep = memo(function CardDetailsStep({
@@ -73,6 +77,10 @@ export const CardDetailsStep = memo(function CardDetailsStep({
   onIsPublicChange,
   canMakePublic,
   onFetchMetadata,
+  useUrlForImage,
+  onUseUrlForImageChange,
+  useUrlForDoc,
+  onUseUrlForDocChange,
 }: CardDetailsStepProps) {
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descriptionInputRef = useRef<HTMLInputElement>(null);
@@ -139,34 +147,96 @@ export const CardDetailsStep = memo(function CardDetailsStep({
 
       {/* Image Input */}
       {cardType === 'image' && (
-        <FileUploadZone
-          type="image"
-          file={imageFile}
-          preview={imagePreview}
-          isDragging={isDraggingImage}
-          onDragOver={onImageDragOver}
-          onDragLeave={onImageDragLeave}
-          onDrop={onImageDrop}
-          onFileChange={onImageChange}
-          disabled={isLoading}
-          imageUrl={imageUrl}
-          onImageUrlChange={onImageUrlChange}
-        />
+        <div className="space-y-3">
+          <div className="flex gap-4 text-small">
+             <button
+               type="button"
+               onClick={() => onUseUrlForImageChange(false)}
+               className={`font-medium ${!useUrlForImage ? 'text-emerald border-b-2 border-emerald' : 'text-gray-500'}`}
+             >
+               Upload
+             </button>
+             <button
+               type="button"
+               onClick={() => onUseUrlForImageChange(true)}
+               className={`font-medium ${useUrlForImage ? 'text-emerald border-b-2 border-emerald' : 'text-gray-500'}`}
+             >
+               URL
+             </button>
+          </div>
+          
+          {useUrlForImage ? (
+             <Input
+               key="image-url-input"
+               id="image-url-input"
+               type="url"
+               label="Image URL"
+               placeholder="https://example.com/image.png"
+               value={imageUrl}
+               onChange={(e) => onImageUrlChange(e.target.value)}
+               disabled={isLoading}
+             />
+          ) : (
+             <FileUploadZone
+               type="image"
+               file={imageFile}
+               preview={imagePreview}
+               isDragging={isDraggingImage}
+               onDragOver={onImageDragOver}
+               onDragLeave={onImageDragLeave}
+               onDrop={onImageDrop}
+               onFileChange={onImageChange}
+               disabled={isLoading}
+             />
+          )}
+        </div>
       )}
 
       {/* Docs Input */}
       {cardType === 'docs' && (
-        <FileUploadZone
-          type="docs"
-          file={docsFile}
-          preview={null}
-          isDragging={isDraggingDocs}
-          onDragOver={onDocsDragOver}
-          onDragLeave={onDocsDragLeave}
-          onDrop={onDocsDrop}
-          onFileChange={onDocsChange}
-          disabled={isLoading}
-        />
+        <div className="space-y-3">
+          <div className="flex gap-4 text-small">
+             <button
+               type="button"
+               onClick={() => onUseUrlForDocChange(false)}
+               className={`font-medium ${!useUrlForDoc ? 'text-emerald border-b-2 border-emerald' : 'text-gray-500'}`}
+             >
+               Upload
+             </button>
+             <button
+               type="button"
+               onClick={() => onUseUrlForDocChange(true)}
+               className={`font-medium ${useUrlForDoc ? 'text-emerald border-b-2 border-emerald' : 'text-gray-500'}`}
+             >
+               URL
+             </button>
+          </div>
+
+          {useUrlForDoc ? (
+             <Input
+               key="doc-url-input"
+               id="doc-url-input"
+               type="url"
+               label="Document URL"
+               placeholder="https://example.com/doc.pdf"
+               value={url}
+               onChange={(e) => onUrlChange(e.target.value)}
+               disabled={isLoading}
+             />
+          ) : (
+            <FileUploadZone
+              type="docs"
+              file={docsFile}
+              preview={null}
+              isDragging={isDraggingDocs}
+              onDragOver={onDocsDragOver}
+              onDragLeave={onDocsDragLeave}
+              onDrop={onDocsDrop}
+              onFileChange={onDocsChange}
+              disabled={isLoading}
+            />
+          )}
+        </div>
       )}
 
       {isFetchingMetadata && (
