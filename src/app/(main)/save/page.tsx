@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CreateCardModal } from '@/components/card/CreateCardModal';
+import { GlobalCreateModal } from '@/components/create/GlobalCreateModal';
 import { createClient } from '@/lib/supabase/client';
 
 function SavePageContent() {
@@ -60,11 +60,14 @@ function SavePageContent() {
 
   return (
     <div className="min-h-screen">
-      <CreateCardModal
+      <GlobalCreateModal
         isOpen={true}
         onClose={handleClose}
-        initialUrl={url || undefined}
-        initialFileData={initialFileData || undefined}
+        initialContext={{
+          type: 'card',
+          url: url || undefined,
+          fileData: initialFileData || undefined
+        }}
       />
     </div>
   );

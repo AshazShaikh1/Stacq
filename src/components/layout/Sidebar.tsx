@@ -15,7 +15,7 @@ function SavedIcon({ size = 20 }: { size?: number }) {
   );
 }
 import { Tooltip } from '@/components/ui/Tooltip';
-import { CreateOptionsModal } from '@/components/create/CreateOptionsModal';
+import { GlobalCreateModal } from '@/components/create/GlobalCreateModal';
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -86,8 +86,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Create Options Modal */}
-      <CreateOptionsModal 
+      {/* Create Global Modal */}
+      <GlobalCreateModal 
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
       />

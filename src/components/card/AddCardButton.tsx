@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { CreateCardModal } from "@/components/card/CreateCardModal";
+import { GlobalCreateModal } from "@/components/create/GlobalCreateModal";
 
 interface AddCardButtonProps {
   collectionId?: string;
@@ -55,10 +55,10 @@ export function AddCardButton({
         <span>Add Card</span>
       </button>
 
-      <CreateCardModal
+      <GlobalCreateModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        initialCollectionId={id}
+        initialContext={{ type: 'card', collectionId: id }}
       />
     </>
   );
