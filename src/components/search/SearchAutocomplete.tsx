@@ -30,8 +30,8 @@ export function SearchAutocomplete() {
     const fetchResults = async () => {
       setIsLoading(true);
       try {
-        // Limit to 5 results per category for the dropdown
-        const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}&limit=3`);
+        // Limit to 10 results per category for the dropdown since we removed the dedicated page
+        const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}&limit=10`);
         if (res.ok) {
           const data = await res.json();
           setResults(data);
