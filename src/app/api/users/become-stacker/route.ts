@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { display_name, avatar_url, short_bio, phone } = await request.json();
+    const { display_name, avatar_url, short_bio } = await request.json();
 
     // Validate required fields
     if (!display_name || display_name.trim().length === 0) {
@@ -76,12 +76,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    if (phone) {
-      updateData.metadata = {
-        ...updateData.metadata,
-        phone: phone.trim(),
-      };
-    }
+    // Phone removed
 
     const { data: updatedUser, error: updateError } = await serviceClient
       .from('users')

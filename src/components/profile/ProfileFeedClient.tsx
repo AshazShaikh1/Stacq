@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { FeedGrid, FeedGridItem } from "@/components/feed/FeedGrid";
 import { EmptyCollectionsState, EmptyCardsState, EmptySavedCollectionsState } from "@/components/ui/EmptyState";
-import { CreateCollectionModal } from "@/components/collection/CreateCollectionModal";
-import { CreateCardModal } from "@/components/card/CreateCardModal";
+import { CreateCollectionModal } from "@/components/collection/CreateCollectionModal"; // keeping for now to avoid break if still used elsewhere, but ideally remove
+// import { CreateCardModal } from "@/components/card/CreateCardModal";
+import { GlobalCreateModal } from "@/components/create/GlobalCreateModal";
 
 interface ProfileFeedClientProps {
   items: FeedGridItem[];
@@ -14,8 +15,7 @@ interface ProfileFeedClientProps {
 }
 
 export function ProfileFeedClient({ items, tab, isOwnProfile, userId }: ProfileFeedClientProps) {
-  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
-  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [createContext, setCreateContext] = useState<{ type: 'card' | 'collection' } | null>(null);
 
   // Determine which empty state to show
   let emptyState;
@@ -25,15 +25,9 @@ export function ProfileFeedClient({ items, tab, isOwnProfile, userId }: ProfileF
      if (items.length === 0) {
         if (isOwnProfile) {
             emptyState = (
-                <EmptyCollectionsState onCreateStack={() => setIsCollectionModalOpen(true)} />
+                <EmptyCollectionsState onCreateStack={() => setCreateContext({ type: 'collection' })} />
             );
         } else {
-             // For visitor, EmptyCollectionsState default text is "No collections yet... Start by creating...".
-             // We might want a read-only version. 
-             // Currently EmptyCollectionsState delegates to EmptyStacksState which has a button.
-             // We can pass a custom EmptyState or reliance on the prop-change in EmptyState (no onClick = no button).
-             // But EmptyStacksState passes `onCreateStack`.
-             // If we don't pass it, it shouldn't show button.
              emptyState = <EmptyCollectionsState />;
         }
      }
@@ -42,7 +36,7 @@ export function ProfileFeedClient({ items, tab, isOwnProfile, userId }: ProfileF
       if (items.length === 0) {
           if (isOwnProfile) {
               emptyState = (
-                  <EmptyCardsState onAddCard={() => setIsCardModalOpen(true)} />
+                  <EmptyCardsState onAddCard={() => setCreateContext({ type: 'card' })} />
               );
           } else {
               emptyState = <EmptyCardsState />;
@@ -62,16 +56,11 @@ export function ProfileFeedClient({ items, tab, isOwnProfile, userId }: ProfileF
       <FeedGrid items={items} emptyState={emptyState} />
 
       {isOwnProfile && (
-        <>
-          <CreateCollectionModal
-            isOpen={isCollectionModalOpen}
-            onClose={() => setIsCollectionModalOpen(false)}
-          />
-          <CreateCardModal 
-            isOpen={isCardModalOpen}
-            onClose={() => setIsCardModalOpen(false)}
-          />
-        </>
+        <GlobalCreateModal
+          isOpen={!!createContext}
+          onClose={() => setCreateContext(null)}
+          initialContext={createContext || undefined}
+        />
       )}
     </>
   );

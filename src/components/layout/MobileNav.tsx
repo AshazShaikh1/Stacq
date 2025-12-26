@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { CreateOptionsModal } from '@/components/create/CreateOptionsModal';
+import { GlobalCreateModal } from '@/components/create/GlobalCreateModal';
 import { HomeIcon, ExploreIcon, CreateIcon } from '@/components/ui/Icons';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -170,7 +170,7 @@ export function MobileNav() {
         </div>
       </div>
 
-      <CreateOptionsModal 
+      <GlobalCreateModal 
         isOpen={isCreateModalOpen} 
         onClose={() => setIsCreateModalOpen(false)} 
       />
