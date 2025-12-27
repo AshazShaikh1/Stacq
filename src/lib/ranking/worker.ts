@@ -59,7 +59,7 @@ export async function fullRecomputeWorker(
       items = data || [];
     }
 
-    console.log(`[Ranking Worker] Processing ${items.length} ${itemType}s`);
+    // console.log(`[Ranking Worker] Processing ${items.length} ${itemType}s`);
 
     // Process in batches
     for (let i = 0; i < items.length; i += BATCH_SIZE) {
@@ -117,7 +117,7 @@ export async function fullRecomputeWorker(
       await normalizeScores(supabase, itemType, config);
     }
 
-    console.log(`[Ranking Worker] Completed: ${results.succeeded} succeeded, ${results.failed} failed`);
+    // console.log(`[Ranking Worker] Completed: ${results.succeeded} succeeded, ${results.failed} failed`);
   } catch (error: any) {
     console.error('[Ranking Worker] Fatal error:', error);
     results.errors.push(`Fatal: ${error.message || 'Unknown error'}`);
@@ -182,7 +182,7 @@ async function normalizeScores(
         .eq('id', score.id);
     }
 
-    console.log(`[Ranking Worker] Normalized ${recentScores.length} ${itemType}s (mean: ${mean.toFixed(4)}, stddev: ${stddev.toFixed(4)})`);
+    // console.log(`[Ranking Worker] Normalized ${recentScores.length} ${itemType}s (mean: ${mean.toFixed(4)}, stddev: ${stddev.toFixed(4)})`);
   } catch (error) {
     console.error(`[Ranking Worker] Error normalizing ${itemType}:`, error);
     throw error;

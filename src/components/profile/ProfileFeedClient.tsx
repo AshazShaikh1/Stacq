@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { FeedGrid, FeedGridItem } from "@/components/feed/FeedGrid";
 import { EmptyCollectionsState, EmptyCardsState, EmptySavedCollectionsState } from "@/components/ui/EmptyState";
-import { CreateCollectionModal } from "@/components/collection/CreateCollectionModal"; // keeping for now to avoid break if still used elsewhere, but ideally remove
-// import { CreateCardModal } from "@/components/card/CreateCardModal";
 import { GlobalCreateModal } from "@/components/create/GlobalCreateModal";
 
 interface ProfileFeedClientProps {

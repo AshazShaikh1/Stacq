@@ -49,10 +49,10 @@ export async function checkShadowban(
   if (!user) return false;
 
   // Debug log to see what's happening
-  console.log(
-    `[Shadowban Check] User: ${userId}, Score: ${user.quality_score}, Metadata:`,
-    user.metadata
-  );
+  // console.log(
+  //   `[Shadowban Check] User: ${userId}, Score: ${user.quality_score}, Metadata:`,
+  //   user.metadata
+  // );
 
   // FIX: Treat null OR 0 as neutral (30) to prevent auto-banning new users
   let qualityScore = user.quality_score;
@@ -62,13 +62,13 @@ export async function checkShadowban(
 
   // Shadowban if quality score is very low (bad actor)
   if (qualityScore < 20) {
-    console.log(`[Shadowban Check] Banned due to low score: ${qualityScore}`);
+    // console.log(`[Shadowban Check] Banned due to low score: ${qualityScore}`);
     return true;
   }
 
   // Check metadata for shadowban flag
   if (user.metadata?.shadowbanned === true) {
-    console.log(`[Shadowban Check] Banned due to metadata flag`);
+    // console.log(`[Shadowban Check] Banned due to metadata flag`);
     return true;
   }
 

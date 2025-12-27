@@ -9,10 +9,7 @@ export class SupabaseCardRepository implements CardRepository {
     const serviceClient = createServiceClient();
     
     // Get current user for permission check
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    console.log(`[findById] Looking for card: ${id}`);
-    console.log(`[findById] Current User: ${user?.id || 'null'} (Error: ${authError?.message})`);
+    const { data: { user } } = await supabase.auth.getUser();
 
     // Fetch card with service client (bypass RLS)
     const { data: card, error } = await serviceClient
@@ -37,29 +34,19 @@ export class SupabaseCardRepository implements CardRepository {
     }
     
     if (!card) {
-       console.log(`[findById] Card not found in DB`);
        return null;
     }
 
-    console.log(`[findById] Card found: ${card.id}, Public: ${card.is_public}, Owner: ${card.created_by}`);
-
     // Access Control Logic
-    // 1. If public, allow
+    // 1. If public, anyone can see
     if (card.is_public) {
-      console.log(`[findById] Access granted: Public`);
       return card as CardDetail;
     }
 
-    // 2. If owner, allow
+    // 2. If private, only owner can see
     if (user && card.created_by === user.id) {
-      console.log(`[findById] Access granted: Owner`);
       return card as CardDetail;
     }
-    
-    console.log(`[findById] Access denied: Private and not owner`);
-
-    // 3. (Optional) Check if in visible collection - for now strict owner/public check
-    // If we wanted to check collections, we'd need to query collection_cards
     
     return null;
   }

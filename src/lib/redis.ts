@@ -35,16 +35,14 @@ export async function cached<T>(
     // Try to get from cache
     const cached = await redis.get(queryKey);
 
-    if (cached !== null) {
-      const duration = Date.now() - startTime;
-      console.log(`[Cache] ✅ Redis HIT: ${queryKey} (${duration}ms)`);
-      return cached as T;
-    }
+      if (cached !== null) {
+        return cached as T;
+      }
 
     // Cache miss - check for lock (cache stampede protection)
     const lockExists = await redis.exists(lockKey);
     if (lockExists) {
-      console.log(`[Cache] ⏳ Lock exists, waiting: ${queryKey}`);
+      // console.log(`[Cache] ⏳ Lock exists, waiting: ${queryKey}`);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Retry cache read
@@ -60,14 +58,10 @@ export async function cached<T>(
     try {
       // Execute fetcher
       const data = await fetcherFn();
-      const duration = Date.now() - startTime;
 
       // Store in cache
       await redis.set(queryKey, data as any, { ex: ttl });
-      console.log(
-        `[Cache] 💾 Cached: ${queryKey} (TTL: ${ttl}s, DB time: ${duration}ms)`
-      );
-
+      
       // Remove lock
       await redis.del(lockKey);
 
