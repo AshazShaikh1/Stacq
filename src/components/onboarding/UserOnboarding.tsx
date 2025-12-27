@@ -9,9 +9,12 @@ import Image from 'next/image';
 
 type OnboardingStep = 'welcome' | 'identity' | 'extension' | 'nudge';
 
+import { useToast } from '@/contexts/ToastContext';
+
 export function UserOnboarding() {
   const { user } = useAuth();
   const router = useRouter();
+  const { showError, showSuccess } = useToast();
   const [step, setStep] = useState<OnboardingStep>('welcome');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,8 +96,9 @@ export function UserOnboarding() {
       if (error) throw error;
       
       setStep('extension');
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      showError(e.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -111,10 +115,11 @@ export function UserOnboarding() {
 
       if (error) throw error;
       
-      router.push('/'); // OR router.refresh() to re-run server layout check?
-      // router.push is safer for now.
-    } catch (e) {
+      showSuccess("Welcome to Stacq!");
+      router.push('/'); 
+    } catch (e: any) {
       console.error(e);
+      showError(e.message || "Failed to complete onboarding");
     } finally {
       setLoading(false);
     }

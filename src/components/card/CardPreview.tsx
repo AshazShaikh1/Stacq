@@ -447,6 +447,7 @@ export function CardPreview({
         confirmText={id ? "Remove" : "Delete"}
         cancelText="Cancel"
         variant="danger"
+        isLoading={isDeleting}
       />
     </>
   );

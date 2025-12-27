@@ -362,6 +362,7 @@ export function CollectionHeader({
             message="Are you sure? This cannot be undone."
             confirmText="Delete"
             variant="danger"
+            isLoading={isDeleting}
           />
         </>
       )}
