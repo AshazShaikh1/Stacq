@@ -2,8 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // Clone headers to add custom ones
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-current-path', request.nextUrl.pathname)
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: {
+      headers: requestHeaders,
+    },
   })
 
   const supabase = createServerClient(
@@ -20,9 +26,14 @@ export async function updateSession(request: NextRequest) {
             value,
             ...options,
           })
+          
+          // Clone headers to add custom ones
+          const requestHeaders = new Headers(request.headers)
+          requestHeaders.set('x-current-path', request.nextUrl.pathname)
+          
           supabaseResponse = NextResponse.next({
             request: {
-              headers: request.headers,
+              headers: requestHeaders,
             },
           })
           supabaseResponse.cookies.set({
@@ -37,9 +48,13 @@ export async function updateSession(request: NextRequest) {
             value: '',
             ...options,
           })
+          
+          const requestHeaders = new Headers(request.headers)
+          requestHeaders.set('x-current-path', request.nextUrl.pathname)
+
           supabaseResponse = NextResponse.next({
             request: {
-              headers: request.headers,
+              headers: requestHeaders,
             },
           })
           supabaseResponse.cookies.set({

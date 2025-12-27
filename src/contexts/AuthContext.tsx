@@ -17,26 +17,43 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Create Supabase client once and hold it in state to prevent infinite loops/hangs
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
-    const supabase = createClient();
-    
-    // Initial user fetch
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setIsLoading(false);
-    });
+    let mounted = true;
 
-    // Subscribe to auth state changes
+    const initAuth = async () => {
+      try {
+        const { data: { user: sessionUser } } = await supabase.auth.getUser();
+        
+        if (mounted) {
+          setUser(sessionUser);
+        }
+      } catch (error) {
+        console.error('Auth Init Error:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    initAuth();
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setIsLoading(false);
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setIsLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading }}>

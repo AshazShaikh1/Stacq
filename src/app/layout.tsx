@@ -6,6 +6,7 @@ import "./globals.css";
 import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SuppressMixpanelErrors } from "@/components/SuppressMixpanelErrors";
+import { checkOnboardingStatus } from "@/lib/auth/server-gate";
 
 // Contexts
 import { ToastProvider } from "@/contexts/ToastContext";
@@ -28,11 +29,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await checkOnboardingStatus();
   return (
     <html lang="en">
       <body className={inter.className}>

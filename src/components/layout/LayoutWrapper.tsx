@@ -15,7 +15,8 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   // Pages that don't need any layout (Auth pages)
   const isAuthPage = pathname?.startsWith('/login') || 
                      pathname?.startsWith('/signup') || 
-                     pathname?.startsWith('/reset-password');
+                     pathname?.startsWith('/reset-password') ||
+                     pathname?.startsWith('/onboarding');
 
   // Landing page logic (if not logged in and on home)
   const isLandingPage = !isLoading && !user && pathname === '/';
