@@ -51,6 +51,9 @@ export function CreateCardForm({
   const [isFetchingMeta, setIsFetchingMeta] = useState(false);
   const [fetchedMeta, setFetchedMeta] = useState<{ title?: string; image?: string } | null>(null);
 
+  // Track if user has manually edited fields to prevent overwriting
+  const userHasEdited = useRef({ title: false, description: false });
+
   // State
   const [isLoading, setIsLoading] = useState(false);
   const [collections, setCollections] = useState<any[]>([]);
@@ -118,16 +121,22 @@ export function CreateCardForm({
       });
       if (res.ok) {
         const data = await res.json();
-        setFetchedMeta(data);
-        if (data.title && !title) setTitle(data.title);
-        if (data.description && !description) setDescription(data.description);
+        setFetchedMeta(data); // Saved for submission
+
+        // Only update fields if user hasn't edited them
+        if (data.title && !userHasEdited.current.title) {
+           setTitle(data.title);
+        }
+        if (data.description && !userHasEdited.current.description) {
+           setDescription(data.description);
+        }
       }
     } catch (e) {
       console.error(e);
     } finally {
       setIsFetchingMeta(false);
     }
-  }, [title, description]);
+  }, []); // Logic relies on refs, no need to depend on title/desc values
 
   // Debounced Metadata Fetch
   useEffect(() => {
@@ -338,12 +347,28 @@ export function CreateCardForm({
 
              {/* Meta Fields */}
              <div className="space-y-4">
+                {/* Link Preview (New: Ensure user sees what image was fetched) */}
+                {type === "link" && fetchedMeta?.image && (
+                   <div className="mb-4 relative h-32 w-full bg-stone-100 rounded-xl overflow-hidden border border-gray-200">
+                      <Image 
+                        src={fetchedMeta.image} 
+                        alt="Link Preview" 
+                        fill 
+                        className="object-cover"
+                        unoptimized // External URLs
+                      />
+                   </div>
+                )}
+                
                 <div>
                    <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
                    <input
                      type="text"
                      value={title}
-                     onChange={(e) => setTitle(e.target.value)}
+                     onChange={(e) => {
+                       setTitle(e.target.value);
+                       userHasEdited.current.title = true;
+                     }}
                      placeholder="Title"
                      className="w-full text-lg px-4 py-3 rounded-xl border border-gray-200 bg-stone-50 focus:bg-white focus:ring-2 focus:ring-emerald/20 focus:border-emerald transition-all placeholder:text-gray-400"
                    />
@@ -352,7 +377,10 @@ export function CreateCardForm({
                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                    <textarea
                      value={description}
-                     onChange={(e) => setDescription(e.target.value)}
+                     onChange={(e) => {
+                        setDescription(e.target.value);
+                        userHasEdited.current.description = true;
+                     }}
                      placeholder="Description (optional)"
                      rows={3}
                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-stone-50 focus:bg-white focus:ring-2 focus:ring-emerald/20 focus:border-emerald transition-all placeholder:text-gray-400 resize-none"
