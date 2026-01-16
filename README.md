@@ -1,3 +1,15 @@
+git checkout -b feature/my-change
+git add .
+git commit -m "Describe what you did"
+git checkout develop
+git merge feature/my-change
+git push origin develop
+git checkout main
+git merge develop
+git push origin main
+git branch -d feature/my-change
+
+
 # Stacq MVP
 
 A human-curated resource platform where people create Collections and add Cards (resources).
