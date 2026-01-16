@@ -108,7 +108,8 @@ export function EditCardModal({ isOpen, onClose, card }: EditCardModalProps) {
             <Image
               src={thumbnailUrl}
               alt="Thumbnail preview"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
             <button
               type="button"

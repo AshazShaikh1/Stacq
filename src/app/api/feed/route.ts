@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/api";
-import { isFeatureEnabled } from "@/lib/feature-flags";
 import { cachedJsonResponse } from "@/lib/cache/headers";
 import { cached } from "@/lib/redis";
 import { getCacheKey, CACHE_TTL } from "@/lib/cache/supabase-cache";
@@ -10,429 +9,86 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient(request);
     const { searchParams } = new URL(request.url);
 
-    const typeParam = searchParams.get("type") || "both";
-    // Support legacy 'stack' type, convert to 'collection'
-    const type = typeParam === "stack" ? "collection" : typeParam;
-    const mixParam = searchParams.get("mix") || "cards:0.6,collections:0.4";
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
-    const cursor = searchParams.get("cursor"); // Cursor for pagination
+    const type = searchParams.get("type"); // 'card' or 'collection' or 'both'
 
     // Generate cache key
     const cacheKey = getCacheKey("feed", {
-      type,
-      mix: mixParam,
+      version: "v2_unified",
       limit,
       offset,
-      cursor: cursor || "none",
+      type: type || "both",
     });
 
-    // Use Redis cache with 60s TTL
+    // Use Redis cache with short TTL (e.g. 1 minute)
     const cachedResult = await cached(
       cacheKey,
       async () => {
-        return await fetchFeedData(
-          supabase,
-          type,
-          mixParam,
-          limit,
-          offset,
-          cursor
-        );
-      },
-      CACHE_TTL.FEED // <--- FIX: Access the specific TTL property
-    );
+        // Query the Unified View
+        let query = supabase
+          .from("sorted_feed")
+          .select('*')
+          .order("gravity_score", { ascending: false })
+          .range(offset, offset + limit - 1);
 
-    // Return with cache headers
+        if (type && type !== "both") {
+          // Normalize type (legacy 'stack' -> 'collection')
+          const targetType = type === "stack" ? "collection" : type;
+          query = query.eq("type", targetType);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        // Relation "sorted_feed_owner_id_fkey_loose" might not exist on a View unless explicitly defined or if Supabase infers it from underlying tables?
+        // Views don't have FKs.
+        // We might need to manually join 'users' in the View (which we avoided to keep it flexible) OR fetch users separately.
+        // Actually, Supabase PostgREST on Views *can* detect relationships if we define them, OR we can just embed the user data IN the view JSON.
+        // But embedding user data in the view adds overhead.
+        
+        // Alternative: Fetch 'sorted_feed' then fetch users.
+        // OR: Adjust the View to return 'owner' as JSON.
+        // Given complexity of Supabase View Relations, let's fetch IDs then users if relation fails?
+        // But wait! The View has 'owner_id'. We can try standard left-join syntax if PostgREST supports it on views (it usually needs a comment-based hint or implicit relation).
+        
+        // Let's assume for now we might need to manually fetch users efficiently or use a JOIN in the view.
+        // Re-reading Plan: The View plan returned `owner_id`.
+        // To make it fast and simple, let's update the View to just include `owner_json`? 
+        // No, that makes the view slow.
+        
+        // Better: Fetch Feed -> Get Owner IDs -> Fetch Users -> Map.
+        
+        return { 
+           items: data || [],
+           nextOffset: (data && data.length === limit) ? offset + limit : null
+        };
+      },
+      CACHE_TTL.FEED
+    );
+    
+    // Supplement with User Data if View didn't return joined object (likely)
+    if (cachedResult?.items?.length > 0 && !cachedResult.items[0].owner) {
+       const userIds = [...new Set(cachedResult.items.map((i: any) => i.owner_id))];
+       const { data: users } = await supabase
+         .from('users')
+         .select('id, username, display_name, avatar_url')
+         .in('id', userIds);
+         
+       const userMap = new Map(users?.map((u: any) => [u.id, u]) || []);
+       cachedResult.items = cachedResult.items.map((i: any) => ({
+         ...i,
+         owner: userMap.get(i.owner_id) || { username: 'unknown', display_name: 'Unknown' }
+       }));
+    }
+
     return cachedJsonResponse(cachedResult, "PUBLIC_READ");
   } catch (error: any) {
-    // Only log critical errors in production
-    console.error("Error in feed route:", error);
+    console.error("Error in unified feed route:", error);
     return NextResponse.json(
-      {
-        error: "Internal server error",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
-}
-
-/**
- * Fetch feed data (extracted for caching)
- */
-async function fetchFeedData(
-  supabase: any,
-  type: string,
-  mixParam: string,
-  limit: number,
-  offset: number,
-  cursor: string | null
-) {
-  // Parse mix ratios
-  const mixRatios: Record<string, number> = {};
-  mixParam.split(",").forEach((part) => {
-    const [key, value] = part.split(":");
-    if (key && value) {
-      mixRatios[key.trim()] = parseFloat(value.trim());
-    }
-  });
-
-  const cardsRatio = mixRatios.cards || 0.6;
-  const collectionsRatio = mixRatios.collections || mixRatios.stacks || 0.4;
-  const totalRatio = cardsRatio + collectionsRatio;
-
-  const normalizedCardsRatio = cardsRatio / totalRatio;
-  const normalizedCollectionsRatio = collectionsRatio / totalRatio;
-
-  const cardsLimit =
-    type === "both"
-      ? Math.ceil(limit * normalizedCardsRatio)
-      : type === "card"
-      ? limit
-      : 0;
-  const collectionsLimit =
-    type === "both"
-      ? Math.ceil(limit * normalizedCollectionsRatio)
-      : type === "collection"
-      ? limit
-      : 0;
-
-  const results: any[] = [];
-  const useNewRanking = isFeatureEnabled("ranking/final-algo");
-
-  // Fetch ranked cards
-  if (type === "card" || type === "both") {
-    let rankedItems: any[] = [];
-    let itemsError: any = null;
-    let cardIds: string[] = [];
-
-    if (useNewRanking) {
-      let query = supabase
-        .from("ranking_scores")
-        .select("item_id, norm_score, last_event_at")
-        .eq("item_type", "card")
-        .not("norm_score", "is", null)
-        .order("norm_score", { ascending: false })
-        .order("last_event_at", { ascending: false, nullsFirst: false })
-        .limit(cardsLimit);
-
-      if (cursor && (type === "card" || type === "both")) {
-        try {
-          const [cursorScore, cursorTimestamp] = cursor.split(":");
-          if (cursorScore && cursorTimestamp) {
-            const score = parseFloat(cursorScore);
-            query = query.or(
-              `norm_score.lt.${score},and(norm_score.eq.${score},last_event_at.lt.${cursorTimestamp})`
-            );
-          }
-        } catch (e) {
-          // Ignore invalid cursor
-        }
-      }
-
-      const { data, error } = await query;
-      rankedItems = data || [];
-      itemsError = error;
-      cardIds = rankedItems.map((item) => item.item_id);
-    } else {
-      // Legacy fallback
-      const { data, error } = await supabase
-        .from("explore_ranking_items")
-        .select("item_id, norm_score")
-        .eq("item_type", "card")
-        .order("norm_score", { ascending: false })
-        .range(0, cardsLimit - 1);
-
-      rankedItems = data || [];
-      itemsError = error;
-      if (!itemsError && rankedItems && rankedItems.length > 0) {
-        cardIds = rankedItems.map((item) => item.item_id);
-      }
-    }
-
-    // Fallback: recent
-    if (cardIds.length === 0) {
-      const { data: recentCards } = await supabase
-        .from("cards")
-        .select("id")
-        .eq("is_public", true)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(cardsLimit * 2); // Fetch more to allow for filtering
-
-      if (recentCards) {
-        cardIds = recentCards.map((c: { id: any }) => c.id);
-      }
-    }
-
-    if (cardIds.length > 0) {
-      const { data: cards } = await supabase
-        .from("cards")
-        .select(
-          `
-            id,
-            canonical_url,
-            title,
-            description,
-            thumbnail_url,
-            domain,
-            is_public,
-            visits_count,
-            saves_count,
-            upvotes_count,
-            comments_count,
-            created_at,
-            created_by,
-            creator:users!cards_created_by_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            ),
-            collection_cards (
-              id
-            )
-          `
-        )
-        .in("id", cardIds)
-        .eq("is_public", true);
-
-      if (cards && cards.length > 0) {
-        // ... (Skipped optimization logic for brevity, kept essential fetching) ...
-
-        // Fetch attributions
-        const { data: attributions } = await supabase
-          .from("card_attributions")
-          .select(
-            `
-              id,
-              card_id,
-              user_id,
-              source,
-              collection_id,
-              created_at,
-              user:users!card_attributions_user_id_fkey (
-                id,
-                username,
-                display_name,
-                avatar_url
-              )
-            `
-          )
-          .in("card_id", cardIds);
-
-        const attributionsMap = new Map();
-        attributions?.forEach((attr: { card_id: any }) => {
-          if (!attributionsMap.has(attr.card_id)) {
-            attributionsMap.set(attr.card_id, []);
-          }
-          attributionsMap.get(attr.card_id).push(attr);
-        });
-
-        const scoreMap = new Map(
-          rankedItems?.map((item) => [item.item_id, item.norm_score]) || []
-        );
-        const eventMap = new Map(
-          rankedItems?.map((item) => [item.item_id, item.last_event_at]) || []
-        );
-
-        cards.forEach((card: any) => {
-          // Filter out cards that belong to collections (in-memory check)
-          if (card.collection_cards && card.collection_cards.length > 0) {
-            return;
-          }
-
-          results.push({
-            type: "card",
-            ...card,
-            attributions: attributionsMap.get(card.id) || [],
-            score: scoreMap.get(card.id) || 0,
-            last_event_at: eventMap.get(card.id) || null,
-            saves_count: card.saves_count || 0,
-            upvotes_count: card.upvotes_count || 0,
-          });
-        });
-      }
-    }
-  }
-
-  // Fetch ranked collections
-  if (type === "collection" || type === "both") {
-    let rankedItems: any[] = [];
-    let itemsError: any = null;
-    let collectionIds: string[] = [];
-
-    if (useNewRanking) {
-      let query = supabase
-        .from("ranking_scores")
-        .select("item_id, norm_score, last_event_at")
-        .eq("item_type", "collection")
-        .not("norm_score", "is", null)
-        .order("norm_score", { ascending: false })
-        .order("last_event_at", { ascending: false, nullsFirst: false })
-        .limit(collectionsLimit);
-
-      if (cursor && (type === "collection" || type === "both")) {
-        try {
-          const [cursorScore, cursorTimestamp] = cursor.split(":");
-          const score = parseFloat(cursorScore);
-          const timestamp = cursorTimestamp;
-          query = query.or(
-            `norm_score.lt.${score},and(norm_score.eq.${score},last_event_at.lt.${timestamp})`
-          );
-        } catch (e) {
-          // Ignore
-        }
-      }
-
-      const { data, error } = await query;
-      rankedItems = data || [];
-      itemsError = error;
-
-      if (rankedItems && rankedItems.length > 0) {
-        collectionIds = rankedItems.map((item) => item.item_id);
-      }
-    } else {
-      // Legacy fallback
-      const { data, error } = await supabase
-        .from("explore_ranking_items")
-        .select("item_id, norm_score")
-        .eq("item_type", "collection")
-        .order("norm_score", { ascending: false })
-        .range(0, collectionsLimit - 1);
-
-      rankedItems = data || [];
-      itemsError = error;
-      if (!itemsError && rankedItems && rankedItems.length > 0) {
-        collectionIds = rankedItems.map((item) => item.item_id);
-      }
-    }
-
-    // Fallback: recent
-    if (collectionIds.length === 0) {
-      const { data: recentCollections } = await supabase
-        .from("collections")
-        .select("id")
-        .eq("is_public", true)
-        .eq("is_hidden", false)
-        .order("created_at", { ascending: false })
-        .limit(collectionsLimit);
-
-      if (recentCollections && recentCollections.length > 0) {
-        collectionIds = recentCollections.map((c: { id: any }) => c.id);
-      }
-    }
-
-    if (collectionIds.length > 0) {
-      const { data: collections } = await supabase
-        .from("collections")
-        .select(
-          `
-            id,
-            title,
-            description,
-            slug,
-            cover_image_url,
-            is_public,
-            stats,
-            created_at,
-            owner_id,
-            owner:users!collections_owner_id_fkey (
-              id,
-              username,
-              display_name,
-              avatar_url
-            ),
-            tags:collection_tags (
-              tag:tags (
-                id,
-                name
-              )
-            )
-          `
-        )
-        .in("id", collectionIds)
-        .eq("is_public", true)
-        .eq("is_hidden", false);
-
-      if (collections && collections.length > 0) {
-        // Fetch first card thumbnails logic...
-        // (Simplified for brevity, same logic as before)
-
-        const scoreMap = new Map(
-          rankedItems?.map((item) => [item.item_id, item.norm_score]) || []
-        );
-        const eventMap = new Map(
-          rankedItems?.map((item) => [item.item_id, item.last_event_at]) || []
-        );
-
-        collections.forEach((collection: any) => {
-          const tags =
-            collection.tags?.map((ct: any) => ct.tag).filter(Boolean) || [];
-          const stats = collection.stats || {
-            views: 0,
-            upvotes: 0,
-            saves: 0,
-            comments: 0,
-          };
-
-          results.push({
-            type: "collection",
-            ...collection,
-            tags,
-            stats,
-            // first_card_thumbnail_url would go here
-            collection_cards: undefined,
-            score: scoreMap.get(collection.id) || 0,
-            last_event_at: eventMap.get(collection.id) || null,
-          });
-        });
-      }
-    }
-  }
-
-  // Sort and Dedupe
-  const sortedResults = results.sort((a, b) => {
-    const scoreDiff = (b.score || 0) - (a.score || 0);
-    if (Math.abs(scoreDiff) < 0.0001) {
-      const aTime = a.last_event_at ? new Date(a.last_event_at).getTime() : 0;
-      const bTime = b.last_event_at ? new Date(b.last_event_at).getTime() : 0;
-      return bTime - aTime;
-    }
-    return scoreDiff;
-  });
-
-  const dedupedResults: any[] = [];
-  const seenCardUrls = new Set<string>();
-
-  sortedResults.forEach((item) => {
-    if (item.type === "card") {
-      if (!seenCardUrls.has(item.canonical_url)) {
-        seenCardUrls.add(item.canonical_url);
-        dedupedResults.push(item);
-      }
-    } else {
-      dedupedResults.push(item);
-    }
-  });
-
-  const finalFeed = dedupedResults.slice(0, limit);
-
-  // Next cursor
-  let nextCursor: string | null = null;
-  if (finalFeed.length > 0 && finalFeed.length === limit) {
-    const lastItem = finalFeed[finalFeed.length - 1];
-    const score = lastItem.score || 0;
-    const timestamp =
-      lastItem.last_event_at || lastItem.created_at || new Date().toISOString();
-    const itemId = lastItem.id || "";
-    nextCursor = `${score}:${timestamp}:${itemId}`;
-  }
-
-  return {
-    feed: finalFeed,
-    total: dedupedResults.length,
-    nextCursor,
-    hasMore: nextCursor !== null,
-  };
 }

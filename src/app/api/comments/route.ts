@@ -8,7 +8,7 @@ import {
   getIpAddress,
 } from "@/lib/rate-limit";
 import { moderateComment } from "@/lib/moderation/comment-moderation";
-import { logRankingEvent } from "@/lib/ranking/events";
+
 import { checkShadowban } from "@/lib/anti-abuse/fingerprinting";
 import { cachedJsonResponse } from "@/lib/cache/headers";
 
@@ -235,16 +235,7 @@ export async function POST(request: NextRequest) {
     }
 
     await updateCommentStats(serviceClient, dbTargetType, target_id, 1);
-    // Log ranking event safely
-    try {
-      await logRankingEvent(
-        dbTargetType === "card" ? "card" : "collection",
-        target_id,
-        "comment"
-      );
-    } catch (rankingErr) {
-      console.error("[Comments] Warning: Failed to log ranking event:", rankingErr);
-    }
+
 
     // --- NOTIFICATION LOGIC START ---
     (async () => {

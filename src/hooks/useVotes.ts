@@ -83,50 +83,44 @@ export function useVotes({ targetType, targetId, initialUpvotes = 0, initialVote
     setIsLoading(true);
     setError(null);
 
+    // Optimistic Update
+    const previousVoted = voted;
+    const previousCount = upvotes;
+    
+    const newVoted = !voted;
+    const newCount = voted ? Math.max(0, upvotes - 1) : upvotes + 1;
+    
+    setVoted(newVoted);
+    setUpvotes(newCount);
+
     try {
-      // Convert 'stack' to 'collection' for API
-      const apiTargetType = targetType === 'stack' ? 'collection' : targetType;
-      const response = await fetch('/api/votes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          target_type: apiTargetType,
-          target_id: targetId,
-        }),
+      // Call Atomic RPC Function
+      const { data, error: rpcError } = await supabase.rpc('toggle_vote', {
+        p_target_type: targetType, // RPC handles normalization
+        p_target_id: targetId
       });
 
-      const data = await response.json();
+      if (rpcError) throw rpcError;
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          showInfo('Please sign in to upvote');
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 1500);
-          return;
+      // Sync with server state
+      if (data) {
+        setVoted(data.voted);
+        setUpvotes(data.count);
+        
+        // Track analytics
+        if (data.voted) {
+          trackEvent.upvote(user.id, targetType as any, targetId);
         }
-        if (response.status === 403) {
-          // Show user-friendly error message for 403 (account age or shadowban)
-          const errorMsg = data.error || 'Unable to vote. Your account may be too new or restricted.';
-          showError(errorMsg);
-          setError(errorMsg);
-          return;
-        }
-        throw new Error(data.error || 'Failed to vote');
-      }
-
-      // Optimistic update
-      setVoted(data.voted);
-      setUpvotes(prev => data.voted ? prev + 1 : prev - 1);
-
-      // Track analytics
-      if (data.voted && user) {
-        trackEvent.upvote(user.id, targetType as any, targetId);
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error("Vote failed:", err);
       // Revert optimistic update
-      fetchVoteCount();
+      setVoted(previousVoted);
+      setUpvotes(previousCount);
+      
+      const errorMsg = err.message || 'Failed to vote';
+      showError(errorMsg);
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }

@@ -8,7 +8,7 @@ import {
   getIpAddress,
 } from "@/lib/rate-limit";
 import { checkShadowban } from "@/lib/anti-abuse/fingerprinting";
-import { logRankingEvent } from "@/lib/ranking/events";
+
 import { toggleVote } from "@/features/social/server/vote";
 
 export async function POST(request: NextRequest) {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Error in votes route:", error);
     return NextResponse.json(
-      { error: error.message || "Internal server error" },
+      { error: error.message },
       { status: 500 }
     );
   }

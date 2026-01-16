@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/api-service";
-import { logRankingEvent } from "@/lib/ranking/events";
+
 import { SocialRepository, VoteResult, SaveResult, FollowResult, FollowStatus } from "../types";
 
 export class SupabaseSocialRepository implements SocialRepository {
@@ -24,11 +24,7 @@ export class SupabaseSocialRepository implements SocialRepository {
       // Unvote
       await serviceClient.from("votes").delete().eq("id", existingVote.id);
       await this.updateVoteStats(serviceClient, targetType, targetId, -1);
-      await logRankingEvent(
-        normalizedTargetType as "card" | "collection",
-        targetId,
-        "unvote"
-      );
+
       return { voted: false };
     } else {
       // Vote
@@ -41,11 +37,7 @@ export class SupabaseSocialRepository implements SocialRepository {
       if (voteError) throw new Error(voteError.message);
 
       await this.updateVoteStats(serviceClient, targetType, targetId, 1);
-      await logRankingEvent(
-        normalizedTargetType as "card" | "collection",
-        targetId,
-        "upvote"
-      );
+
 
       // Notification (Fire and forget-ish, but awaited here for safety)
       await this.sendVoteNotification(serviceClient, userId, normalizedTargetType, targetId);
@@ -82,8 +74,7 @@ export class SupabaseSocialRepository implements SocialRepository {
         .eq("target_type", targetType)
         .eq("target_id", targetId);
 
-      await logRankingEvent(targetType as "card" | "collection", targetId, "unsave");
-      this.triggerRankingDelta(targetType, targetId); // Fire and forget
+
 
       return { saved: false, saves: saveCount || 0 };
     } else {
@@ -105,8 +96,7 @@ export class SupabaseSocialRepository implements SocialRepository {
         .eq("target_type", targetType)
         .eq("target_id", targetId);
 
-      await logRankingEvent(targetType as "card" | "collection", targetId, "save");
-      this.triggerRankingDelta(targetType, targetId);
+
 
       return { saved: true, saves: saveCount || 0 };
     }
@@ -273,30 +263,32 @@ export class SupabaseSocialRepository implements SocialRepository {
     targetId: string,
     delta: number
   ) {
-    const table =
-      targetType === "stack" || targetType === "collection"
-        ? "collections"
-        : "cards";
+    if (targetType === "stack" || targetType === "collection") {
+      // Collections use 'stats' JSONB
+      const { data: target } = await serviceClient
+        .from("collections")
+        .select("stats")
+        .eq("id", targetId)
+        .single();
 
-    const { data: target } = await serviceClient
-      .from(table)
-      .select("stats")
-      .eq("id", targetId)
-      .single();
+      if (target) {
+        const stats = target.stats || {};
+        const currentUpvotes = (stats.upvotes || 0) + delta;
 
-    if (target) {
-      const stats = target.stats || {};
-      const currentUpvotes = (stats.upvotes || 0) + delta;
-
-      await serviceClient
-        .from(table)
-        .update({
-          stats: {
-            ...stats,
-            upvotes: Math.max(0, currentUpvotes),
-          },
-        })
-        .eq("id", targetId);
+        await serviceClient
+          .from("collections")
+          .update({
+            stats: {
+              ...stats,
+              upvotes: Math.max(0, currentUpvotes),
+            },
+          })
+          .eq("id", targetId);
+      }
+    } else {
+      // Cards use direct columns (upvotes_count)
+      // This is handled by a database TRIGGER (update_card_counters) defined in migration 026/043.
+      // We do NOT manual update here to avoid double counting or RLS issues.
     }
   }
 
@@ -338,18 +330,5 @@ export class SupabaseSocialRepository implements SocialRepository {
     }
   }
 
-  private triggerRankingDelta(targetType: string, targetId: string) {
-    if (process.env.NEXT_PUBLIC_RANKING_FEATURE_FLAG === 'true' || process.env.RANKING_FINAL_ALGO === 'true') {
-      fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/workers/ranking/delta`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          item_type: targetType,
-          item_id: targetId,
-        }),
-      }).catch(err => {
-        console.error('Failed to trigger ranking delta recompute:', err);
-      });
-    }
-  }
+
 }

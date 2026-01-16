@@ -90,3 +90,16 @@ export interface FileData {
   imageUrl?: string;
 }
 
+export interface FeedItem {
+  id: string;
+  type: 'card' | 'collection';
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  views: number;
+  saves: number;
+  gravity_score: number;
+  owner_id: string;
+  owner?: User;
+}

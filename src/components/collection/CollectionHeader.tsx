@@ -65,6 +65,11 @@ export function CollectionHeader({
 
   const [cardsCount, setCardsCount] = useState(collection.stats?.cards_count || 0);
 
+  // Sync with server updates
+  useEffect(() => {
+    setCardsCount(collection.stats?.cards_count || 0);
+  }, [collection.stats?.cards_count]);
+
   useEffect(() => {
     const handleCardAdded = (event: CustomEvent) => {
       if (event.detail?.collectionId === collection.id) {

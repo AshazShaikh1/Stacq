@@ -21,7 +21,7 @@ export function FeedPage() {
     }
   );
 
-  const feedItems = data?.feed || [];
+  const feedItems = data?.items || [];
 
   return (
     <div className="min-h-screen bg-cloud">
