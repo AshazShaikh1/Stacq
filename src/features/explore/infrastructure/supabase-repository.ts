@@ -63,13 +63,17 @@ export class SupabaseExploreRepository implements ExploreRepository {
               username,
               display_name,
               avatar_url
-            )
+            ),
+            collection_cards(id)
           `
           )
           .eq("status", "active")
           .eq("is_public", true)
           .gte("created_at", today.toISOString())
-          .limit(50);
+          .limit(100);
+
+        // Filter standalone cards (in-memory)
+        const standaloneTodayCards = (todayCards || []).filter(c => !c.collection_cards || c.collection_cards.length === 0).slice(0, 50);
 
         // Fetch ranking scores for all items
         const allItemIds = [
@@ -101,7 +105,7 @@ export class SupabaseExploreRepository implements ExploreRepository {
           trendingScore: scoreMap.get(c.id) || 0,
         }));
 
-        const cardsWithScore = (todayCards || []).map((c: any) => ({
+        const cardsWithScore = (standaloneTodayCards || []).map((c: any) => ({
           ...c,
           type: "card" as const,
           trendingScore: scoreMap.get(c.id) || 0,
@@ -395,7 +399,8 @@ export class SupabaseExploreRepository implements ExploreRepository {
               username,
               display_name,
               avatar_url
-            )
+            ),
+            collection_cards(id)
           `
           )
           .eq("status", "active")
@@ -403,7 +408,10 @@ export class SupabaseExploreRepository implements ExploreRepository {
           .gte("created_at", weekAgo.toISOString())
           .lt("created_at", today.toISOString())
           .order("created_at", { ascending: false })
-          .limit(30);
+          .limit(60);
+
+        // Filter standalone cards (in-memory)
+        const standaloneWeekCards = (weekCards || []).filter(c => !c.collection_cards || c.collection_cards.length === 0).slice(0, 30);
 
         // Fetch ranking scores
         const allItemIds = [
@@ -434,7 +442,7 @@ export class SupabaseExploreRepository implements ExploreRepository {
           trendingScore: scoreMap.get(c.id) || 0,
         }));
 
-        const cardsWithScore = (weekCards || []).map((c: any) => ({
+        const cardsWithScore = (standaloneWeekCards || []).map((c: any) => ({
           ...c,
           type: "card" as const,
           trendingScore: scoreMap.get(c.id) || 0,

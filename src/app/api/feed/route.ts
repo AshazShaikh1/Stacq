@@ -158,7 +158,7 @@ async function fetchFeedData(
         .eq("is_public", true)
         .eq("status", "active")
         .order("created_at", { ascending: false })
-        .limit(cardsLimit);
+        .limit(cardsLimit * 2); // Fetch more to allow for filtering
 
       if (recentCards) {
         cardIds = recentCards.map((c: { id: any }) => c.id);
@@ -188,6 +188,9 @@ async function fetchFeedData(
               username,
               display_name,
               avatar_url
+            ),
+            collection_cards (
+              id
             )
           `
         )
@@ -234,6 +237,11 @@ async function fetchFeedData(
         );
 
         cards.forEach((card: any) => {
+          // Filter out cards that belong to collections (in-memory check)
+          if (card.collection_cards && card.collection_cards.length > 0) {
+            return;
+          }
+
           results.push({
             type: "card",
             ...card,
