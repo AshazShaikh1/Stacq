@@ -15,6 +15,7 @@ interface GlobalCreateModalProps {
     url?: string; // For bookmarklet/save page
     fileData?: any; // If dropping a file
   };
+  onCardCreated?: () => void;
 }
 
 import { BecomeStackerModal } from "@/components/auth/BecomeStackerModal";
@@ -24,6 +25,7 @@ export function GlobalCreateModal({
   isOpen,
   onClose,
   initialContext,
+  onCardCreated,
 }: GlobalCreateModalProps) {
   const [step, setStep] = useState<"choice" | "collection" | "card">("choice");
   const [showBecomeStacqer, setShowBecomeStacqer] = useState(false);
@@ -181,7 +183,10 @@ export function GlobalCreateModal({
             <CreateCardForm 
               initialCollectionId={activeCollectionId}
               initialUrl={initialContext?.url}
-              onSuccess={(id) => onClose()}
+              onSuccess={(id) => {
+                onCardCreated?.();
+                onClose();
+              }}
               onCancel={() => setStep("choice")}
               onCreateCollection={() => {
                 setPendingCardContext({ url: initialContext?.url }); // Preserve context if needed

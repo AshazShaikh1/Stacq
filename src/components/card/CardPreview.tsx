@@ -158,8 +158,18 @@ export function CardPreview({
     setIsDeleteConfirmOpen(true);
   };
 
+  const [isDeleted, setIsDeleted] = useState(false);
+
+  // ... (existing code)
+
   const handleDelete = async () => {
-    setIsDeleting(true);
+    // Optimistic Update: Hide card immediately
+    setIsDeleteConfirmOpen(false);
+    setIsDeleted(true);
+    
+    // We already hid it, so no need for spinner state unless we want to keep it in background
+    setIsDeleting(true); 
+
     try {
       let url = `/api/cards/${card.id}`;
       if (id) {
@@ -185,12 +195,16 @@ export function CardPreview({
 
       showSuccess(
         id
-          ? "Card removed from collection successfully"
-          : "Card deleted successfully"
+          ? "Card removed from collection"
+          : "Card deleted"
       );
-      window.location.reload();
+      
+      // Sync server state in background
+      router.refresh();
     } catch (error: any) {
       console.error("Error deleting card:", error);
+      // Rollback optimistic update
+      setIsDeleted(false);
       showError(error.message || "Failed to delete card");
     } finally {
         setIsDeleting(false);
@@ -199,6 +213,10 @@ export function CardPreview({
 
   const externalUrl =
     card.metadata?.affiliate_url || card.canonical_url;
+
+  if (isDeleted) {
+    return null;
+  }
 
   return (
     <>

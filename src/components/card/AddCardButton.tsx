@@ -59,6 +59,15 @@ export function AddCardButton({
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         initialContext={{ type: 'card', collectionId: id }}
+        onCardCreated={() => {
+          if (collectionId) {
+            window.dispatchEvent(
+              new CustomEvent("card-added-to-collection", {
+                detail: { collectionId },
+              })
+            );
+          }
+        }}
       />
     </>
   );

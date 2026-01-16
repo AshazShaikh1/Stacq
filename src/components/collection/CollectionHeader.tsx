@@ -61,8 +61,22 @@ export function CollectionHeader({
     saves: 0,
     comments: 0,
     cards_count: 0,
-    followers: 0,
   };
+
+  const [cardsCount, setCardsCount] = useState(collection.stats?.cards_count || 0);
+
+  useEffect(() => {
+    const handleCardAdded = (event: CustomEvent) => {
+      if (event.detail?.collectionId === collection.id) {
+        setCardsCount((prev) => prev + 1);
+      }
+    };
+
+    window.addEventListener("card-added-to-collection", handleCardAdded as EventListener);
+    return () => {
+      window.removeEventListener("card-added-to-collection", handleCardAdded as EventListener);
+    };
+  }, [collection.id]);
 
   const {
     saves: saveCount,
@@ -305,7 +319,7 @@ export function CollectionHeader({
         <div className="flex md:gap-12 justify-around md:justify-start overflow-x-auto no-scrollbar">
           <div className="flex flex-col items-center md:items-start min-w-[60px]">
             <span className="text-lg md:text-xl font-bold text-jet-dark">
-              {stats.cards_count || 0}
+              {cardsCount}
             </span>
             <span className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wide">
               Cards
