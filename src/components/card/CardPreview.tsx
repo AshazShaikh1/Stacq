@@ -349,7 +349,7 @@ export function CardPreview({
           {/* ================= COMMON HOVER ACTIONS (All Types) ================= */}
           {/* Only showing subtle hover buttons, not blocking content */}
           {!hideHoverButtons && (
-             <div className="absolute top-2 right-2 z-40 flex items-center gap-1 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+             <div className="absolute top-2 right-2 z-40 flex items-center gap-1 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100">
                 {/* Vote */}
                  <button
                    onClick={(e) => {
