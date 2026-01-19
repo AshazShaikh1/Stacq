@@ -101,12 +101,11 @@ export function LoginFormContent({
 
       // Success - handle navigation
       const next = searchParams?.get('next') || '/';
+      // Force a hard navigation to ensure cookies are correctly applied before middleware runs
       if (isFullPage) {
-        router.push(next);
-        router.refresh();
+        window.location.href = next;
       } else {
         onSuccess?.();
-        // Force a hard navigation to ensure the page updates immediately
         window.location.href = next;
       }
     } catch (err) {

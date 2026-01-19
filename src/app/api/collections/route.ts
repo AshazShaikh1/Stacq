@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, tags, is_public, is_hidden, cover_image_url } =
+    const { title, description, tags, is_public, is_hidden, cover_image_url, related_collections } =
       body;
 
     // Check if user is trying to publish and is not a stacqer
@@ -190,6 +190,15 @@ export async function POST(request: NextRequest) {
           });
         }
       }
+    }
+
+    // Handle related collections
+    if (related_collections && Array.isArray(related_collections) && related_collections.length > 0) {
+      const relations = related_collections.map((targetId: string) => ({
+        source_collection_id: collection.id,
+        target_collection_id: targetId,
+      }));
+      await serviceClient.from("collection_relations").insert(relations);
     }
 
     // NEW: Notify followers if the collection is public

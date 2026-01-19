@@ -64,6 +64,7 @@ export function FeedItem({ item, hideHoverButtons = false }: FeedItemProps) {
         owner_id: item.owner_id || item.created_by, // Pass owner_id for robust check
         creator: item.owner || item.creator,
       }}
+      note={item.note}
       hideHoverButtons={hideHoverButtons}
     />
   );

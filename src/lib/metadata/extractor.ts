@@ -84,7 +84,12 @@ export async function extractMetadata(url: string, html: string): Promise<Metada
         return imageUrl;
       }
       
+      
       // Resolve relative URLs
+      if (imageUrl.startsWith('//')) {
+          return `https:${imageUrl}`;
+      }
+      
       const baseUrl = new URL(url);
       const resolvedUrl = new URL(imageUrl, baseUrl);
       return resolvedUrl.href;
@@ -93,16 +98,33 @@ export async function extractMetadata(url: string, html: string): Promise<Metada
     }
   }
   
-  // Priority: og:image > twitter:image > first image in content
-  let thumbnailUrl = resolveImageUrl(ogImage) || resolveImageUrl(twitterImage);
+  // Priority: og:image > twitter:image > link[rel=image_src] > itemprop=image > first larger image
+  let thumbnailUrl = 
+    resolveImageUrl($('meta[property="og:image"]').attr('content')) || 
+    resolveImageUrl($('meta[name="twitter:image"]').attr('content')) ||
+    resolveImageUrl($('link[rel="image_src"]').attr('href')) ||
+    resolveImageUrl($('meta[itemprop="image"]').attr('content'));
   
   // Fallback: find first large image in content
   if (!thumbnailUrl) {
-    const firstImage = $('img').first();
-    const imgSrc = firstImage.attr('src') || firstImage.attr('data-src');
-    if (imgSrc) {
-      thumbnailUrl = resolveImageUrl(imgSrc);
-    }
+    // Try to find a significant image
+    $('img').each((i, el) => {
+        if (thumbnailUrl) return; // already found
+        const src = $(el).attr('src') || $(el).attr('data-src');
+        if (src) {
+            // simple filter for small icons or tracking pixels
+            const width = $(el).attr('width');
+            const height = $(el).attr('height');
+            if (width && parseInt(width) < 50) return;
+            if (height && parseInt(height) < 50) return;
+            
+            // Avoid svgs or data uris unless necessary (handled by resolveImageUrl basic check)
+            const resolved = resolveImageUrl(src);
+            if (resolved) {
+                thumbnailUrl = resolved;
+            }
+        }
+    });
   }
   
   // Canonicalize the URL
@@ -146,8 +168,8 @@ export async function fetchMetadata(url: string): Promise<MetadataResult> {
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; StacqBot/1.0; +https://stacq.com/bot)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
       },
       signal: controller.signal,

@@ -15,6 +15,7 @@ interface EditCardModalProps {
     id: string;
     title?: string;
     description?: string;
+    note?: string; // Curator note
     thumbnail_url?: string;
     canonical_url: string;
   };
@@ -24,6 +25,7 @@ export function EditCardModal({ isOpen, onClose, card }: EditCardModalProps) {
   const router = useRouter();
   const [title, setTitle] = useState(card.title || '');
   const [description, setDescription] = useState(card.description || '');
+  const [note, setNote] = useState(card.note || '');
   const [thumbnailUrl, setThumbnailUrl] = useState(card.thumbnail_url || '');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +35,7 @@ export function EditCardModal({ isOpen, onClose, card }: EditCardModalProps) {
     if (isOpen) {
       setTitle(card.title || '');
       setDescription(card.description || '');
+      setNote(card.note || '');
       setThumbnailUrl(card.thumbnail_url || '');
       setError('');
       setIsLoading(false);
@@ -63,6 +66,7 @@ export function EditCardModal({ isOpen, onClose, card }: EditCardModalProps) {
         body: JSON.stringify({
           title: title.trim() || null,
           description: description.trim() || null,
+          note: note.trim() || null,
           thumbnail_url: thumbnailUrl.trim() || null,
         }),
       });
@@ -140,6 +144,20 @@ export function EditCardModal({ isOpen, onClose, card }: EditCardModalProps) {
             placeholder="Card description"
             className="w-full px-4 py-3 rounded-lg border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent disabled:bg-gray-light disabled:cursor-not-allowed resize-none"
             rows={4}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div>
+          <label className="block text-body font-medium text-jet-dark mb-2">
+            Curator Note (optional)
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. Watch from 5:00"
+            className="w-full px-4 py-3 rounded-lg border border-gray-light text-body text-jet-dark placeholder:text-gray-muted focus:outline-none focus:ring-2 focus:ring-jet focus:border-transparent disabled:bg-gray-light disabled:cursor-not-allowed resize-none"
+            rows={2}
             disabled={isLoading}
           />
         </div>

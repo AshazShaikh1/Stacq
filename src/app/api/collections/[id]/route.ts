@@ -299,6 +299,26 @@ export async function PATCH(
       );
     }
 
+    // Handle related collections update
+    if (body.related_collections && Array.isArray(body.related_collections)) {
+      const serviceClient = createServiceClient();
+      
+      // 1. Delete existing relations
+      await serviceClient
+        .from('collection_relations')
+        .delete()
+        .eq('source_collection_id', id);
+
+      // 2. Insert new relations
+      if (body.related_collections.length > 0) {
+        const relations = body.related_collections.map((targetId: string) => ({
+          source_collection_id: id,
+          target_collection_id: targetId,
+        }));
+        await serviceClient.from('collection_relations').insert(relations);
+      }
+    }
+
     // Note: Card visibility is automatically synced via database trigger
     // (see migration 036_sync_card_visibility_with_collection.sql)
     // The trigger handles updating cards' is_public when collection visibility changes

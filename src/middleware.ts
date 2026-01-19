@@ -15,10 +15,8 @@ export async function middleware(request: NextRequest) {
   
   // Checking Auth Status (Simplified for Middleware speed)
   // We'll optimistically assume presence of access token cookie means logged in
-  // For stricter check, we would need to call getUser() which is async and adds latency.
-  const hasSession = request.cookies.getAll().some(c => c.name.includes('access-token') || c.name.includes('sb-')); 
-  // Supabase cookies usually start with sb-[proj-id]-auth-token
-  const isLoggedIn = request.cookies.getAll().some(c => c.name.endsWith('-auth-token'));
+  const cookies = request.cookies.getAll();
+  const isLoggedIn = cookies.some(c => c.name.includes('access-token') || c.name.includes('-auth-token'));
 
   const url = request.nextUrl;
   const path = url.pathname;

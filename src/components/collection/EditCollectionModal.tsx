@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { BecomeStackerModal } from '@/components/auth/BecomeStackerModal';
+import { RelatedCollectionsInput } from './RelatedCollectionsInput';
 import Image from 'next/image';
 
 interface EditCollectionModalProps {
@@ -20,6 +21,12 @@ interface EditCollectionModalProps {
     is_public: boolean;
     is_hidden: boolean;
     tags?: Array<{ id: string; name: string }>;
+    relatedCollections?: Array<{
+      id: string;
+      title: string;
+      cover_image_url?: string;
+      owner?: { display_name: string };
+    }>;
   };
 }
 
@@ -30,6 +37,9 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
   const [tags, setTags] = useState(collection.tags?.map(t => t.name).join(', ') || '');
   const [visibility, setVisibility] = useState<'public' | 'private' | 'unlisted'>(
     collection.is_hidden ? 'unlisted' : collection.is_public ? 'public' : 'private'
+  );
+  const [relatedCollections, setRelatedCollections] = useState<string[]>(
+    collection.relatedCollections?.map(c => c.id) || []
   );
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(collection.cover_image_url || null);
@@ -143,6 +153,7 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
           is_public: visibility === 'public',
           is_hidden: visibility === 'unlisted',
           cover_image_url: coverImageUrl,
+          related_collections: relatedCollections,
         }),
       });
 
@@ -188,7 +199,8 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
             <Image
               src={coverImagePreview}
               alt="Cover preview"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
             <button
               type="button"
@@ -289,6 +301,17 @@ export function EditCollectionModal({ isOpen, onClose, collection }: EditCollect
             </label>
           </div>
         </div>
+
+        {/* Related Collections */}
+        <RelatedCollectionsInput
+          initialCollections={collection.relatedCollections?.map(c => ({
+             id: c.id,
+             title: c.title,
+             cover_image_url: c.cover_image_url,
+             owner: c.owner
+          }))}
+          onChange={setRelatedCollections}
+        />
 
         <div>
           <label className="block text-body font-medium text-jet-dark mb-2">

@@ -25,6 +25,7 @@ export interface CollectionDetail {
   tags: CollectionTag[];
   stats: any;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface CollectionCard {
@@ -45,5 +46,15 @@ export interface CollectionCard {
     avatar_url: string | null;
   } | null;
   addedBy?: string;
+  note?: string | null;
+  sectionId?: string | null;
+  order?: number;
   type: "card";
+}
+
+export interface Section {
+  id: string;
+  collection_id: string;
+  title: string;
+  order: number;
 }

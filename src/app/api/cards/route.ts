@@ -69,6 +69,8 @@ export async function POST(request: NextRequest) {
       stack_id,
       is_public,
       source,
+      note,
+      section_id,
     } = await request.json();
 
     if (!url) {
@@ -248,6 +250,8 @@ export async function POST(request: NextRequest) {
             [idField]: id,
             card_id: cardId,
             added_by: user.id,
+            note: note || null, // Add curator note
+            section_id: section_id || null, 
           });
 
         if (mappingError) {

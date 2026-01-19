@@ -40,6 +40,7 @@ export function CreateCardForm({
   const [url, setUrl] = useState(initialUrl || "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [note, setNote] = useState("");
   const [collectionId, setCollectionId] = useState(initialCollectionId || "");
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   
@@ -57,6 +58,8 @@ export function CreateCardForm({
   // State
   const [isLoading, setIsLoading] = useState(false);
   const [collections, setCollections] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [sectionId, setSectionId] = useState("");
 
   // Load collections
   useEffect(() => {
@@ -75,6 +78,29 @@ export function CreateCardForm({
     };
     loadCollections();
   }, []);
+
+  // Fetch sections when collection changes
+  useEffect(() => {
+    const loadSections = async () => {
+      setSections([]);
+      setSectionId("");
+      
+      if (!collectionId || collectionId === "create_new") return;
+
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("sections")
+        .select("id, title")
+        .eq("collection_id", collectionId)
+        .order("order", { ascending: true });
+        
+      if (data && data.length > 0) {
+        setSections(data);
+        // Optional: Default to first section? No, let user choose or leave uncategorized.
+      }
+    };
+    loadSections();
+  }, [collectionId]);
 
   // Enforce Visibility Logic
   useEffect(() => {
@@ -218,7 +244,9 @@ export function CreateCardForm({
           thumbnail_url: finalThumbnail,
           collection_id: collectionId || undefined,
           is_public: visibility === "public",
-          type: type === "link" ? "link" : type === "image" ? "image" : "document", // 'docs' -> 'document' mapping if needed, but 'document' is standard
+          type: type === "link" ? "link" : type === "image" ? "image" : "document",
+          note: note || undefined,
+          section_id: sectionId || undefined,
         }),
       });
 
@@ -450,6 +478,36 @@ export function CreateCardForm({
                    <p className="mt-2 text-xs text-gray-400">
                      Where should this card live? You can leave it mostly empty for the default stack.
                    </p>
+                <p className="mt-2 text-xs text-gray-400">
+                     Where should this card live? You can leave it mostly empty for the default stack.
+                   </p>
+                </div>
+
+                {/* Section Selector (visible only if sections exist) */}
+                {sections.length > 0 && (
+                   <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Section (Optional)</label>
+                     <Select
+                       value={sectionId}
+                       onChange={setSectionId}
+                       options={[
+                         { value: "", label: "General Resources (Uncategorized)" },
+                         ...sections.map(s => ({ value: s.id, label: s.title }))
+                       ]}
+                     />
+                   </div>
+                )}
+
+                {/* Curator Note */}
+                <div>
+                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Curator Note (Optional)</label>
+                   <textarea
+                     value={note}
+                     onChange={(e) => setNote(e.target.value)}
+                     placeholder="e.g., Watch from 4:20, or Read paragraph 3..."
+                     rows={2}
+                     className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-emerald/20 focus:border-emerald transition-all text-sm resize-none"
+                   />
                 </div>
                 
                 {/* Visibility - Conditional Disable */}

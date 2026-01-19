@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/Button";
+import { RelatedCollectionsInput } from "@/components/collection/RelatedCollectionsInput";
 
 interface CreateCollectionFormProps {
   onSuccess: (collectionId: string) => void;
@@ -26,6 +27,7 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [visibility, setVisibility] = useState<"public" | "private" | "unlisted">("public");
+  const [relatedCollections, setRelatedCollections] = useState<string[]>([]);
   
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -119,6 +121,7 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
           is_public: visibility === "public",
           is_hidden: visibility === "unlisted",
           cover_image_url: coverImageUrl,
+          related_collections: relatedCollections,
         }),
       });
 
@@ -300,6 +303,11 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
               ))}
             </div>
         </div>
+
+        {/* Related Collections */}
+        <RelatedCollectionsInput 
+          onChange={setRelatedCollections} 
+        />
 
         {/* Actions */}
         <div className="pt-4 border-t border-gray-100 flex items-center justify-between">

@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ViewTracker } from "@/components/common/ViewTracker";
 import { CollectionHeader } from "@/components/collection/CollectionHeader";
+import { ClientAddSectionButton } from "@/components/collection/ClientAddSectionButton";
+import { CollectionContent } from "@/components/collection/CollectionContent";
+import { SectionActionsMenu } from "@/components/collection/SectionActionsMenu";
 import { FeedGrid } from "@/components/feed/FeedGrid";
 import { AddCardButton } from "@/components/card/AddCardButton";
 import { EmptyCardsWithAdd } from "@/components/card/EmptyCardsWithAdd";
@@ -13,6 +16,9 @@ import { CommentSkeleton } from "@/components/ui/Skeleton";
 
 import { getCollectionById } from "@/features/collections/server/getCollectionById";
 import { getCollectionCards } from "@/features/collections/server/getCollectionCards";
+import { getCollectionSections } from "@/features/collections/server/getCollectionSections";
+import { getRelatedCollections } from "@/features/collections/server/getRelatedCollections";
+import { Accordion } from "@/components/ui/Accordion";
 
 const CommentsSection = lazy(() =>
   import("@/components/comments/CommentsSection").then((m) => ({
@@ -99,6 +105,28 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
       comments: 0,
     };
 
+    // Fetch Sections
+    const sections = await getCollectionSections(collection.id);
+    // Fetch Related Collections
+    const relatedCollections = await getRelatedCollections(collection.id);
+
+    // Group cards by section
+    const cardsBySection: Record<string, any[]> = {};
+    const uncategorizedCards: any[] = [];
+
+    cards.forEach((card) => {
+      if (card.sectionId) {
+        if (!cardsBySection[card.sectionId]) {
+          cardsBySection[card.sectionId] = [];
+        }
+        cardsBySection[card.sectionId].push(card);
+      } else {
+        uncategorizedCards.push(card);
+      }
+    });
+
+    const hasSections = sections.length > 0;
+
     return (
       <div className="min-h-screen bg-white">
         <ViewTracker type="collection" id={collection.id} />
@@ -114,18 +142,31 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
               },
               tags,
               stats,
+              relatedCollections: relatedCollections.map(c => ({
+                id: c.id,
+                title: c.title,
+                cover_image_url: c.cover_image_url || undefined,
+                owner: Array.isArray(c.owner) ? c.owner[0] : c.owner || { display_name: "Unknown" }
+              })),
             }}
             isOwner={isOwner}
           />
 
-          {isOwner && cards.length > 0 && (
-            <div className="mb-6 flex justify-end">
+          {isOwner && (
+            <div className="mb-6 flex justify-end gap-3">
+              <ClientAddSectionButton collectionId={collection.id} />
               <AddCardButton collectionId={collection.id} />
             </div>
           )}
 
           {cards.length > 0 ? (
-            <FeedGrid items={cards} />
+             <CollectionContent 
+                collectionId={collection.id}
+                initialSections={sections}
+                initialCards={cards}
+                isOwner={isOwner || false} // Ensure boolean
+                relatedCollections={relatedCollections}
+             />
           ) : (
             <div>
               {isOwner ? (
@@ -133,6 +174,13 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
               ) : (
                 <EmptyCardsState />
               )}
+               {/* Related Collections (Only if no cards, otherwise handled in CollectionContent) */}
+               {relatedCollections.length > 0 && (
+                <div className="mt-16 border-t border-gray-100 pt-12">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">Related Collections</h2>
+                    <FeedGrid collections={relatedCollections} />
+                </div>
+               )}
             </div>
           )}
 

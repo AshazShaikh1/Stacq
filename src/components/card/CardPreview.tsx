@@ -40,6 +40,7 @@ interface CardPreviewProps {
   collectionId?: string;
   collectionOwnerId?: string;
   addedBy?: string;
+  note?: string | null;
   hideHoverButtons?: boolean;
 }
 
@@ -50,6 +51,7 @@ export function CardPreview({
   collectionId,
   collectionOwnerId,
   addedBy,
+  note,
   hideHoverButtons = false,
 }: CardPreviewProps) {
   const router = useRouter();
@@ -236,6 +238,14 @@ export function CardPreview({
             ${isDoc ? "border border-gray-200 bg-gray-50/50 shadow-sm hover:shadow-md" : ""}
           `}
         >
+          {/* ================= CURATOR NOTE ================= */}
+          {note && (
+            <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 flex gap-3 text-sm text-amber-900 leading-snug">
+               <span className="text-xl shrink-0">📝</span>
+               <div className="font-medium text-amber-950/90">{note}</div>
+            </div>
+          )}
+
           {/* Overlay Link: Go to Card Details */}
           <Link
             href={`/card/${card.id}`}

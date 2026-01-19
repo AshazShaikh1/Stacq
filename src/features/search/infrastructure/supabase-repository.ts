@@ -33,9 +33,34 @@ export class SupabaseSearchRepository implements SearchRepository {
           offset_count: offset,
         });
 
-        if (error) {
-          console.error('Search RPC error:', error);
-          // Fallback handled by empty results
+        if (error || !items) {
+          // Fallback: Direct Query for Collections if RPC fails
+           if (type === 'collections' || type === 'all') {
+               const { data: cols } = await supabase
+                 .from('collections')
+                 .select(`
+                    id, title, description, slug, is_public,
+                    owner:users!collections_owner_id_fkey(username, display_name, avatar_url)
+                 `)
+                 .eq('is_public', true)
+                 .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`)
+                 .limit(limit);
+
+               if (cols) {
+                   cols.forEach((c: any) => {
+                       results.collections.push({
+                           id: c.id,
+                           title: c.title,
+                           description: c.description,
+                           slug: c.slug,
+                           owner: c.owner,
+                           // mock other fields if missing
+                           stats: { views: 0, likes: 0 },
+                           created_at: new Date().toISOString()
+                       } as any);
+                   });
+               }
+           }
         } else if (items) {
           // Map RPC results to domain types
           items.forEach((item: any) => {

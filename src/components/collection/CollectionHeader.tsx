@@ -40,6 +40,14 @@ interface CollectionHeaderProps {
       id: string;
       name: string;
     }>;
+    created_at?: string;
+    updated_at?: string;
+    relatedCollections?: Array<{
+      id: string;
+      title: string;
+      cover_image_url?: string;
+      owner?: { display_name: string };
+    }>;
   };
   isOwner?: boolean;
 }
@@ -245,6 +253,18 @@ export function CollectionHeader({
               </p>
             )}
 
+            {/* Timestamps */}
+            <div className="flex gap-4 text-xs text-gray-500 mb-6 font-medium">
+               <span>
+                 Created: {new Date(collection.created_at || new Date()).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+               </span>
+               {collection.updated_at && (
+                 <span>
+                    • Updated: {new Date(collection.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                 </span>
+               )}
+            </div>
+
             {/* Actions Row (Responsive) */}
             <div className="flex flex-wrap gap-2 md:gap-3">
               <Button
@@ -371,6 +391,7 @@ export function CollectionHeader({
               is_public: collection.is_public ?? true,
               is_hidden: collection.is_hidden ?? false,
               tags: collection.tags || [],
+              relatedCollections: collection.relatedCollections || [],
             }}
           />
           <ConfirmModal
