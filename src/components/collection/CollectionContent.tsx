@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, memo } from "react";
-import { Reorder, motion } from "framer-motion"; // Keep for sections
+import { Reorder, motion, useDragControls } from "framer-motion"; // Keep for sections
 import { Accordion } from "@/components/ui/Accordion";
 import { FeedGrid } from "@/components/feed/FeedGrid";
 import { SectionActionsMenu } from "@/components/collection/SectionActionsMenu";
@@ -364,41 +364,12 @@ export function CollectionContent({
        >
            <Reorder.Group axis="y" values={sections} onReorder={handleSectionReorder} className="space-y-6">
               {sections.map((section) => (
-                 <Reorder.Item key={section.id} value={section} dragListener={isOwner} layout>
-                    <Accordion 
-                      title={`${section.title} (${groupedCards.grouped[section.id]?.length || 0})`}
-                      defaultOpen={true}
-                      rightElement={isOwner ? (
-                           <div className="flex items-center gap-2">
-                              <SectionActionsMenu section={section} />
-                              <div className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600">
-                                 <GripVertical className="w-5 h-5" />
-                              </div>
-                           </div>
-                       ) : undefined}
-                    >
-                       {isOwner ? (
-                           // Droppable zone for the section
-                           <SectionDroppable id={section.id} items={groupedCards.grouped[section.id] || []}>
-                     <SortableContext items={groupedCards.grouped[section.id] || []} strategy={rectSortingStrategy}>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[100px]">
-                                     {(groupedCards.grouped[section.id] || []).map((card) => (
-                                        <SortableCard key={card.id} item={card} />
-                                     ))}
-                                     {/* Empty state placeholder if needed, but min-h helps */}
-                                     {(!groupedCards.grouped[section.id]?.length) && (
-                                         <div className="col-span-full h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-                                             Drop cards here
-                                         </div>
-                                     )}
-                                  </div>
-                               </SortableContext>
-                           </SectionDroppable>
-                       ) : (
-                          <FeedGrid items={groupedCards.grouped[section.id] || []} />
-                       )}
-                    </Accordion>
-                 </Reorder.Item>
+                 <DraggableSection 
+                    key={section.id} 
+                    section={section} 
+                    isOwner={isOwner} 
+                    groupedCards={groupedCards}
+                 />
               ))}
            </Reorder.Group>
 
@@ -424,6 +395,56 @@ export function CollectionContent({
        )}
      </div>
   );
+}
+
+function DraggableSection({ section, isOwner, groupedCards }: { section: any, isOwner: boolean, groupedCards: any }) {
+    const dragControls = useDragControls();
+
+    return (
+        <Reorder.Item 
+            value={section} 
+            dragListener={false} 
+            dragControls={dragControls}
+            layout
+        >
+             <Accordion 
+               title={`${section.title} (${groupedCards.grouped[section.id]?.length || 0})`}
+               defaultOpen={true}
+               rightElement={isOwner ? (
+                    <div className="flex items-center gap-2">
+                       <SectionActionsMenu section={section} />
+                       <div 
+                           className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 touch-none"
+                           onPointerDown={(e) => dragControls.start(e)}
+                       >
+                          <GripVertical className="w-5 h-5" />
+                       </div>
+                    </div>
+                ) : undefined}
+             >
+                {isOwner ? (
+                    // Droppable zone for the section
+                    <SectionDroppable id={section.id} items={groupedCards.grouped[section.id] || []}>
+                        <SortableContext items={groupedCards.grouped[section.id] || []} strategy={rectSortingStrategy}>
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-h-[100px]">
+                              {(groupedCards.grouped[section.id] || []).map((card: any) => (
+                                 <SortableCard key={card.id} item={card} />
+                              ))}
+                              {/* Empty state placeholder if needed, but min-h helps */}
+                              {(!groupedCards.grouped[section.id]?.length) && (
+                                  <div className="col-span-full h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+                                      Drop cards here
+                                  </div>
+                              )}
+                           </div>
+                        </SortableContext>
+                    </SectionDroppable>
+                ) : (
+                   <FeedGrid items={groupedCards.grouped[section.id] || []} />
+                )}
+             </Accordion>
+        </Reorder.Item>
+    );
 }
 
 // Wrapper for Droppable properties (associating a container ID with the area)
