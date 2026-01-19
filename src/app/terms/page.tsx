@@ -47,7 +47,7 @@ export default function TermsPage() {
 
           <h3>5. Limitation of Liability</h3>
           <p>
-            Stacq is provided on an "AS IS" basis. We are not liable for any damages or loss of data resulting from your use of the Service.
+            Stacq is provided on an &quot;AS IS&quot; basis. We are not liable for any damages or loss of data resulting from your use of the Service.
           </p>
         </div>
       </div>

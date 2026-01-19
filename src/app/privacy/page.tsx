@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         <div className="prose prose-stone prose-headings:font-bold prose-headings:text-jet-dark prose-p:text-gray-muted prose-li:text-gray-muted prose-emerald max-w-none">
           <h3>1. Introduction</h3>
           <p>
-            Welcome to Stacq ("we," "our," or "us"). We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our website and browser extension.
+            Welcome to Stacq (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our website and browser extension.
           </p>
 
           <h3>2. Information We Collect</h3>
