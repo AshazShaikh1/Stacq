@@ -29,6 +29,7 @@ interface CardPreviewProps {
       is_amazon_product?: boolean;
     };
     created_by?: string;
+    owner_id?: string; // Add alias for robustness
     creator?: {
       username?: string;
       display_name?: string;
@@ -144,11 +145,12 @@ export function CardPreview({
 
   const ownerId = collectionOwnerId || stackOwnerId;
   const id = collectionId || stackId;
+  const cardCreatorId = card.created_by || card.owner_id;
 
-  const canEdit =
-    user &&
-    ((id && (user.id === ownerId || user.id === addedBy)) ||
-      (!id && card.created_by && user.id === card.created_by));
+  const isCollectionOwner = user && id && (user.id === ownerId || user.id === addedBy);
+  const isCardCreator = user && cardCreatorId && user.id === cardCreatorId;
+
+  const canEdit = isCollectionOwner || isCardCreator;
 
   const handleEdit = () => {
     setIsEditModalOpen(true);
@@ -368,11 +370,15 @@ export function CardPreview({
           {/* Only showing subtle hover buttons, not blocking content */}
           {!hideHoverButtons && (
              <div className="absolute top-2 right-2 z-40 flex items-center gap-1 transition-opacity duration-200 opacity-100 md:opacity-0 md:group-hover:opacity-100">
-                {/* Vote */}
+                 {/* Vote */}
                  <button
                    onClick={(e) => {
                      e.preventDefault();
                      e.stopPropagation();
+                     if (!user) {
+                       showError("Please login to upvote");
+                       return;
+                     }
                      toggleVote();
                    }}
                    className={`p-1.5 rounded bg-white/90 backdrop-blur shadow-sm hover:bg-white transition-colors ${
@@ -386,11 +392,14 @@ export function CardPreview({
                  </button>
 
                  {/* Save */}
-                 {user && (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      if (!user) {
+                        showError("Please login to save");
+                        return;
+                      }
                       toggleSave();
                     }}
                     className={`p-1.5 rounded bg-white/90 backdrop-blur shadow-sm hover:bg-white transition-colors ${
@@ -402,7 +411,6 @@ export function CardPreview({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                      </svg>
                   </button>
-                 )}
 
                  {/* Options */}
                  {canEdit && (

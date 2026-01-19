@@ -70,46 +70,11 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: Avoid writing any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
+  
+  // This call is required to refresh the session cookie!
+  await supabase.auth.getUser()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/signup', '/reset-password', '/explore', '/collection', '/stack', '/auth/callback']
-  const isPublicRoute = publicRoutes.some(route => 
-    request.nextUrl.pathname === route || 
-    request.nextUrl.pathname.startsWith('/explore') ||
-    request.nextUrl.pathname.startsWith('/collection/') ||
-    request.nextUrl.pathname.startsWith('/stack/') || // Legacy support
-    request.nextUrl.pathname.startsWith('/auth/callback')
-  )
-
-  // Redirect authenticated users away from auth pages
-  if (user && (
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/signup') ||
-    request.nextUrl.pathname.startsWith('/reset-password')
-  )) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
-
-  // Allow public routes and auth pages
-  if (isPublicRoute || request.nextUrl.pathname.startsWith('/login') || 
-      request.nextUrl.pathname.startsWith('/signup') || 
-      request.nextUrl.pathname.startsWith('/reset-password') ||
-      request.nextUrl.pathname.startsWith('/auth/callback')) {
-    return supabaseResponse
-  }
-
-  // Protected routes require authentication
-  if (!user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+  return supabaseResponse
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

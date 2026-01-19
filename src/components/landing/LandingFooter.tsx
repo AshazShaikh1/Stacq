@@ -71,10 +71,18 @@ export function LandingFooter() {
         </div>
 
         {/* Bottom text */}
-        <div className="border-t border-gray-700 pt-8">
-          <p className="text-sm text-gray-500 text-center">
-            © 2025 Stacq. All rights reserved.
+        <div className="border-t border-gray-700 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-gray-500 text-center md:text-left">
+            © 2026 Stacq. All rights reserved.
           </p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="text-sm text-gray-500 hover:text-emerald transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="text-sm text-gray-500 hover:text-emerald transition-colors">
+              Terms of Service
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

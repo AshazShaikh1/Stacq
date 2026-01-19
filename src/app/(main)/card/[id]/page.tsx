@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import { createClient } from "@/lib/supabase/server";
+import { ViewTracker } from "@/components/common/ViewTracker";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 import { ExpandableDescription } from "@/components/card/ExpandableDescription";
 import { CreatorInfo } from "@/components/card/CreatorInfo";
@@ -43,6 +45,9 @@ export default async function CardPage({ params }: CardPageProps) {
     const { id } = await params;
     if (!id) notFound();
 
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     const card = await getCardById(id);
 
     if (!card) {
@@ -59,6 +64,7 @@ export default async function CardPage({ params }: CardPageProps) {
 
     return (
       <div className="min-h-screen bg-white">
+        <ViewTracker type="card" id={id} />
         <div className="container mx-auto px-4 md:px-page py-6 md:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-6">
@@ -144,6 +150,7 @@ export default async function CardPage({ params }: CardPageProps) {
                         process.env.NEXT_PUBLIC_APP_URL || "https://stacq.app"
                       }/card/${card.id}`}
                       title={card.title || "Check this resource on Stacq"}
+                      isOwner={user?.id === card.created_by}
                     />
                   </div>
 

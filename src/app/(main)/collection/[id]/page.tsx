@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ViewTracker } from "@/components/common/ViewTracker";
 import { CollectionHeader } from "@/components/collection/CollectionHeader";
 import { FeedGrid } from "@/components/feed/FeedGrid";
 import { AddCardButton } from "@/components/card/AddCardButton";
@@ -100,6 +101,7 @@ export default async function CollectionPage({ params }: CollectionPageProps) {
 
     return (
       <div className="min-h-screen bg-white">
+        <ViewTracker type="collection" id={collection.id} />
         <div className="container mx-auto px-4 md:px-page py-6 md:py-12 pb-24 md:pb-8">
           <CollectionHeader
             collection={{

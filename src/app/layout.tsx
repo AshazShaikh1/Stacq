@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import "./globals.css";
 
 // Components
-import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { SuppressMixpanelErrors } from "@/components/SuppressMixpanelErrors";
 import { checkOnboardingStatus } from "@/lib/auth/server-gate";
@@ -11,7 +10,6 @@ import { checkOnboardingStatus } from "@/lib/auth/server-gate";
 // Contexts
 import { ToastProvider } from "@/contexts/ToastContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { LandingPageButtonsProvider } from "@/components/landing/LandingPageButtons";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -34,7 +32,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  await checkOnboardingStatus();
+  // Removed global checkOnboardingStatus(); let middleware handle protection.
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -42,10 +40,8 @@ export default async function RootLayout({
         <ErrorBoundary>
           <AuthProvider>
             <ToastProvider>
-              {/* Provider added here to make context available to Header/Nav inside LayoutWrapper */}
-              <LandingPageButtonsProvider>
-                <LayoutWrapper>{children}</LayoutWrapper>
-              </LandingPageButtonsProvider>
+              {/* Layout handling is now moved to (main) and (marketing) route groups */}
+              {children}
             </ToastProvider>
           </AuthProvider>
         </ErrorBoundary>

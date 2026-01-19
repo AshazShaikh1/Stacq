@@ -60,8 +60,9 @@ export function FeedItem({ item, hideHoverButtons = false }: FeedItemProps) {
         // Use 'thumbnail_url' as fallback or empty string.
         domain: item.domain, // View didn't include domain either!
         metadata,
-        created_by: item.owner_id,
-        creator: item.owner,
+        created_by: item.owner_id || item.created_by,
+        owner_id: item.owner_id || item.created_by, // Pass owner_id for robust check
+        creator: item.owner || item.creator,
       }}
       hideHoverButtons={hideHoverButtons}
     />
