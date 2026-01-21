@@ -34,6 +34,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
+      // STACQ SHERIFF: Add strike for rate limit violation (spam behavior)
+      const { addRateLimitStrike } = await import('@/lib/moderation/rateLimitStrike');
+      await addRateLimitStrike(user.id);
+
       return NextResponse.json(
         {
           error: "Rate limit exceeded. You can create up to 20 cards per day.",
@@ -78,14 +82,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    // STACQ SENTINEL: Check content safety before creation
+    // STACQ SHERIFF: Check content safety with lenient thresholds
     const { checkContentSafety } = await import('@/lib/moderation/textGuard');
     const combinedText = `${title || ''} ${description || ''}`.trim();
-    const isSafe = await checkContentSafety(combinedText);
+    const moderationResult = await checkContentSafety(combinedText, user.id);
     
-    if (!isSafe) {
+    if (!moderationResult.safe) {
       return NextResponse.json(
-        { error: "Content violates community guidelines." },
+        { error: moderationResult.reason || "Content violates community guidelines." },
         { status: 400 }
       );
     }

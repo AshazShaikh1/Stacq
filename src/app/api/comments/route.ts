@@ -7,7 +7,6 @@ import {
   getRateLimitIdentifier,
   getIpAddress,
 } from "@/lib/rate-limit";
-import { moderateComment } from "@/lib/moderation/comment-moderation";
 
 import { checkShadowban } from "@/lib/anti-abuse/fingerprinting";
 import { cachedJsonResponse } from "@/lib/cache/headers";
@@ -127,6 +126,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (!rateLimitResult.success) {
+      // STACQ SHERIFF: Add strike for rate limit violation (spam behavior)
+      const { addRateLimitStrike } = await import('@/lib/moderation/rateLimitStrike');
+      await addRateLimitStrike(user.id);
+
       return NextResponse.json(
         {
           error:
@@ -165,6 +168,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // STACQ SHERIFF: Check content safety with lenient thresholds
+    // CRITICAL: This prevents hate speech from being posted AND blocks the toxic reward loop
+    // If content is rejected, the INSERT never happens, so handle_comment_event trigger never fires
+    const { checkContentSafety } = await import('@/lib/moderation/textGuard');
+    const moderationResult = await checkContentSafety(content, user.id);
+    
+    if (!moderationResult.safe) {
+      return NextResponse.json(
+        { error: moderationResult.reason || "Content violates community guidelines." },
+        { status: 400 }
+      );
+    }
+
     if (parent_id) {
       const { data: parentComment } = await supabase
         .from("comments")
@@ -188,9 +204,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const moderationResult = await moderateComment(content.trim());
-    const shouldHide = moderationResult.shouldHide;
-
     const { data: newComment, error: commentError } = await serviceClient
       .from("comments")
       .insert({
@@ -199,12 +212,6 @@ export async function POST(request: NextRequest) {
         target_id,
         parent_id: parent_id || null,
         content: content.trim(),
-        hidden: shouldHide,
-        moderation_metadata: {
-          toxicity_score: moderationResult.toxicityScore,
-          categories: moderationResult.categories,
-          moderated_at: new Date().toISOString(),
-        },
       })
       .select(
         `
