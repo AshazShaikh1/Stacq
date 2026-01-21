@@ -2,15 +2,12 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { ViewTracker } from "@/components/common/ViewTracker";
-import { CommentsSection } from "@/components/comments/CommentsSection";
 import { ExpandableDescription } from "@/components/card/ExpandableDescription";
 import { CreatorInfo } from "@/components/card/CreatorInfo";
 import { CardPreview } from "@/components/card/CardPreview";
 import { CardActionsBar } from "@/components/card/CardActionsBar";
 import { generateMetadata as generateSEOMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { CommentSkeleton } from "@/components/ui/Skeleton";
 import { getCardById } from "@/features/cards/server/getCardById";
 import { getRelatedCards } from "@/features/cards/server/getRelatedCards";
 import { CuratorNote } from "@/components/card/CuratorNote";
@@ -208,19 +205,7 @@ export default async function CardPage({ params, searchParams }: CardPageProps) 
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-light shadow-sm p-4 md:p-6">
-                <Suspense
-                  fallback={
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <CommentSkeleton key={i} />
-                      ))}
-                    </div>
-                  }
-                >
-                  <CommentsSection targetType="card" targetId={id} />
-                </Suspense>
-              </div>
+
             </div>
 
             <div className="lg:col-span-4 space-y-4 md:space-y-6">
