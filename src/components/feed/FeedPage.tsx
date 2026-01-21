@@ -3,15 +3,17 @@
 import { useState } from 'react';
 import { FeedGrid } from '@/components/feed/FeedGrid';
 import { CollectionGridSkeleton } from '@/components/ui/Skeleton';
+import { FeedFilter, FeedFilterType } from '@/components/feed/FeedFilter';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/swr/fetcher';
 
 export function FeedPage() {
   const [filter, setFilter] = useState<'both' | 'card' | 'collection'>('both');
+  const [pillar, setPillar] = useState<FeedFilterType>('all');
   
   // Use SWR for client-side caching with automatic revalidation
   const { data, error, isLoading } = useSWR(
-    `/api/feed?type=${filter}&limit=50`,
+    `/api/feed?type=${filter}&limit=50&pillar=${pillar}`,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -27,49 +29,57 @@ export function FeedPage() {
     <div className="min-h-screen bg-cloud">
       <div className="container mx-auto px-4 md:px-page py-6 md:py-8 lg:py-12">
         <div className="mb-8 md:mb-12">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-jet-dark mb-2">
-                Your Feed
-              </h1>
-              <p className="text-base md:text-lg text-gray-muted">
-                Discover curated resources from the community
-              </p>
+          <div className="flex flex-col gap-6 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-jet-dark mb-2">
+                  Your Feed
+                </h1>
+                <p className="text-base md:text-lg text-gray-muted">
+                  Discover curated resources from the community
+                </p>
+              </div>
+
+              {/* Type Filter (Secondary) */}
+              <div className="flex gap-2 bg-gray-light rounded-lg p-1 shadow-sm self-start sm:self-auto">
+                <button
+                  onClick={() => setFilter('both')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    filter === 'both'
+                      ? 'bg-emerald text-white shadow-button'
+                      : 'text-gray-muted hover:text-emerald hover:bg-emerald/10'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilter('card')}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                    filter === 'card'
+                      ? 'bg-emerald text-white shadow-button'
+                      : 'text-gray-muted hover:text-emerald hover:bg-emerald/10'
+                  }`}
+                >
+                  Cards
+                </button>
+                <button
+                    onClick={() => setFilter('collection')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      filter === 'collection'
+                        ? 'bg-emerald text-white shadow-button'
+                        : 'text-gray-muted hover:text-emerald hover:bg-emerald/10'
+                    }`}
+                  >
+                    Collections
+                  </button>
+                </div>
             </div>
 
-            {/* Filter Toggle */}
-            <div className="flex gap-2 bg-gray-light rounded-lg p-1 shadow-sm">
-              <button
-                onClick={() => setFilter('both')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  filter === 'both'
-                    ? 'bg-emerald text-white shadow-button'
-                    : 'text-gray-muted hover:text-emerald hover:bg-emerald/10'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilter('card')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  filter === 'card'
-                    ? 'bg-emerald text-white shadow-button'
-                    : 'text-gray-muted hover:text-emerald hover:bg-emerald/10'
-                }`}
-              >
-                Cards
-              </button>
-              <button
-                onClick={() => setFilter('collection')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  filter === 'collection'
-                    ? 'bg-emerald text-white shadow-button'
-                    : 'text-gray-muted hover:text-emerald hover:bg-emerald/10'
-                }`}
-              >
-                Collections
-              </button>
-            </div>
+            {/* Pillar Filter (Primary) */}
+            <FeedFilter 
+              selected={pillar} 
+              onChange={setPillar} 
+            />
           </div>
         </div>
 

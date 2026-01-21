@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, tags, is_public, is_hidden, cover_image_url, related_collections } =
+    const { title, description, tags, is_public, is_hidden, cover_image_url, related_collections, pillar } =
       body;
 
     // Check if user is trying to publish and is not a stacqer
@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
         is_public: is_public ?? false,
         is_hidden: is_hidden ?? false,
         cover_image_url: cover_image_url || null,
+        pillar: pillar || 'build', // Default to build if not provided
         stats: { views: 0, upvotes: 0, saves: 0, comments: 0 },
       })
       .select()

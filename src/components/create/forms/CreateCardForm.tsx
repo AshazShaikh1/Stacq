@@ -8,6 +8,8 @@ import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { trackEvent } from "@/lib/analytics";
+import { PillarSelector, Pillar } from "@/components/create/PillarSelector";
+
 
 interface CreateCardFormProps {
   initialCollectionId?: string;
@@ -43,6 +45,7 @@ export function CreateCardForm({
   const [note, setNote] = useState("");
   const [collectionId, setCollectionId] = useState(initialCollectionId || "");
   const [visibility, setVisibility] = useState<"public" | "private">("private");
+  const [pillar, setPillar] = useState<Pillar>('build');
   
   // Files
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -247,6 +250,7 @@ export function CreateCardForm({
           type: type === "link" ? "link" : type === "image" ? "image" : "document",
           note: note || undefined,
           section_id: sectionId || undefined,
+          pillar: !collectionId ? pillar : undefined,
         }),
       });
 
@@ -453,6 +457,17 @@ export function CreateCardForm({
            {/* Context Section */}
            <div className="bg-white rounded-2xl p-2 md:p-6">
              <div className="space-y-6">
+                
+                {/* Pillar Selector (Only for Standalone Cards) */}
+                {!collectionId && (
+                  <div className="border-b border-gray-100 pb-6 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Categorize this card
+                    </label>
+                    <PillarSelector selected={pillar} onChange={setPillar} />
+                  </div>
+                )}
+
                 <div>
                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Collection</label>
                    <Select

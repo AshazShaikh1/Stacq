@@ -22,6 +22,7 @@ export interface CardDetail {
   is_public: boolean;
   metadata: any;
   note?: string | null;
+  pillar?: 'build' | 'play' | 'grow';
   creator: CardCreator | null;
 }
 

@@ -19,6 +19,7 @@ export interface CollectionDetail {
   cover_image_url: string | null;
   is_public: boolean;
   is_hidden: boolean;
+  pillar: 'build' | 'play' | 'grow';
   owner_id: string;
   slug?: string;
   owner: CollectionOwner | CollectionOwner[];

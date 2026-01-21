@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       source,
       note,
       section_id,
+      pillar, 
     } = await request.json();
 
     if (!url) {
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
         is_public: cardIsPublic,
         metadata: {},
         note: note || null, // Global curator note
+        pillar: pillar || 'build', // Save pillar
       })
       .select()
       .single();

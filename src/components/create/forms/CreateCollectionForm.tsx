@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/Button";
 import { RelatedCollectionsInput } from "@/components/collection/RelatedCollectionsInput";
+import { PillarSelector, Pillar } from "@/components/create/PillarSelector";
 
 interface CreateCollectionFormProps {
   onSuccess: (collectionId: string) => void;
@@ -22,6 +23,7 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
 
   // State
   const [step, setStep] = useState<'details' | 'settings'>('details');
+  const [pillar, setPillar] = useState<Pillar>('build');
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -122,6 +124,7 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
           is_hidden: visibility === "unlisted",
           cover_image_url: coverImageUrl,
           related_collections: relatedCollections,
+          pillar,
         }),
       });
 
@@ -134,7 +137,6 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
       showSuccess("Collection created");
       onSuccess(result.id);
       
-      // Navigate if it's the main action (optional, depends on modal context but safe default)
       router.refresh();
       
     } catch (err: any) {
@@ -163,6 +165,17 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
       {/* 1. Identity Section */}
       {step === 'details' && (
         <div className="space-y-6">
+          
+          {/* Pillar Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              What kind of collection is this?
+            </label>
+            <PillarSelector selected={pillar} onChange={setPillar} />
+          </div>
+
+          <div className="border-t border-gray-100 my-6"></div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Name your collection
