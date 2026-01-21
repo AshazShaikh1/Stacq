@@ -79,6 +79,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // STACQ SENTINEL: Check content safety before creation
+    const { checkContentSafety } = await import('@/lib/moderation/textGuard');
+    const combinedText = `${title || ''} ${description || ''}`.trim();
+    const isSafe = await checkContentSafety(combinedText);
+    
+    if (!isSafe) {
+      return NextResponse.json(
+        { error: "Content violates community guidelines." },
+        { status: 400 }
+      );
+    }
+
     // Validation
     if (!title || typeof title !== "string" || title.trim().length === 0) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });

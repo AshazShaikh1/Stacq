@@ -78,6 +78,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
+    // STACQ SENTINEL: Check content safety before creation
+    const { checkContentSafety } = await import('@/lib/moderation/textGuard');
+    const combinedText = `${title || ''} ${description || ''}`.trim();
+    const isSafe = await checkContentSafety(combinedText);
+    
+    if (!isSafe) {
+      return NextResponse.json(
+        { error: "Content violates community guidelines." },
+        { status: 400 }
+      );
+    }
+
     // Determine target collection ID (handling legacy stack_id)
     const id = collection_id || stack_id;
     const attributionSource = source || (id ? "collection" : "manual");

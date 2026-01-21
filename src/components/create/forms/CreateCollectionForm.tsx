@@ -54,18 +54,37 @@ export function CreateCollectionForm({ onSuccess, onCancel, isStacqer, onBecomeS
     setTags(tags.filter((t) => t !== tag));
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        showError("Please select an image file");
+    if (!file) return;
+    
+    if (!file.type.startsWith("image/")) {
+      showError("Please select an image file");
+      return;
+    }
+    
+    // STACQ SENTINEL: Client-side NSFW check
+    try {
+      const { checkImageSafety } = await import('@/lib/moderation/imageGuard');
+      const { isNSFW } = await checkImageSafety(file);
+      
+      if (isNSFW) {
+        // Clear file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        showError("Image blocked by Stacq Sentinel (NSFW detected).");
         return;
       }
-      setCoverImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setCoverPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('NSFW check failed:', error);
+      // Continue with upload if check fails (fail-open for UX)
     }
+    
+    setCoverImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setCoverPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   // State for auto-retry

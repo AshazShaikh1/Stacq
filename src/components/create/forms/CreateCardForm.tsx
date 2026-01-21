@@ -176,19 +176,39 @@ export function CreateCardForm({
   }, [url, type, fetchMetadata]);
 
   // File Handler
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setMediaFile(file);
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onloadend = () => setMediaPreview(reader.result as string);
-        reader.readAsDataURL(file);
-      } else {
-        setMediaPreview(null); // Doc icon handled in render
+    if (!file) return;
+    
+    // STACQ SENTINEL: Client-side NSFW check for images
+    if (file.type.startsWith("image/")) {
+      try {
+        const { checkImageSafety } = await import('@/lib/moderation/imageGuard');
+        const { isNSFW } = await checkImageSafety(file);
+        
+        if (isNSFW) {
+          // Clear file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          showError("Image blocked by Stacq Sentinel (NSFW detected).");
+          return;
+        }
+      } catch (error) {
+        console.error('NSFW check failed:', error);
+        // Continue with upload if check fails (fail-open for UX)
       }
-      setStep("content");
     }
+    
+    setMediaFile(file);
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => setMediaPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setMediaPreview(null); // Doc icon handled in render
+    }
+    setStep("content");
   };
 
   // State for auto-retry
