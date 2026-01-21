@@ -36,7 +36,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel-scripts.com *.supabase.co *.supabase.in *.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: *; connect-src 'self' *.supabase.co *.supabase.in *.google-analytics.com; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel-scripts.com *.supabase.co *.supabase.in *.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: *; connect-src 'self' *.supabase.co *.supabase.in *.google-analytics.com wss://*.supabase.co wss://*.supabase.in; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests;"
           }
         ],
       },

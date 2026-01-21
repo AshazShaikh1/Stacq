@@ -21,6 +21,7 @@ export interface CardDetail {
   status: string;
   is_public: boolean;
   metadata: any;
+  note?: string | null;
   creator: CardCreator | null;
 }
 

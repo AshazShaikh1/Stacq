@@ -179,6 +179,7 @@ export async function POST(request: NextRequest) {
         status: "active",
         is_public: cardIsPublic,
         metadata: {},
+        note: note || null, // Global curator note
       })
       .select()
       .single();

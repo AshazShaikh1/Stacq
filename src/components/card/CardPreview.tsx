@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { EditCardModal } from "@/components/card/EditCardModal";
+import { CuratorNote } from "@/components/card/CuratorNote";
 import { createClient } from "@/lib/supabase/client";
 import { useSaves } from "@/hooks/useSaves";
 import { useVotes } from "@/hooks/useVotes";
@@ -41,6 +42,11 @@ interface CardPreviewProps {
   collectionOwnerId?: string;
   addedBy?: string;
   note?: string | null;
+  noteAuthor?: {
+    username?: string | null;
+    display_name?: string | null;
+    avatar_url?: string | null;
+  };
   hideHoverButtons?: boolean;
 }
 
@@ -52,6 +58,7 @@ export function CardPreview({
   collectionOwnerId,
   addedBy,
   note,
+  noteAuthor,
   hideHoverButtons = false,
 }: CardPreviewProps) {
   const router = useRouter();
@@ -239,12 +246,7 @@ export function CardPreview({
           `}
         >
           {/* ================= CURATOR NOTE ================= */}
-          {note && (
-            <div className="bg-amber-50 border-b border-amber-100 px-4 py-3 flex gap-3 text-sm text-amber-900 leading-snug">
-               <span className="text-xl shrink-0">📝</span>
-               <div className="font-medium text-amber-950/90">{note}</div>
-            </div>
-          )}
+          <CuratorNote note={note || ""} author={noteAuthor} variant="preview" />
 
           {/* Overlay Link: Go to Card Details */}
           <Link
@@ -466,6 +468,7 @@ export function CardPreview({
             description: card.description,
             thumbnail_url: card.thumbnail_url,
             canonical_url: card.canonical_url,
+            note: note || undefined, // Pass the current note
           }}
         />
       )}

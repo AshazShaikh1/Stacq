@@ -55,12 +55,15 @@ export class SupabaseCollectionsRepository implements CollectionsRepository {
             .select(
                 `
                 added_by,
+                adder:users!collection_cards_added_by_fkey (
+                    username, display_name, avatar_url
+                ),
                 note,
                 section_id,
                 ${useOrder ? '"order",' : ''} 
                 card:cards (
                 id, title, description, thumbnail_url, canonical_url, domain,
-                upvotes_count, saves_count, created_by, created_at,
+                upvotes_count, saves_count, created_by, created_at, note,
                 creator:users!cards_created_by_fkey (
                     id, username, display_name, avatar_url
                 )
@@ -94,15 +97,31 @@ export class SupabaseCollectionsRepository implements CollectionsRepository {
     }
 
     return (collectionCards || [])
-      .map((cc: any) => ({
+      .map((cc: any) => {
+        // Fallback Logic: Context Note -> Global Note
+        const finalNote = cc.note || cc.card?.note;
+        
+        // Attribution Logic:
+        // If context note exists -> Added By (Collection Owner/Adder)
+        // If global note exists fallback -> Created By (Card Creator)
+        let finalAuthor = null;
+        if (cc.note) {
+             finalAuthor = Array.isArray(cc.adder) ? cc.adder[0] : cc.adder;
+        } else if (cc.card?.note) {
+             finalAuthor = Array.isArray(cc.card?.creator) ? cc.card.creator[0] : cc.card?.creator;
+        }
+
+        return {
         ...cc.card,
         addedBy: cc.added_by,
-        note: cc.note,
+        addedByProfile: finalAuthor, // Use the resolved author for the note
+        note: finalNote,
         sectionId: cc.section_id,
         order: cc.order, // Will be undefined in fallback, handling strictly? Type says optional.
         type: "card" as const,
         creator: Array.isArray(cc.card?.creator) ? cc.card.creator[0] : cc.card?.creator
-      }))
+      };
+      })
       .filter((c: any) => c && c.id) as CollectionCard[];
   }
   async findSections(collectionId: string): Promise<any[]> {

@@ -46,6 +46,11 @@ export interface CollectionCard {
     avatar_url: string | null;
   } | null;
   addedBy?: string;
+  addedByProfile?: {
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  };
   note?: string | null;
   sectionId?: string | null;
   order?: number;

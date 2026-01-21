@@ -345,6 +345,7 @@ export async function PATCH(
         title: body.title,
         description: body.description,
         thumbnail_url: body.thumbnail_url,
+        note: body.note !== undefined ? body.note : undefined, // Update global note if provided
       })
       .eq('id', id)
       .select()
@@ -356,6 +357,34 @@ export async function PATCH(
         { error: 'Failed to update card' },
         { status: 500 }
       );
+    }
+    
+    // Update Note in collection_cards if provided
+    // We update ALL instances of this card in collections owned by this user
+    // OR we could require a specific collection_id to be passed.
+    // Given the modal doesn't pass collection_id explicitly in the body but we want the 'context' note...
+    // The current EditCardModal is generic. 
+    // Ideally, we should update the note for the specific context (collection) the user is viewing.
+    // However, looking at the modal, it just sends the card ID.
+    // If we want to support notes, we should update the note for ANY collection entry of this card owned by the user.
+    // Or we should update the modal to send `collectionId`. 
+    // For now, let's update any collection_card entry for this card where the user is the adder/owner.
+
+    if (body.note !== undefined) {
+         // Determine which collection_card entries to update.
+         // We filter by: card_id = id AND added_by = user.id
+         // This ensures we only update notes on instances the USER added.
+         
+         const { error: noteError } = await supabase
+            .from('collection_cards')
+            .update({ note: body.note })
+            .eq('card_id', id)
+            .eq('added_by', user.id);
+            
+         if (noteError) {
+             console.error('Error updating card note:', noteError);
+             // We don't fail the whole request, but log it.
+         }
     }
 
     return NextResponse.json({ card: updatedCard });

@@ -498,11 +498,20 @@ const SortableCard = memo(function SortableCard({ item }: { item: any }) {
          >
              <GripVertical className="w-4 h-4" />
          </div>
-         <CardPreview card={cardData} hideHoverButtons={false} />
+         <CardPreview 
+            card={cardData} 
+            hideHoverButtons={false} 
+            note={item.note} 
+            noteAuthor={item.addedByProfile}
+         />
     </div>
   );
 }, (prev: { item: any }, next: { item: any }) => {
-    return prev.item.id === next.item.id && prev.item.title === next.item.title && prev.item.description === next.item.description; 
+    return prev.item.id === next.item.id && 
+           prev.item.title === next.item.title && 
+           prev.item.description === next.item.description && 
+           prev.item.note === next.item.note && 
+           prev.item.addedByProfile === next.item.addedByProfile; 
 });
 
 function CardPreviewOverlay({ item }: { item: any }) {
@@ -519,7 +528,12 @@ function CardPreviewOverlay({ item }: { item: any }) {
   };
   return (
     <div className="opacity-90 scale-105 cursor-grabbing">
-       <CardPreview card={cardData} hideHoverButtons={true} />
+       <CardPreview 
+          card={cardData} 
+          hideHoverButtons={true} 
+          note={item.note}
+          noteAuthor={item.addedByProfile}
+       />
     </div>
   );
 }

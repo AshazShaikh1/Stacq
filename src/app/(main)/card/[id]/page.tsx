@@ -13,9 +13,11 @@ import { Suspense } from "react";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import { getCardById } from "@/features/cards/server/getCardById";
 import { getRelatedCards } from "@/features/cards/server/getRelatedCards";
+import { CuratorNote } from "@/components/card/CuratorNote";
 
 interface CardPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata({
@@ -40,9 +42,11 @@ export async function generateMetadata({
   });
 }
 
-export default async function CardPage({ params }: CardPageProps) {
+export default async function CardPage({ params, searchParams }: CardPageProps) {
   try {
     const { id } = await params;
+    const { collection_id } = await searchParams;
+
     if (!id) notFound();
 
     const supabase = await createClient();
@@ -52,6 +56,33 @@ export default async function CardPage({ params }: CardPageProps) {
 
     if (!card) {
       notFound();
+    }
+
+    // Contextual Note Fetching
+    let note = null;
+    let noteAuthor = null;
+
+    if (collection_id && typeof collection_id === 'string') {
+        const { data: cc } = await supabase
+            .from('collection_cards')
+            .select(`
+                note, 
+                added_by, 
+                adder:users!collection_cards_added_by_fkey(username, display_name, avatar_url)
+            `)
+            .match({ collection_id: collection_id, card_id: id })
+            .maybeSingle();
+            
+        if (cc && cc.note) {
+            note = cc.note;
+            noteAuthor = Array.isArray(cc.adder) ? cc.adder[0] : cc.adder;
+        }
+    }
+    
+    // NOTE FALLBACK: If no context note found (or not in collection), try global card note
+    if (!note && card.note) {
+        note = card.note;
+        noteAuthor = card.creator; // Default to creator for global note
     }
 
     const relatedCards = await getRelatedCards(card);
@@ -165,6 +196,12 @@ export default async function CardPage({ params }: CardPageProps) {
                         }} 
                       />
                     </div>
+                  )}
+
+                  {note && (
+                      <div className="mb-8">
+                         <CuratorNote note={note} author={noteAuthor || undefined} variant="detail" />
+                      </div>
                   )}
 
                   <ExpandableDescription description={card.description || ""} />
