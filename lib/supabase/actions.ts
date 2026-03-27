@@ -97,18 +97,3 @@ export async function login({ identifier, password }: any) {
     if (error) throw error
     return data
 }
-
-export async function joinWaitlist(email: string) {
-    const supabase = createClient()
-    const { error } = await supabase.from('waitlist').insert([{ email }])
-    
-    if (error) {
-        // PG unique constraint violation
-        if (error.code === '23505') {
-            return { error: "You are already on the waitlist!" }
-        }
-        return { error: "Something went wrong. Please try again." }
-    }
-    
-    return { success: true }
-}

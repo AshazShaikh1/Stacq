@@ -1,15 +1,13 @@
 "use client"
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, FolderOpen, Link as LinkIcon, Share2, Rocket } from 'lucide-react'
 import { signInWithGoogle } from '@/lib/supabase/actions'
-import { WaitlistModal } from '@/components/waitlist-modal'
 
 const LandingPageUI = () => {
-    const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
     return (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Main Content */}
@@ -33,7 +31,7 @@ const LandingPageUI = () => {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                        <Button onClick={() => setIsWaitlistOpen(true)} className="w-full sm:w-auto btn-primary px-8 py-6 text-lg rounded-full hover:bg-primary-dark cursor-pointer">
+                        <Button onClick={signInWithGoogle} className="w-full sm:w-auto btn-primary px-8 py-6 text-lg rounded-full hover:bg-primary-dark cursor-pointer">
                             Get started
                         </Button>
                         <Button variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full btn-outline border-border cursor-pointer">
@@ -124,7 +122,7 @@ const LandingPageUI = () => {
                             Join thousands of learners, developers, and creators building their personal knowledge bases on Stacq.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <Button onClick={() => setIsWaitlistOpen(true)} variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full bg-transparent border-white text-white hover:bg-white/10 hover:text-white transition-colors cursor-pointer">
+                            <Button onClick={signInWithGoogle} variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full bg-transparent border-white text-white hover:bg-white/10 hover:text-white transition-colors cursor-pointer">
                                 Create your account
                             </Button>
                             <Button variant="secondary" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full bg-white text-primary hover:bg-white/90 shadow-lg cursor-pointer">
@@ -137,7 +135,6 @@ const LandingPageUI = () => {
                     </div>
                 </section>
             </main>
-            <WaitlistModal isOpen={isWaitlistOpen} onOpenChange={setIsWaitlistOpen} />
 
             {/* Footer */}
             <footer className="w-full bg-[#0a0a0a] text-zinc-400 py-12 md:py-16 px-4">

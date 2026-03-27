@@ -15,8 +15,8 @@ import { signOut } from "@/lib/supabase/actions"
 const navItems = [
     { icon: Home, label: "Home", href: "/feed" },
     { icon: Compass, label: "Explore", href: "/explore" },
-    { icon: PlusSquare, label: "Create", href: "#", isAction: true },
-    { icon: Bell, label: "Notifications", href: "/notifications" },
+    { icon: PlusSquare, label: "Create", href: "/stacq/new" },
+    { icon: User, label: "Profile", href: "/profile" },
 ]
 
 export default function Sidebar() {
@@ -38,10 +38,10 @@ export default function Sidebar() {
                             href={item.href}
                             className={cn(
                                 "flex items-center gap-4 p-3 rounded-xl transition-all group",
-                                pathname === item.href ? "bg-emerald-50 text-emerald-600" : "hover:bg-slate-100 text-slate-600"
+                                pathname === item.href ? "bg-primary/10 text-primary" : "hover:bg-slate-100 text-slate-600"
                             )}
                         >
-                            <item.icon className={cn("h-6 w-6", pathname === item.href && "text-emerald-600")} />
+                            <item.icon className={cn("h-6 w-6", pathname === item.href && "text-primary")} />
                             <span className="hidden lg:block font-medium">{item.label}</span>
                         </Link>
                     ))}
@@ -64,16 +64,12 @@ export default function Sidebar() {
             </aside>
 
             {/* MOBILE BOTTOM NAV */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t flex items-center justify-around px-4 z-50 pb-safe">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t flex items-center justify-around px-2 z-50 pb-safe">
                 {navItems.map((item) => (
-                    <Link key={item.label} href={item.href} className="p-2">
-                        <item.icon className={cn("h-6 w-6", pathname === item.href ? "text-emerald-600" : "text-slate-500")} />
+                    <Link key={item.label} href={item.href} className={cn("p-2 transition-colors", pathname === item.href && "bg-primary/10 rounded-xl")}>
+                        <item.icon className={cn("h-6 w-6", pathname === item.href ? "text-primary" : "text-slate-500")} />
                     </Link>
                 ))}
-                {/* Mobile Profile Trigger */}
-                <button className="p-2">
-                    <User className="h-6 w-6 text-slate-500" />
-                </button>
             </nav>
         </>
     )
