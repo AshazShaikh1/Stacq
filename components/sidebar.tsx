@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Compass, PlusSquare, Bell, User, Settings, LogOut } from "lucide-react"
+import { Home, Compass, PlusSquare, Bell, User, Settings, LogOut, Bookmark } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
     DropdownMenu,
@@ -15,7 +15,8 @@ import { signOut } from "@/lib/supabase/actions"
 const navItems = [
     { icon: Home, label: "Home", href: "/feed" },
     { icon: Compass, label: "Explore", href: "/explore" },
-    { icon: PlusSquare, label: "Create", href: "/stacq/new" },
+    { icon: PlusSquare, label: "Create", href: "/stacq/new", isCreate: true },
+    { icon: Bookmark, label: "Saved", href: "/saved" },
     { icon: User, label: "Profile", href: "/profile" },
 ]
 
@@ -65,11 +66,26 @@ export default function Sidebar() {
 
             {/* MOBILE BOTTOM NAV */}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t flex items-center justify-around px-2 z-50 pb-safe">
-                {navItems.map((item) => (
-                    <Link key={item.label} href={item.href} className={cn("p-2 transition-colors", pathname === item.href && "bg-primary/10 rounded-xl")}>
-                        <item.icon className={cn("h-6 w-6", pathname === item.href ? "text-primary" : "text-slate-500")} />
-                    </Link>
-                ))}
+                {navItems.map((item) => {
+                    if (item.isCreate) {
+                        return (
+                            <div key={item.label} className="relative -top-5">
+                                <Link 
+                                    href={item.href} 
+                                    className="flex items-center justify-center w-14 h-14 bg-primary rounded-full shadow-lg shadow-emerald hover:scale-105 transition-transform"
+                                >
+                                    <item.icon className="h-6 w-6 text-white" />
+                                </Link>
+                            </div>
+                        )
+                    }
+
+                    return (
+                        <Link key={item.label} href={item.href} className={cn("p-2 transition-colors", pathname === item.href && "bg-primary/10 rounded-xl")}>
+                            <item.icon className={cn("h-6 w-6", pathname === item.href ? "text-primary" : "text-slate-500")} />
+                        </Link>
+                    )
+                })}
             </nav>
         </>
     )
