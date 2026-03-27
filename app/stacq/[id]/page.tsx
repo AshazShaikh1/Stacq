@@ -1,40 +1,72 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { ResourceCard } from '@/components/stacq/resource-card'
+import { AddResourceForm } from '@/components/stacq/add-resource-form'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { PlusSquare } from 'lucide-react'
 
-export default async function StacqDetailPage({ params }: { params: { id: string } }) {
-    const supabase = createClient()
+export default async function StacqDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+
+    if (!id || id === 'undefined' || id === 'null') {
+        notFound()
+    }
+
+    const supabase = await createClient()
 
     // Fetch the specific Stacq and its resources
-    const response = await (await supabase)
+    const { data: stacq, error } = await supabase
         .from('stacqs')
-        .select(`*, profiles(username, display_name, avatar_url)`)
-        .eq('id', params.id)
+        .select(`*, profiles(username, display_name, avatar_url), resources(*)`)
+        .eq('id', id)
         .single()
 
-    // Provide mock fallback data instead of crashing out to 404
-    const stacq = response.data || {
-        id: params.id,
-        title: "Mock Detail Layout",
-        category: "Preview",
-        description: "This Collection layout is rendering successfully using mock data because the database does not contain an entry for ID: " + params.id + " yet! The UI flow works perfectly.",
-        profiles: {
-            username: "tester_mock",
-            avatar_url: ""
-        }
+    if (error) {
+        return (
+            <div className="p-12 max-w-4xl mx-auto space-y-4 mt-12 bg-white rounded-2xl border-2 border-red-100 shadow-sm">
+                <h1 className="text-2xl font-bold text-red-600 flex items-center gap-2">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    Database Supabase Error
+                </h1>
+                <p className="text-slate-600 font-medium">The collection query failed. This is usually due to a missing relation or RLS policy.</p>
+                <div className="p-4 bg-red-50 text-red-900 font-mono text-sm rounded-lg border border-red-200 space-y-2">
+                    <p><strong>Message:</strong> {error.message}</p>
+                    <p><strong>Details:</strong> {error.details || 'None'}</p>
+                    <p><strong>Hint:</strong> {error.hint || 'None'}</p>
+                    <p><strong>Code:</strong> {error.code}</p>
+                </div>
+            </div>
+        )
     }
+
+    if (!stacq) notFound()
 
     return (
         <div className="max-w-4xl mx-auto p-6 md:p-12 space-y-8">
-            {/* Header */}
-            <header className="space-y-5">
+            
+            {/* Top Controller Bar */}
+            <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-none px-3 py-1 font-semibold rounded-full outline-none">
                         #{stacq.category || 'Curated'}
                     </Badge>
                 </div>
+
+                <Dialog>
+                    <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap text-sm h-9 bg-primary hover:bg-primary-dark text-white rounded-full px-5 shadow-sm font-semibold cursor-pointer border-none transition-transform hover:scale-105 active:scale-95">
+                        <PlusSquare className="w-4 h-4 mr-2" /> Add Resource
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-2xl p-0 border-none bg-transparent shadow-none">
+                        <AddResourceForm stacqId={stacq.id} />
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            {/* Header */}
+            <header className="space-y-5">
                 <h1 className="text-4xl md:text-5xl font-black tracking-tight">{stacq.title}</h1>
                 
                 <div className="flex items-center justify-between pt-6 mt-6 border-t border-border/40">
@@ -64,13 +96,16 @@ export default async function StacqDetailPage({ params }: { params: { id: string
 
             {/* The Actual Links/Resources */}
             <div className="space-y-6 pt-4">
-                {[
-                    { title: "Supabase Docs", url: "https://supabase.com", note: "The fastest way to spin up Postgres and Auth. Essential for this stack. RLS makes safety effortless.", thumbnail: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?q=80&w=400&auto=format&fit=crop" },
-                    { title: "Tailwind CSS Component Catalog", url: "https://ui.shadcn.com", note: "Beautifully designed components that you can copy and paste into your apps. Accessible and highly customizable without bloating.", thumbnail: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=400&auto=format&fit=crop" },
-                    { title: "Vercel Deployment", url: "https://vercel.com", note: "Best in class hosting for Next.js applications with zero config required. CI/CD out of the box.", thumbnail: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&auto=format&fit=crop" }
-                ].map((item, idx) => (
-                    <ResourceCard key={idx} resource={item} />
-                ))}
+                {stacq.resources && stacq.resources.length > 0 ? (
+                    stacq.resources.map((item: any) => (
+                        <ResourceCard key={item.id} resource={item} />
+                    ))
+                ) : (
+                    <div className="text-center py-16 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 mt-8">
+                        <p className="text-slate-600 font-medium text-lg">This collection is currently empty.</p>
+                        <p className="text-slate-500 mt-1">Be the first to curate a valuable resource!</p>
+                    </div>
+                )}
             </div>
         </div>
     )

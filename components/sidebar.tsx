@@ -4,13 +4,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Compass, PlusSquare, Bell, User, Settings, LogOut, Bookmark } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { signOut } from "@/lib/supabase/actions"
+import { CreateStacqModal } from "@/components/stacq/create-stacq-modal"
 
 const navItems = [
     { icon: Home, label: "Home", href: "/feed" },
@@ -33,19 +29,33 @@ export default function Sidebar() {
                 </Link>
 
                 <nav className="flex-1 space-y-2">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.label}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-4 p-3 rounded-xl transition-all group",
-                                pathname === item.href ? "bg-primary/10 text-primary" : "hover:bg-slate-100 text-slate-600"
-                            )}
-                        >
-                            <item.icon className={cn("h-6 w-6", pathname === item.href && "text-primary")} />
-                            <span className="hidden lg:block font-medium">{item.label}</span>
-                        </Link>
-                    ))}
+                    {navItems.map((item) => {
+                        const linkContent = (
+                            <div
+                                className={cn(
+                                    "flex items-center gap-4 p-3 rounded-xl transition-all group cursor-pointer w-full text-left",
+                                    pathname === item.href ? "bg-primary/10 text-primary" : "hover:bg-slate-100 text-slate-600"
+                                )}
+                            >
+                                <item.icon className={cn("h-6 w-6", pathname === item.href && "text-primary")} />
+                                <span className={cn("hidden lg:block font-medium", item.isCreate && "font-bold text-primary")}>{item.label}</span>
+                            </div>
+                        )
+
+                        if (item.isCreate) {
+                            return (
+                                <CreateStacqModal key={item.label}>
+                                    {linkContent}
+                                </CreateStacqModal>
+                            )
+                        }
+
+                        return (
+                            <Link key={item.label} href={item.href} className="block outline-none">
+                                {linkContent}
+                            </Link>
+                        )
+                    })}
                 </nav>
 
                 {/* Desktop Bottom Actions */}
@@ -69,14 +79,11 @@ export default function Sidebar() {
                 {navItems.map((item) => {
                     if (item.isCreate) {
                         return (
-                            <div key={item.label} className="relative -top-5">
-                                <Link 
-                                    href={item.href} 
-                                    className="flex items-center justify-center w-14 h-14 bg-primary rounded-full shadow-lg shadow-emerald hover:scale-105 transition-transform"
-                                >
+                            <CreateStacqModal key={item.label}>
+                                <div className="relative -top-5 flex items-center justify-center w-14 h-14 bg-primary rounded-full shadow-lg shadow-emerald hover:scale-105 transition-transform pointer-events-none">
                                     <item.icon className="h-6 w-6 text-white" />
-                                </Link>
-                            </div>
+                                </div>
+                            </CreateStacqModal>
                         )
                     }
 
