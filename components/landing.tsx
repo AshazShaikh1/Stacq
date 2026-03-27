@@ -1,13 +1,15 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, FolderOpen, Link as LinkIcon, Share2, Rocket } from 'lucide-react'
 import { signInWithGoogle } from '@/lib/supabase/actions'
+import { WaitlistModal } from '@/components/waitlist-modal'
 
 const LandingPageUI = () => {
+    const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
     return (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Main Content */}
@@ -22,16 +24,16 @@ const LandingPageUI = () => {
                     </Badge>
 
                     <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground mb-4 sm:mb-6">
-                        Curate the internet, <br className="hidden sm:block" />
-                        <span className="text-primary">not just consume it.</span>
+                        The Filter for a <br className="hidden sm:block" />
+                        <span className="text-primary">Noisy Internet.</span>
                     </h1>
 
                     <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed text-balance">
-                        Stacq is a human-curated knowledge network. Save the best resources, organize them into Stacqs, and discover what experts are actually reading.
+                        Google finds it. AI summarizes it. Stacq tells you if it’s actually worth your time. Build your personal network of human-tested resources.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                        <Button onClick={signInWithGoogle} className="w-full sm:w-auto btn-primary px-8 py-6 text-lg rounded-full hover:bg-primary-dark cursor-pointer">
+                        <Button onClick={() => setIsWaitlistOpen(true)} className="w-full sm:w-auto btn-primary px-8 py-6 text-lg rounded-full hover:bg-primary-dark cursor-pointer">
                             Get started
                         </Button>
                         <Button variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full btn-outline border-border cursor-pointer">
@@ -55,9 +57,9 @@ const LandingPageUI = () => {
                                     <div className="w-12 h-12 rounded-xl bg-primary-light flex items-center justify-center text-primary-dark mb-6">
                                         <FolderOpen className="w-6 h-6" />
                                     </div>
-                                    <h3 className="text-2xl md:text-3xl font-bold">Create Collections</h3>
+                                    <h3 className="text-2xl md:text-3xl font-bold">Tested by People.</h3>
                                     <p className="text-muted-foreground text-lg leading-relaxed">
-                                        Group your resources into neat, sharable spaces. Add articles, links, tools, repositories, images, and more.
+                                        We don’t compete with algorithms. We complement them. Every link in a Stacq comes with a &quot;Why&quot;—the personal context from a real human who actually used the tool, read the article, or ran the code.
                                     </p>
                                 </div>
                                 <div className="flex-1 w-full relative">
@@ -74,9 +76,9 @@ const LandingPageUI = () => {
                                     <div className="w-12 h-12 rounded-xl bg-primary-light flex items-center justify-center text-primary-dark mb-6">
                                         <LinkIcon className="w-6 h-6" />
                                     </div>
-                                    <h3 className="text-2xl md:text-3xl font-bold">Add Cards</h3>
+                                    <h3 className="text-2xl md:text-3xl font-bold">High-Signal Curation.</h3>
                                     <p className="text-muted-foreground text-lg leading-relaxed">
-                                        Save any content from the internet. Add context and notes on why it&apos;s useful to you, making it more valuable for you and others in the future.
+                                        Stop digging through 10-page Reddit threads or generic AI lists. Discover &quot;Stacks&quot; curated by experts who have already done the trial and error for you.
                                     </p>
                                 </div>
                                 <div className="flex-1 w-full relative">
@@ -93,9 +95,9 @@ const LandingPageUI = () => {
                                     <div className="w-12 h-12 rounded-xl bg-primary-light flex items-center justify-center text-primary-dark mb-6">
                                         <Share2 className="w-6 h-6" />
                                     </div>
-                                    <h3 className="text-2xl md:text-3xl font-bold">Share & Discover</h3>
+                                    <h3 className="text-2xl md:text-3xl font-bold">Your Personal Knowledge Base.</h3>
                                     <p className="text-muted-foreground text-lg leading-relaxed">
-                                        Publish your collections, follow others, and find high-quality resources. Build your reputation as a curator within the network.
+                                        Transform your scattered bookmarks into a clean, professional library. Organise the best of the internet into Stacks that you can share with your team, your students, or the world.
                                     </p>
                                 </div>
                                 <div className="flex-1 w-full relative">
@@ -105,85 +107,6 @@ const LandingPageUI = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Trending Section */}
-                <section className="px-4 py-24 w-full flex flex-col items-center bg-background">
-                    <div className="max-w-7xl w-full mx-auto">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Trending Now</h2>
-                            <p className="text-muted-foreground text-lg">See what the community is curating and discussing this week.</p>
-                        </div>
-
-                        <div className="flex justify-center gap-3 mb-12 flex-wrap">
-                            <Badge variant="secondary" className="px-4 py-3 text-sm cursor-pointer hover:bg-secondary/80">
-                                🔥 All collections
-                            </Badge>
-                            <Badge variant="outline" className="px-4 py-3 text-sm cursor-pointer hover:bg-surface-hover">
-                                🎨 Design tools
-                            </Badge>
-                        </div>
-
-                        {/* Stacq Grid Placeholders */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                            {/* Card 1 */}
-                            <Card className="hover:shadow-lg transition-shadow overflow-hidden group cursor-pointer border-border">
-                                <div className="h-40 bg-surface w-full relative">
-                                    <div className="absolute inset-0 flex items-center justify-center transition-transform group-hover:scale-110">
-                                        <FolderOpen className="text-primary/30 w-12 h-12" />
-                                    </div>
-                                </div>
-                                <CardContent className="p-5">
-                                    <div className="flex gap-2 items-center mb-3">
-                                        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">A</div>
-                                        <span className="text-sm text-muted-foreground">Alex Smith</span>
-                                    </div>
-                                    <h4 className="font-bold text-lg mb-2 line-clamp-1">React 19</h4>
-                                    <p className="text-sm text-muted-foreground line-clamp-2">A collection of resources about React 19, server components, and actions.</p>
-                                </CardContent>
-                            </Card>
-
-                            {/* Card 2 */}
-                            <Card className="hover:shadow-lg transition-shadow overflow-hidden group cursor-pointer border-border">
-                                <div className="h-40 bg-surface w-full relative">
-                                    <div className="absolute inset-0 flex items-center justify-center transition-transform group-hover:scale-110">
-                                        <FolderOpen className="text-primary/30 w-12 h-12" />
-                                    </div>
-                                </div>
-                                <CardContent className="p-5">
-                                    <div className="flex gap-2 items-center mb-3">
-                                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] font-bold text-blue-600">S</div>
-                                        <span className="text-sm text-muted-foreground">Sarah Li</span>
-                                    </div>
-                                    <h4 className="font-bold text-lg mb-2 line-clamp-1">Modern UI/UX Inspiration</h4>
-                                    <p className="text-sm text-muted-foreground line-clamp-2">My favorite websites and design systems in 2026. Great for finding ideas.</p>
-                                </CardContent>
-                            </Card>
-
-                            {/* Card 3 */}
-                            <Card className="hover:shadow-lg transition-shadow overflow-hidden group cursor-pointer border-border">
-                                <div className="h-40 bg-surface w-full relative">
-                                    <div className="absolute inset-0 flex items-center justify-center transition-transform group-hover:scale-110">
-                                        <FolderOpen className="text-primary/30 w-12 h-12" />
-                                    </div>
-                                </div>
-                                <CardContent className="p-5">
-                                    <div className="flex gap-2 items-center mb-3">
-                                        <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center text-[10px] font-bold text-orange-600">J</div>
-                                        <span className="text-sm text-muted-foreground">Jordan Dev</span>
-                                    </div>
-                                    <h4 className="font-bold text-lg mb-2 line-clamp-1">Zustand vs Redux</h4>
-                                    <p className="text-sm text-muted-foreground line-clamp-2">A comparison of state management libraries for React applications.</p>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="flex justify-center">
-                            <Button variant="ghost" className="text-muted-foreground hover:text-foreground cursor-pointer">
-                                Explore All Trending <ArrowRight className="ml-2 w-4 h-4" />
-                            </Button>
                         </div>
                     </div>
                 </section>
@@ -201,7 +124,7 @@ const LandingPageUI = () => {
                             Join thousands of learners, developers, and creators building their personal knowledge bases on Stacq.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <Button onClick={signInWithGoogle} variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full bg-transparent border-white text-white hover:bg-white/10 hover:text-white transition-colors cursor-pointer">
+                            <Button onClick={() => setIsWaitlistOpen(true)} variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full bg-transparent border-white text-white hover:bg-white/10 hover:text-white transition-colors cursor-pointer">
                                 Create your account
                             </Button>
                             <Button variant="secondary" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full bg-white text-primary hover:bg-white/90 shadow-lg cursor-pointer">
@@ -214,6 +137,7 @@ const LandingPageUI = () => {
                     </div>
                 </section>
             </main>
+            <WaitlistModal isOpen={isWaitlistOpen} onOpenChange={setIsWaitlistOpen} />
 
             {/* Footer */}
             <footer className="w-full bg-[#0a0a0a] text-zinc-400 py-12 md:py-16 px-4">
@@ -228,17 +152,6 @@ const LandingPageUI = () => {
                         <p className="text-sm text-zinc-500 max-w-sm">
                             Stacq is a modern platform for curating and sharing the things you love from the internet.
                         </p>
-                    </div>
-
-                    <div>
-                        <h4 className="text-white font-semibold mb-6">Product</h4>
-                        <ul className="space-y-4 text-sm">
-                            <li><a href="#" className="hover:text-primary transition-colors">Features</a></li>
-                            <li><a href="#" className="hover:text-primary transition-colors">Collections</a></li>
-                            <li><a href="#" className="hover:text-primary transition-colors">Pricing</a></li>
-                            <li><a href="#" className="hover:text-primary transition-colors">Showcase</a></li>
-                            <li><a href="#" className="hover:text-primary transition-colors">Trending</a></li>
-                        </ul>
                     </div>
 
                     <div>
@@ -258,7 +171,7 @@ const LandingPageUI = () => {
                     </div>
                 </div>
             </footer>
-        </div>
+        </div >
     )
 }
 
