@@ -1,26 +1,197 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Main Palette: Clean White & Emerald */
+  --background: #FFFFFF;
+  /* Pure white */
+  --foreground: #0F172A;
+  /* Deep slate */
+
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+
+  --primary: #1DB954;
+  /* Emerald 500 */
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
+
+  --destructive: #EF4444;
+  /* Red for delete/errors */
+  --destructive-foreground: #FAFAFA;
+
+  --border: #E2E8F0;
+  /* Soft borders */
+  --input: #E2E8F0;
+  --ring: #10B981;
+  /* Emerald Ring */
+
+  /* Additional Stacq variables */
+  --surface: #F8FAFC;
+  /* Very light gray for section backgrounds */
+  --surface-hover: #F1F5F9;
+  /* Slightly darker for hover states */
+  --primary-dark: #1AA34A;
+  /* Emerald 600 */
+  --primary-light: #1ED760;
+  /* Emerald 100 */
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+
+  --card: #0F172A;
+  --card-foreground: #F8FAFC;
+
+  --popover: #0F172A;
+  --popover-foreground: #F8FAFC;
+
+  --primary: #10B981;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+
+  --accent: #1E293B;
+  --accent-foreground: #F8FAFC;
+
+  --destructive: #7F1D1D;
+  --destructive-foreground: #FAFAFA;
+
+  --border: #1E293B;
+  --input: #1E293B;
+  --ring: #10B981;
+
+  --surface: #0B1120;
+  --surface-hover: #1E293B;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Stacq colors */
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight text-slate-800 dark:text-slate-100;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+
+  /* The Standard Stacq Card Style */
+  .stacq-card {
+    @apply bg-surface border border-border rounded-xl p-5 transition-all duration-200 hover:shadow-md hover:border-primary;
+  }
+
+  /* Primary Action Buttons */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary-dark active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Secondary/Outline Buttons */
+  .btn-outline {
+    @apply border border-border bg-background text-foreground px-4 py-2 rounded-lg font-medium hover:bg-surface-hover active:scale-95 transition-all;
+  }
+
+  /* Resource Badges */
+  .badge {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-primary-light text-primary-dark;
+  }
+
+  /* Context Note */
+  .context-note {
+    @apply mt-2 p-3 bg-background border-l-4 border-primary text-sm italic text-slate-600 rounded-r-md;
+  }
+
+  /* Input */
+  .stacq-input {
+    @apply w-full px-4 py-2 rounded-lg border border-border bg-background focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .shadow-emerald {
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.1), 0 4px 6px -2px rgba(16, 185, 129, 0.05);
+  }
+
+  .glass-effect {
+    @apply bg-background/80 backdrop-blur-md border border-background/20;
+  }
 }
