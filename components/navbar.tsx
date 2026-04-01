@@ -36,7 +36,7 @@ export function Navbar() {
   const pathname = usePathname()
   const { session, loading, openAuthModal } = useAuth()
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false)
-  
+
   const isLandingPage = pathname === "/"
 
   // Search State
@@ -44,7 +44,7 @@ export function Navbar() {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
-  
+
   const searchRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -83,18 +83,22 @@ export function Navbar() {
 
   return (
     <nav className="border-b border-border bg-surface sticky top-0 z-50 glass-effect">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-4">
 
         {/* Logo */}
-        <Link href="/" className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-black text-xl shadow-emerald hover:scale-105 transition-all cursor-pointer shrink-0">
+        <Link
+          href="/"
+          className="w-9 h-9 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center text-white font-black text-lg sm:text-xl shadow-emerald hover:scale-105 transition-all cursor-pointer shrink-0"
+        >
           S
         </Link>
 
-        {/* Search Bar - Hidden on Landing Page */}
+        {/* Search Bar */}
         {!isLandingPage && (
-          <div ref={searchRef} className="relative flex-1 max-w-md mx-0 sm:mx-4">
+          <div ref={searchRef} className="relative flex-1 max-w-xs sm:max-w-md mx-0 sm:mx-4">
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+
               <Input
                 placeholder="Search..."
                 value={searchQuery}
@@ -106,112 +110,128 @@ export function Navbar() {
                     setShowSuggestions(false);
                   }
                 }}
-                className="pl-9 h-10 text-sm bg-background border-transparent rounded-full focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all w-full"
+                className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm bg-background border-transparent rounded-full focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all w-full"
               />
             </div>
 
             {/* Suggestions Dropdown */}
             {showSuggestions && (searchQuery.length > 1) && (
-              <div className="absolute top-12 left-0 right-0 sm:left-0 sm:right-auto sm:w-full bg-background border border-border rounded-2xl shadow-2xl p-2 z-60 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute top-11 sm:top-12 left-0 right-0 sm:left-0 sm:right-auto sm:w-full bg-background border border-border rounded-xl sm:rounded-2xl shadow-2xl p-2 z-60 animate-in fade-in zoom-in-95 duration-200">
+
                 {isSearching ? (
-                  <div className="p-4 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+                  <div className="p-4 flex justify-center">
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary" />
+                  </div>
                 ) : suggestions.length > 0 ? (
                   suggestions.map(s => (
                     <button
                       key={s.id}
-                      onClick={() => { 
-                        router.push(`/stacq/${s.id}`); 
-                        setShowSuggestions(false); 
-                        setSearchQuery(""); 
+                      onClick={() => {
+                        router.push(`/stacq/${s.id}`);
+                        setShowSuggestions(false);
+                        setSearchQuery("");
                       }}
-                      className="w-full text-left p-3 hover:bg-primary/5 rounded-xl transition-colors font-bold text-foreground text-sm flex items-center gap-3 active:scale-[0.98]"
+                      className="w-full text-left p-2.5 sm:p-3 hover:bg-primary/5 rounded-lg sm:rounded-xl transition-colors font-bold text-foreground text-xs sm:text-sm flex items-center gap-2 sm:gap-3 active:scale-[0.98]"
                     >
-                      <Search className="w-3.5 h-3.5 text-muted-foreground" /> {s.title}
+                      <Search className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
+                      {s.title}
                     </button>
                   ))
                 ) : (
-                  <div className="p-4 text-xs text-muted-foreground text-center font-medium italic">No collections found.</div>
+                  <div className="p-3 sm:p-4 text-[11px] sm:text-xs text-muted-foreground text-center font-medium italic">
+                    No collections found.
+                  </div>
                 )}
+
               </div>
             )}
           </div>
         )}
 
-        {/* Right Side Fallback Spacer (If search is hidden) */}
+        {/* Spacer */}
         {isLandingPage && <div className="flex-1" />}
 
         {/* Right Side */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+
           {!loading && session ? (
             <>
-              <CreateStacqModal>
-                <button className="hidden lg:flex items-center gap-2 h-11 px-8 bg-primary text-primary-foreground rounded-full font-black text-sm hover:bg-primary-dark transition-all shadow-emerald/20 hover:shadow-lg active:scale-95 cursor-pointer border-none outline-none">
-                  <Plus className="w-4 h-4 mr-0.5" /> Create Stacq
-                </button>
-              </CreateStacqModal>
 
               <DropdownMenu>
                 <DropdownMenuTrigger className="outline-none">
-                  <Avatar className="h-10 w-10 border-2 border-background ring-1 ring-border hover:ring-primary transition-all cursor-pointer">
+
+                  <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border-2 border-background ring-1 ring-border hover:ring-primary transition-all cursor-pointer">
                     <AvatarImage src={session.user.user_metadata.avatar_url} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-black">
+                    <AvatarFallback className="bg-primary/10 text-primary font-black text-sm">
                       {session.user.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
+
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-border bg-background">
+
+                <DropdownMenuContent align="end" className="w-56 sm:w-64 p-2 rounded-xl sm:rounded-2xl shadow-2xl border-border bg-background">
+
                   <DropdownMenuLabel className="p-3">
-                    <p className="font-extrabold text-foreground">{session.user.user_metadata.full_name || "Curator"}</p>
-                    <p className="text-xs text-muted-foreground truncate font-medium">{session.user.email}</p>
+                    <p className="font-extrabold text-foreground text-sm sm:text-base">
+                      {session.user.user_metadata.full_name || "Curator"}
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground truncate font-medium">
+                      {session.user.email}
+                    </p>
                   </DropdownMenuLabel>
+
                   <DropdownMenuSeparator className="bg-border/50" />
 
-                  <DropdownMenuItem onClick={() => router.push(`/profile`)} className="rounded-xl p-3 cursor-pointer flex items-center gap-3 font-bold hover:bg-surface text-foreground transition-colors group">
-                    <User className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" /> My Profile
+                  <DropdownMenuItem
+                    onClick={() => router.push(`/profile`)}
+                    className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 cursor-pointer flex items-center gap-3 font-bold hover:bg-surface text-foreground transition-colors group text-sm"
+                  >
+                    <User className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    My Profile
                   </DropdownMenuItem>
 
-                    <DropdownMenuItem onSelect={() => router.push('/saved')} className="rounded-xl p-3 cursor-pointer flex items-center gap-3 font-bold hover:bg-surface text-foreground transition-colors group">
-                      <Library className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" /> My Library
-                    </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => router.push('/saved')}
+                    className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 cursor-pointer flex items-center gap-3 font-bold hover:bg-surface text-foreground transition-colors group text-sm"
+                  >
+                    <Library className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    My Library
+                  </DropdownMenuItem>
 
                   <DropdownMenuSeparator className="bg-border/50" />
-                  
+
                   <DropdownMenuItem
                     onSelect={() => setShowSignoutConfirm(true)}
                     onClick={() => setShowSignoutConfirm(true)}
-                    className="rounded-xl p-3 cursor-pointer flex items-center gap-3 font-bold text-destructive focus:bg-destructive/10 focus:text-destructive transition-colors group"
+                    className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 cursor-pointer flex items-center gap-3 font-bold text-destructive focus:bg-destructive/10 focus:text-destructive transition-colors group text-sm"
                   >
-                    <LogOut className="w-4 h-4 transition-colors" /> Sign Out
+                    <LogOut className="w-4 h-4 transition-colors" />
+                    Sign Out
                   </DropdownMenuItem>
+
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <AlertDialog open={showSignoutConfirm} onOpenChange={setShowSignoutConfirm}>
-                <AlertDialogContent className="rounded-3xl border-border bg-background">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-xl font-extrabold tracking-tight">Sign out of Stacq?</AlertDialogTitle>
-                    <AlertDialogDescription className="font-medium text-muted-foreground">
-                      You'll need to log in again to save stacqs or follow curators.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter className="gap-2 mt-4">
-                    <AlertDialogCancel className="rounded-full font-bold border-border">Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={() => signOut()} 
-                      className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full font-black px-8"
-                    >
-                      Sign Out
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
             </>
           ) : (
             <div className="flex items-center gap-2">
-              <Button onClick={() => openAuthModal('login')} variant="ghost" className="rounded-full font-bold text-muted-foreground hover:text-foreground hidden sm:inline-flex">Log in</Button>
-              <Button onClick={() => openAuthModal('signup')} className="bg-primary hover:bg-primary-dark text-primary-foreground rounded-full font-black px-6 shadow-emerald/20 hover:shadow-lg transition-all active:scale-95">Join Stacq</Button>
+              <Button
+                onClick={() => openAuthModal('login')}
+                variant="ghost"
+                className="rounded-full font-bold text-muted-foreground hover:text-foreground hidden sm:inline-flex text-sm"
+              >
+                Log in
+              </Button>
+
+              <Button
+                onClick={() => openAuthModal('signup')}
+                className="bg-primary hover:bg-primary-dark text-primary-foreground rounded-full font-black px-4 sm:px-6 text-xs sm:text-sm shadow-emerald/20 hover:shadow-lg transition-all active:scale-95"
+              >
+                Join Stacq
+              </Button>
             </div>
           )}
+
         </div>
       </div>
     </nav>

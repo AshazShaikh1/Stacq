@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import Sidebar from "@/components/sidebar";
-import { createClient } from "@/lib/supabase/server";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "sonner";
 
@@ -18,28 +17,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stacq",
-  description: "The Filter for a Noisy Internet",
+  title: "Stacq — The Filter for a Noisy Internet",
+  description: "Build and discover human-curated resource collections on Stacq.",
 };
 
-export default async function RootLayout({
+// Non-blocking layout: passes null as initialSession so the page tree
+// renders immediately. The AuthProvider hydrates session client-side.
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
-        <AuthProvider initialSession={session}>
+        <AuthProvider initialSession={null}>
           <Toaster position="top-center" richColors closeButton />
           <Navbar />
-          {session && <Sidebar />}
-          <div className={session ? "md:ml-20 lg:ml-64 pb-16 md:pb-0" : "w-full min-h-screen"}>
+          <Sidebar />
+          <div className="md:ml-20 lg:ml-64 pb-32 md:pb-0 min-h-screen">
             {children}
           </div>
         </AuthProvider>

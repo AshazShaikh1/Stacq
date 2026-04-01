@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import Image from 'next/image'
 import { ResourceCard } from '@/components/stacq/resource-card'
 import { AddResourceForm } from '@/components/stacq/add-resource-form'
 import { CollectionHeader } from '@/components/stacq/collection-header'
@@ -24,7 +25,11 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
     // Fetch the collection and its resources + creator profile
     const { data: stacq, error } = await supabase
         .from('stacqs')
-        .select(`*, profiles(id, username, display_name, avatar_url), resources(*)`)
+        .select(`
+            id, title, description, category, user_id,
+            profiles(id, username, display_name, avatar_url),
+            resources(id, title, url, thumbnail, note)
+        `)
         .eq('id', id)
         .single()
 
@@ -44,30 +49,29 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
 
     if (!stacq) notFound()
 
+    // Supabase infers profiles as an array from explicit selects — normalize to single object
+    const profile = Array.isArray(stacq.profiles) ? stacq.profiles[0] : stacq.profiles
+
     const isOwner = currentUser?.id === stacq.user_id
 
-    // Check if current user already follows the collection creator
-    let isFollowingCreator = false
-    if (currentUser && !isOwner) {
-        const { data: followRecord } = await supabase
-            .from('follows')
-            .select('id')
-            .eq('follower_id', currentUser.id)
-            .eq('following_id', stacq.user_id)
-            .maybeSingle()
-        isFollowingCreator = !!followRecord
-    }
+    // Run follow/save checks in parallel instead of sequentially
+    const [followResult, saveResult] = await Promise.all([
+        currentUser && !isOwner
+            ? supabase.from('follows').select('id')
+                .eq('follower_id', currentUser.id)
+                .eq('following_id', stacq.user_id)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+        currentUser && !isOwner
+            ? supabase.from('saved_collections').select('id')
+                .eq('user_id', currentUser.id)
+                .eq('stacq_id', id)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+    ])
 
-    let isSaved = false
-    if (currentUser && !isOwner) {
-        const { data: saveRecord } = await supabase
-            .from('saved_collections')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .eq('stacq_id', id)
-            .maybeSingle()
-        isSaved = !!saveRecord
-    }
+    const isFollowingCreator = !!followResult.data
+    const isSaved = !!saveResult.data
 
     return (
         <div className="max-w-4xl mx-auto p-6 md:p-12 pb-24 md:pb-12 space-y-8 min-h-screen">
@@ -76,34 +80,43 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
             <CollectionHeader stacq={stacq} isOwner={isOwner} />
 
             {/* Creator Bar + Follow/Save Actions */}
-            <div className="flex items-center justify-between py-6 border-y border-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-6 border-y border-border gap-6 sm:gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-primary font-bold border-2 border-background shadow-sm shrink-0">
-                        {stacq.profiles?.avatar_url ? (
-                            <img src={stacq.profiles.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-primary font-bold border-2 border-background shadow-sm shrink-0">
+                        {profile?.avatar_url ? (
+                            <div className="relative w-full h-full">
+                                <Image
+                                    src={profile.avatar_url}
+                                    alt={profile.username || 'avatar'}
+                                    fill
+                                    sizes="48px"
+                                    className="object-cover"
+                                    priority
+                                />
+                            </div>
                         ) : (
-                            stacq.profiles?.username?.substring(0, 1).toUpperCase()
+                            profile?.username?.substring(0, 1).toUpperCase()
                         )}
                     </div>
                     <div>
-                        <p className="font-bold text-base text-foreground">@{stacq.profiles?.username}</p>
-                        <p className="text-sm text-muted-foreground font-medium">Curator</p>
+                        <p className="font-bold text-sm sm:text-base text-foreground">@{profile?.username}</p>
+                        <p className="text-[10px] sm:text-sm text-muted-foreground font-semibold uppercase tracking-widest">Curator</p>
                     </div>
                 </div>
 
                 {/* Follow or Add Resource depending on role */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                     <ShareButton title={stacq.title} collectionId={stacq.id} />
                     {!isOwner && (
                         <SaveButton stacqId={stacq.id} isInitiallySaved={isSaved} />
                     )}
-                    {!isOwner && stacq.profiles?.id && (
-                        <FollowButton targetUserId={stacq.profiles.id} isInitiallyFollowing={isFollowingCreator} />
+                    {!isOwner && profile?.id && (
+                        <FollowButton targetUserId={profile.id} isInitiallyFollowing={isFollowingCreator} />
                     )}
 
                     {isOwner && (
                         <Dialog>
-                            <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap text-sm h-11 bg-primary hover:bg-primary-dark text-primary-foreground rounded-full px-8 shadow-emerald shadow-sm font-bold cursor-pointer border-none transition-transform hover:scale-105 active:scale-95 outline-none">
+                            <DialogTrigger className="flex-1 sm:flex-none inline-flex items-center justify-center whitespace-nowrap text-xs sm:text-sm h-10 sm:h-11 bg-primary hover:bg-primary-dark text-primary-foreground rounded-full px-6 sm:px-8 shadow-emerald shadow-sm font-bold cursor-pointer border-none transition-transform hover:scale-105 active:scale-95 outline-none">
                                 <PlusSquare className="w-4 h-4 mr-2" /> Add Resource
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-2xl p-0 border-none bg-transparent shadow-none">

@@ -17,57 +17,35 @@ export async function middleware(request: NextRequest) {
                     return request.cookies.get(name)?.value
                 },
                 set(name: string, value: string, options: CookieOptions) {
-                    request.cookies.set({
-                        name,
-                        value,
-                        ...options,
-                    })
-                    response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
-                    })
-                    response.cookies.set({
-                        name,
-                        value,
-                        ...options,
-                    })
+                    request.cookies.set({ name, value, ...options })
+                    response = NextResponse.next({ request: { headers: request.headers } })
+                    response.cookies.set({ name, value, ...options })
                 },
                 remove(name: string, options: CookieOptions) {
-                    request.cookies.set({
-                        name,
-                        value: '',
-                        ...options,
-                    })
-                    response = NextResponse.next({
-                        request: {
-                            headers: request.headers,
-                        },
-                    })
-                    response.cookies.set({
-                        name,
-                        value: '',
-                        ...options,
-                    })
+                    request.cookies.set({ name, value: '', ...options })
+                    response = NextResponse.next({ request: { headers: request.headers } })
+                    response.cookies.set({ name, value: '', ...options })
                 },
             },
         }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    // Use getSession() — cookie-based, zero network roundtrip (vs getUser which calls Supabase API)
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
 
-    // 1. Redirect authenticated users from / to /feed
+    // Redirect authenticated users from landing to feed
     if (user && request.nextUrl.pathname === '/') {
         return NextResponse.redirect(new URL('/feed', request.url))
     }
 
-    // 2. Protect specific routes from unauthenticated access
+    // Protect specific routes from unauthenticated access
     const protectedRoutes = ['/stacq/new', '/saved', '/profile', '/settings']
-    const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+    const isProtectedRoute = protectedRoutes.some(route =>
+        request.nextUrl.pathname.startsWith(route)
+    )
 
     if (!user && isProtectedRoute) {
-        // Instead of a hard redirect to login, we could redirect to home and trigger modal,
-        // but for deep links, /login is safer. The layout will ensure we show the UI.
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
@@ -75,5 +53,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+    // Excludes: Next.js internals, static assets, fonts, images, and favicons
+    matcher: [
+        '/((?!_next/static|_next/image|favicon.ico|icon\\.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|otf|ico)$).*)',
+    ],
 }

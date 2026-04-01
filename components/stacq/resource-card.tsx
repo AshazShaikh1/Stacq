@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import Image from "next/image"
 
 export function ResourceCard({ resource, isOwner = false }: { resource?: any, isOwner?: boolean }) {
     const router = useRouter()
@@ -62,16 +63,19 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
     }
 
     return (
-        <div className="relative group bg-background hover:bg-surface border border-border hover:border-primary/30 rounded-3xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md flex flex-col sm:flex-row">
-            <div className="w-full sm:w-36 md:w-44 shrink-0 aspect-video sm:aspect-square bg-surface border-b sm:border-b-0 sm:border-r border-border overflow-hidden">
-                <img
-                    src={thumbnail}
-                    alt={title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        <div className="relative group bg-background hover:bg-surface border border-border hover:border-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md flex flex-col sm:flex-row active:scale-[0.99] sm:active:scale-100">
+            <div className="w-full sm:w-36 md:w-44 shrink-0 aspect-video sm:aspect-square bg-surface border-b sm:border-b-0 sm:border-r border-border overflow-hidden relative">
+                <Image
+                    src={thumbnail || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop"}
+                    alt={title || "Resource"}
+                    fill
+                    sizes="(max-width: 640px) 100vw, 176px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
                 />
             </div>
 
-            <div className="flex flex-col flex-1 p-5 sm:p-6">
+            <div className="flex flex-col flex-1 p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="space-y-1 flex-1">
                         <h3 className="font-extrabold text-lg md:text-xl text-foreground leading-tight line-clamp-2">
@@ -92,7 +96,7 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-10 px-8 text-sm font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
+                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-9 sm:h-10 px-6 sm:px-8 text-xs sm:text-sm font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
                     >
                         Visit Link
                     </a>
