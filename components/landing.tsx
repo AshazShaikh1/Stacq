@@ -9,34 +9,36 @@ import { signInWithGoogle } from '@/lib/supabase/actions'
 
 const LandingPageUI = () => {
     return (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="w-full min-h-screen bg-background flex flex-col">
             {/* Main Content */}
             <main className="flex-1">
                 {/* Hero Section */}
-                <section className="relative px-4 pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden flex flex-col items-center text-center">
+                <section className="relative pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden w-full">
                     {/* Background blob for that subtle glow */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 bg-primary/10 rounded-full blur-3xl -z-10 animate-in fade-in duration-1000" />
 
-                    <Badge variant="outline" className="mb-8 border-primary text-primary px-3 py-1 rounded-full text-xs font-semibold bg-primary/5 tracking-wider">
-                        THE CURATION PLATFORM
-                    </Badge>
+                    <div className="max-w-7xl mx-auto px-4 flex flex-col items-center text-center">
+                        <Badge variant="outline" className="mb-8 border-primary text-primary px-3 py-1 rounded-full text-xs font-semibold bg-primary/5 tracking-wider">
+                            THE CURATION PLATFORM
+                        </Badge>
 
-                    <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground mb-4 sm:mb-6">
-                        The Filter for a <br className="hidden sm:block" />
-                        <span className="text-primary">Noisy Internet.</span>
-                    </h1>
+                        <h1 className="max-w-4xl text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground mb-4 sm:mb-6">
+                            The Filter for a <br className="hidden sm:block" />
+                            <span className="text-primary">Noisy Internet.</span>
+                        </h1>
 
-                    <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed text-balance">
-                        Google finds it. AI summarizes it. Stacq tells you if it’s actually worth your time. Build your personal network of human-tested resources.
-                    </p>
+                        <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-10 leading-relaxed text-balance">
+                            Google finds it. AI summarizes it. Stacq tells you if it’s actually worth your time. Build your personal network of human-tested resources.
+                        </p>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                        <Button onClick={signInWithGoogle} className="w-full sm:w-auto btn-primary px-8 py-6 text-lg rounded-full hover:bg-primary-dark cursor-pointer">
-                            Get started
-                        </Button>
-                        <Button variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full btn-outline border-border cursor-pointer">
-                            Browse Collections
-                        </Button>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                            <Button onClick={signInWithGoogle} className="w-full sm:w-auto btn-primary px-8 py-6 text-lg rounded-full hover:bg-primary-dark cursor-pointer">
+                                Get started
+                            </Button>
+                            <Button variant="outline" className="w-full sm:w-auto px-8 py-6 text-lg rounded-full btn-outline border-border cursor-pointer">
+                                Browse Collections
+                            </Button>
+                        </div>
                     </div>
                 </section>
 
@@ -141,7 +143,7 @@ const LandingPageUI = () => {
                 <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-12 md:mb-16">
                     <div className="col-span-1 sm:col-span-2 space-y-4">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-black text-xl shadow-sm">
                                 S
                             </div>
                             <span className="text-white font-bold text-xl tracking-tight">Stacq</span>

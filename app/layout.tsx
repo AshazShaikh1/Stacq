@@ -39,7 +39,7 @@ export default async function RootLayout({
           <Toaster position="top-center" richColors closeButton />
           <Navbar />
           {session && <Sidebar />}
-          <div className={session ? "md:ml-20 lg:ml-64 pb-16 md:pb-0" : "max-w-7xl mx-auto w-full"}>
+          <div className={session ? "md:ml-20 lg:ml-64 pb-16 md:pb-0" : "w-full min-h-screen"}>
             {children}
           </div>
         </AuthProvider>
