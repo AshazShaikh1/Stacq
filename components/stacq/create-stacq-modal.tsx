@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { createStacq } from "@/lib/actions/stacq"
 import { Loader2, PlusSquare } from "lucide-react"
+import { toast } from "sonner"
 
-export function CreateStacqModal({ children }: { children: React.ReactNode }) {
+export function CreateStacqModal({ children }: { children: React.ReactElement }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -22,25 +23,22 @@ export function CreateStacqModal({ children }: { children: React.ReactNode }) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        setError(null)
 
         const res = await createStacq(title, description, category)
         if (res.error) {
-            setError(res.error)
+            toast.error(res.error)
             setLoading(false)
         } else if (res.success) {
+            toast.success("Collection created successfully!")
             setOpen(false)
             setLoading(false)
-            // Redirect smoothly to the brand new empty collection
             router.push(`/stacq/${res.stacqId}`)
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger className="w-full bg-transparent border-none appearance-none p-0 text-left outline-none block cursor-pointer">
-                {children}
-            </DialogTrigger>
+            <DialogTrigger render={children} />
             <DialogContent className="sm:max-w-md border-border">
                 <DialogHeader className="space-y-2">
                     <DialogTitle className="text-2xl font-bold tracking-tight">Create a Collection</DialogTitle>
@@ -50,7 +48,6 @@ export function CreateStacqModal({ children }: { children: React.ReactNode }) {
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-                    {error && <div className="p-3 text-sm bg-destructive/10 text-destructive rounded-xl border border-destructive/20">{error}</div>}
                     
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-foreground">Title</label>
@@ -59,7 +56,7 @@ export function CreateStacqModal({ children }: { children: React.ReactNode }) {
                             onChange={(e) => setTitle(e.target.value)} 
                             placeholder="e.g. Next.js Mastery" 
                             required 
-                            className="h-11 focus-visible:ring-primary focus-visible:border-primary border-slate-300"
+                            className="h-11 focus-visible:ring-primary focus-visible:border-primary border-border"
                         />
                     </div>
                     
@@ -70,7 +67,7 @@ export function CreateStacqModal({ children }: { children: React.ReactNode }) {
                             onChange={(e) => setCategory(e.target.value)} 
                             placeholder="e.g. Tech, Design, Productivity" 
                             required 
-                            className="h-11 focus-visible:ring-primary focus-visible:border-primary border-slate-300"
+                            className="h-11 focus-visible:ring-primary focus-visible:border-primary border-border"
                         />
                     </div>
 
@@ -81,7 +78,7 @@ export function CreateStacqModal({ children }: { children: React.ReactNode }) {
                             onChange={(e) => setDescription(e.target.value)} 
                             placeholder="Why are you putting this collection together? What's the value?" 
                             required 
-                            className="resize-none h-24 focus-visible:ring-primary focus-visible:border-primary border-slate-300"
+                            className="resize-none h-24 focus-visible:ring-primary focus-visible:border-primary border-border"
                         />
                     </div>
 

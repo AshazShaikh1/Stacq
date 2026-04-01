@@ -16,10 +16,54 @@ export async function signInWithGoogle() {
     }
 }
 
+// 1. Verify the Signup OTP
+export async function verifySignupOTP(email: string, token: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'signup',
+    });
+    return { data, error };
+}
+
+// 3. Send the Reset Password OTP
+export async function sendPasswordResetOTP(email: string) {
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    return { error };
+}
+
+export async function resetPasswordWithOTP(email: string, token: string, newPassword: string) {
+    const supabase = await createClient();
+
+    // 1. Verify the OTP first
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'recovery'
+    });
+
+    if (verifyError) return { error: verifyError.message };
+
+    // 2. Update the password immediately after verification
+    const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+    });
+
+    if (updateError) return { error: updateError.message };
+
+    return { success: true };
+}
+
 export async function signOut() {
     const supabase = createClient()
     const { error } = await supabase.auth.signOut()
-    if (error) console.error('Error signing out:', error.message)
+    if (error) {
+        console.error('Error signing out:', error.message)
+    } else {
+        window.location.href = '/'
+    }
 }
 
 export async function signUp(email: string, password: string, username: string, display_name: string) {

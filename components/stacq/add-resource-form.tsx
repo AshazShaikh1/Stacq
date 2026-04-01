@@ -7,6 +7,7 @@ import { Textarea } from "../ui/textarea"
 import { fetchMetadata, addResource } from "@/lib/actions/resource"
 import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2 } from "lucide-react"
 import { ResourceCard } from "./resource-card"
+import { toast } from "sonner"
 
 export function AddResourceForm({ stacqId }: { stacqId: string }) {
     const [url, setUrl] = useState("")
@@ -46,18 +47,20 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!url) return;
-
+        
         setSaving(true)
         const res = await addResource(stacqId, url, note, metadata)
         setSaving(false)
-
+        
         if (res.success) {
-            setSuccess(true)
+            toast.success("Resource added to collection!")
             setUrl("")
             setNote("")
             setMetadata(null)
+            setSuccess(false) // Reset local success state if any
+            // The user might want to see the new resource, router.refresh() is likely needed
         } else {
-            setMetaError(`DB Error: ${res.error || "Unknown server response."}`)
+            toast.error(res.error || "Failed to add resource")
         }
     }
 

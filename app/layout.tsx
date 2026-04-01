@@ -4,6 +4,8 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import Sidebar from "@/components/sidebar";
 import { createClient } from "@/lib/supabase/server";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,13 +33,16 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
-        <Navbar />
-        {session && <Sidebar />}
-        <div className={session ? "md:ml-20 lg:ml-64 pb-16 md:pb-0" : ""}>
-          {children}
-        </div>
+        <AuthProvider initialSession={session}>
+          <Toaster position="top-center" richColors closeButton />
+          <Navbar />
+          {session && <Sidebar />}
+          <div className={session ? "md:ml-20 lg:ml-64 pb-16 md:pb-0" : "max-w-7xl mx-auto w-full"}>
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

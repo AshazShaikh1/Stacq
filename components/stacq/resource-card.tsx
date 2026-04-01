@@ -8,18 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
-
-export interface ResourceItem {
-    id: string;
-    title: string;
-    url: string;
-    thumbnail?: string;
-    note?: string;
-}
+import { toast } from "sonner"
 
 export function ResourceCard({ resource, isOwner = false }: { resource?: any, isOwner?: boolean }) {
     const router = useRouter()
-    
+
     const item = resource || {
         id: "fallback",
         title: "Tailwind CSS Documentation",
@@ -44,12 +37,15 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
     }
 
     const handleDelete = async () => {
-        if (!confirm("Are you sure you want to completely delete this link resource?")) return
         setDeleting(true)
         const res = await deleteResource(id)
-        if (res.error) alert(res.error)
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            toast.success("Resource deleted")
+            router.refresh()
+        }
         setDeleting(false)
-        router.refresh()
     }
 
     const handleSave = async () => {
@@ -57,93 +53,92 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
         const res = await updateResource(id, formData)
         setSaving(false)
         if (res.error) {
-            alert(res.error)
+            toast.error(res.error)
         } else {
+            toast.success("Resource updated")
             setOpenEdit(false)
             router.refresh()
         }
     }
 
     return (
-        <div className="relative group bg-white hover:bg-emerald-50/30 border border-slate-200 hover:border-emerald-200 rounded-3xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md flex flex-col sm:flex-row">
-            <div className="w-full sm:w-40 md:w-48 shrink-0 aspect-video sm:aspect-square bg-slate-100 border-b sm:border-b-0 sm:border-r border-slate-200 overflow-hidden relative">
-                <img 
+        <div className="relative group bg-background hover:bg-surface border border-border hover:border-primary/30 rounded-3xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md flex flex-col sm:flex-row">
+            <div className="w-full sm:w-36 md:w-44 shrink-0 aspect-video sm:aspect-square bg-surface border-b sm:border-b-0 sm:border-r border-border overflow-hidden">
+                <img
                     src={thumbnail}
                     alt={title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
             </div>
 
-            <div className="flex flex-col flex-1 p-5 sm:p-6 pb-5">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5">
-                    <div className="space-y-1.5 flex-1 pr-12">
-                        <h3 className="font-bold text-lg md:text-xl text-slate-800 leading-tight line-clamp-1">{title}</h3>
-                        <a 
-                            href={url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-sm font-medium text-slate-500 hover:text-emerald-600 transition-colors line-clamp-1 inline-flex items-center gap-1.5 px-1 py-0.5 -ml-1 rounded-md"
+            <div className="flex flex-col flex-1 p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="space-y-1 flex-1">
+                        <h3 className="font-extrabold text-lg md:text-xl text-foreground leading-tight line-clamp-2">
+                            {title}
+                        </h3>
+                        <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1 uppercase tracking-wider"
                         >
                             {getDomain(url)}
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-3 h-3" />
                         </a>
                     </div>
-                    
-                    <a 
-                        href={url} 
-                        target="_blank" 
+
+                    <a
+                        href={url}
+                        target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-10 px-8 text-sm font-bold bg-white hover:bg-emerald-600 border border-slate-200 text-slate-700 hover:text-white hover:border-emerald-600 shadow-sm transition-all rounded-full cursor-pointer"
+                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-10 px-8 text-sm font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
                     >
-                        Visit
+                        Visit Link
                     </a>
                 </div>
 
-                <div className="mt-auto pt-4 border-t border-slate-100">
-                    <div className="flex gap-3 items-start p-1.5">
-                        <Quote className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5 fill-emerald-50" />
-                        <p className="text-sm md:text-base italic text-slate-600 leading-relaxed font-medium">
+                <div className="mt-4 pt-4 border-t border-border relative">
+                    <div className="flex gap-3 items-start">
+                        <Quote className="w-4 h-4 text-primary shrink-0 mt-1 opacity-40" />
+                        <p className="text-sm md:text-base text-foreground/70 leading-relaxed font-medium pr-10">
                             {note || "No curator note provided."}
                         </p>
                     </div>
+
+                    {isOwner && (
+                        <div className="absolute bottom-0 right-0 flex items-center gap-1 bg-background/80 backdrop-blur-sm pl-2 py-1 rounded-tl-xl transition-opacity opacity-100 md:opacity-0 group-hover:opacity-100">
+                            <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+                                <DialogTrigger className="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/5 transition-colors cursor-pointer">
+                                    <Edit2 className="w-4 h-4" />
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md rounded-3xl">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-xl font-bold">Edit Resource</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase text-primary tracking-widest">Title</label>
+                                            <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="rounded-xl border-border bg-surface" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase text-primary tracking-widest">Curator's Note</label>
+                                            <Textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} className="rounded-xl border-border bg-surface min-h-[100px]" />
+                                        </div>
+                                        <Button onClick={handleSave} disabled={saving} className="w-full bg-primary hover:bg-primary-dark text-primary-foreground rounded-xl h-12 font-bold shadow-emerald shadow-sm">
+                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-2" />Save Changes</>}
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+
+                            <button onClick={handleDelete} disabled={deleting} className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer">
+                                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
-
-            {isOwner && (
-                <div className="absolute top-4 right-4 flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-sm border border-slate-200 z-10">
-                    <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-                        <DialogTrigger asChild>
-                            <button className="p-2 text-slate-400 hover:text-emerald-600 rounded-full hover:bg-emerald-50 transition-colors cursor-pointer outline-none">
-                                <Edit2 className="w-4 h-4" />
-                            </button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md border-slate-100 shadow-xl rounded-3xl">
-                            <DialogHeader>
-                                <DialogTitle className="text-2xl font-black tracking-tight">Edit Resource</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 pt-3">
-                                <div>
-                                    <label className="text-xs font-bold text-emerald-700 uppercase tracking-widest block mb-1">Display Title</label>
-                                    <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="h-12 mt-1 bg-slate-50 font-medium" />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-emerald-700 uppercase tracking-widest block mb-1">Curator's Note</label>
-                                    <Textarea value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="resize-none h-32 mt-1 bg-slate-50 font-medium leading-relaxed" />
-                                </div>
-                                <Button onClick={handleSave} disabled={saving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold h-12 shadow-sm transition-transform hover:scale-[1.02] mt-2">
-                                    {saving ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <><Check className="w-5 h-5 mr-2" /> Save Updates</>}
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-
-                    <div className="w-px h-5 bg-slate-200 hidden sm:block"></div>
-
-                    <button onClick={handleDelete} disabled={deleting} className="p-2 text-slate-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors cursor-pointer outline-none md:mr-0 mr-1">
-                        {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                    </button>
-                </div>
-            )}
         </div>
     )
 }

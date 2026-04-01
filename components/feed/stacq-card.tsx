@@ -6,7 +6,7 @@ export function StacqCard({ item }: { item?: any }) {
     // Default mock data tailored for empty props
     const stacq = item || {
         title: "Discovering Top Resources",
-        thumbnail: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+        image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
         items: [
             { title: "First interesting link" },
             { title: "Another great resource" },
@@ -16,7 +16,6 @@ export function StacqCard({ item }: { item?: any }) {
             username: "curator123",
             avatar: ""
         },
-        remixCount: 12
     };
 
     // Safely extract so the UI never breaks
@@ -28,19 +27,19 @@ export function StacqCard({ item }: { item?: any }) {
     const remixCount = stacq.remixCount || 0
 
     return (
-        <Card className="overflow-hidden transition-all duration-300 hover:-translate-y-1 border-2 border-transparent hover:border-primary hover:shadow-lg hover:shadow-primary/5 cursor-pointer group bg-card">
-            <div className={`w-full overflow-hidden bg-muted ${stacq.aspectRatio || 'aspect-video'}`}>
-                <img 
-                    src={thumbnail} 
+        <Card className="overflow-hidden transition-all duration-300 hover:-translate-y-1 border-transparent hover:border-primary hover:shadow-lg hover:shadow-primary/5 cursor-pointer">
+            <div className={`w-full h-full overflow-hidden bg-muted`}>
+                <img
+                    src={thumbnail}
                     alt={title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
             </div>
-            
+
             <CardHeader className="p-4 pb-2">
                 <h3 className="font-bold text-lg leading-tight line-clamp-2">{title}</h3>
             </CardHeader>
-            
+
             <CardContent className="p-4 pt-0 text-sm text-muted-foreground">
                 <ul className="space-y-2">
                     {stacqItems.slice(0, 3).map((listItem: any, i: number) => (
@@ -54,7 +53,7 @@ export function StacqCard({ item }: { item?: any }) {
                     )}
                 </ul>
             </CardContent>
-            
+
             <CardFooter className="p-4 flex items-center justify-between text-xs text-muted-foreground mt-2 border-t pt-3">
                 <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6 border">
