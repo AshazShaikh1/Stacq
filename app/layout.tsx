@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar";
 import Sidebar from "@/components/sidebar";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "sonner";
+import { AppShell } from "@/components/layout/app-shell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,9 +38,9 @@ export default function RootLayout({
           <Toaster position="top-center" richColors closeButton />
           <Navbar />
           <Sidebar />
-          <div className="md:ml-20 lg:ml-64 pb-32 md:pb-0 min-h-screen">
+          <AppShell>
             {children}
-          </div>
+          </AppShell>
         </AuthProvider>
       </body>
     </html>

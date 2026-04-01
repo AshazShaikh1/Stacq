@@ -234,6 +234,33 @@ export function Navbar() {
 
         </div>
       </div>
+
+      <AlertDialog open={showSignoutConfirm} onOpenChange={setShowSignoutConfirm}>
+        <AlertDialogContent className="rounded-3xl border-border bg-background max-w-[90vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl sm:text-2xl font-black tracking-tight">
+              Sign Out
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm sm:text-base font-medium text-muted-foreground">
+              Are you sure you want to sign out of your account? You'll need to log in again to access your library and create new stacqs.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+            <AlertDialogCancel className="rounded-full font-bold h-11 sm:h-12 border-2 order-2 sm:order-1">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await signOut();
+                setShowSignoutConfirm(false);
+              }}
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full font-black h-11 sm:h-12 order-1 sm:order-2"
+            >
+              Sign Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </nav>
   )
 }

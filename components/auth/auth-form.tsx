@@ -124,18 +124,18 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
 
             <div className="text-center space-y-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-                    Welcome
+                    {type === 'login' ? 'Welcome Back' : 'Create Account'}
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                    Enter your details to continue
+                    {type === 'login' ? 'Enter your details to continue' : 'Join the community of curators'}
                 </p>
             </div>
 
             {/* FORM */}
-            <form className="flex flex-col gap-3">
+            <form onSubmit={handleAuth} className="flex flex-col gap-3">
 
                 {type === "signup" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="relative">
                             <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
@@ -143,7 +143,7 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                                 value={displayName}
                                 onChange={(e) => setDisplayName(e.target.value)}
                                 required
-                                className="pl-9 h-10 sm:h-11 bg-background rounded-xl border-border"
+                                className="pl-9 h-10 sm:h-11 bg-background rounded-xl border-border focus:ring-primary/20"
                             />
                         </div>
 
@@ -154,7 +154,7 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                                 required
-                                className="pl-9 h-10 sm:h-11 bg-background rounded-xl border-border"
+                                className="pl-9 h-10 sm:h-11 bg-background rounded-xl border-border focus:ring-primary/20"
                             />
                         </div>
                     </div>
@@ -163,8 +163,12 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                 <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                        placeholder="Email or username"
-                        className="pl-9 h-11 sm:h-12 bg-background rounded-xl border-border"
+                        placeholder={type === 'login' ? "Email or username" : "Email address"}
+                        value={type === 'login' ? identifier : email}
+                        onChange={(e) => type === 'login' ? setIdentifier(e.target.value) : setEmail(e.target.value)}
+                        required
+                        type="text"
+                        className="pl-9 h-11 sm:h-12 bg-background rounded-xl border-border focus:ring-primary/20"
                     />
                 </div>
 
@@ -174,7 +178,10 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                     <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="Password"
-                        className="pl-9 pr-10 h-11 sm:h-12 bg-background rounded-xl border-border"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="pl-9 pr-10 h-11 sm:h-12 bg-background rounded-xl border-border focus:ring-primary/20"
                     />
 
                     <button
@@ -186,17 +193,43 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                     </button>
                 </div>
 
+                {type === 'signup' && password.length > 0 && (
+                    <div className="py-1">
+                        <PasswordValidation password={password} />
+                    </div>
+                )}
+
                 <Button
                     type="submit"
-                    className="w-full h-11 sm:h-12 bg-primary hover:bg-primary-dark text-primary-foreground text-sm sm:text-base font-black rounded-xl"
+                    disabled={loading}
+                    className="w-full h-11 sm:h-12 bg-primary hover:bg-primary-dark text-primary-foreground text-sm sm:text-base font-black rounded-xl shadow-emerald/10 shadow-lg transition-all active:scale-95 disabled:opacity-70"
                 >
-                    Log in
+                    {loading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                        type === 'login' ? 'Log In' : 'Get Started'
+                    )}
                 </Button>
 
             </form>
 
+            {/* Toggle Link */}
+            <div className="text-center">
+                <button
+                    type="button"
+                    onClick={() => setType(type === 'login' ? 'signup' : 'login')}
+                    className="text-xs sm:text-sm font-bold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                >
+                    {type === 'login' ? (
+                        <>Don't have an account? <span className="text-primary underline underline-offset-4">Join Stacq</span></>
+                    ) : (
+                        <>Already have an account? <span className="text-primary underline underline-offset-4">Log in</span></>
+                    )}
+                </button>
+            </div>
+
             {/* Divider */}
-            <div className="relative">
+            <div className="relative mt-2">
                 <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border" />
                 </div>
@@ -211,7 +244,7 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                 type="button"
                 onClick={() => signInWithGoogle()}
                 variant="outline"
-                className="w-full h-11 sm:h-12 border-2 border-border hover:bg-surface text-foreground font-bold rounded-xl gap-3"
+                className="w-full h-11 sm:h-12 border-2 border-border hover:bg-surface text-foreground font-bold rounded-xl gap-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
             >
                 <Chrome className="h-5 w-5 text-primary" />
                 Google Account

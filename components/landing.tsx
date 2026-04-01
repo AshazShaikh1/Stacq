@@ -1,6 +1,7 @@
 "use client"
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +9,7 @@ import { ArrowRight, FolderOpen, Link as LinkIcon, Share2, Rocket } from 'lucide
 import { signInWithGoogle } from '@/lib/supabase/actions'
 
 const LandingPageUI = () => {
+    const router = useRouter()
     return (
         <div className="w-full min-h-screen bg-background flex flex-col">
             {/* Main Content */}
@@ -34,11 +36,11 @@ const LandingPageUI = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                            <Button onClick={signInWithGoogle} className="w-full sm:w-auto btn-primary px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full hover:bg-primary-dark cursor-pointer">
+                            <Button onClick={() => router.push('/signup')} className="w-full sm:w-auto btn-primary px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full hover:bg-primary-dark cursor-pointer">
                                 Get started
                             </Button>
 
-                            <Button variant="outline" className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full btn-outline border-border cursor-pointer">
+                            <Button onClick={() => router.push('/explore')} variant="outline" className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full btn-outline border-border cursor-pointer">
                                 Browse Collections
                             </Button>
                         </div>
