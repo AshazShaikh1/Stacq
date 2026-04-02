@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "../ui/textarea"
@@ -10,6 +11,7 @@ import { ResourceCard } from "./resource-card"
 import { toast } from "sonner"
 
 export function AddResourceForm({ stacqId }: { stacqId: string }) {
+    const router = useRouter()
     const [url, setUrl] = useState("")
     const [note, setNote] = useState("")
 
@@ -20,29 +22,39 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
     const [saving, setSaving] = useState(false)
     const [success, setSuccess] = useState(false)
 
-    // Trigger metadata fetch automatically when user loses focus of the URL box
-    const handleUrlBlur = async () => {
-        if (!url || !url.startsWith("http")) return;
-
-        // Reset state for new fetch
-        setLoadingMeta(true)
-        setMetaError(null)
-        setMetadata(null)
-        setSuccess(false)
-
-        try {
-            const res = await fetchMetadata(url)
-            if (res.error) {
-                setMetaError("Could not render a preview, but you can still completely save this link.")
-            } else {
-                setMetadata(res)
+    // Debounced Live Metadata Fetching
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            // Only fetch if URL looks valid and has changed
+            if (!url || !url.startsWith("http") || url.length < 10) {
+                setMetadata(null)
+                setMetaError(null)
+                return;
             }
-        } catch (e) {
-            setMetaError("Could not fetch preview.")
-        } finally {
-            setLoadingMeta(false)
-        }
-    }
+
+            // Don't refetch if we already have metadata for this exact URL
+            if (metadata?.url === url) return;
+
+            setLoadingMeta(true)
+            setMetaError(null)
+            setMetadata(null)
+
+            try {
+                const res = await fetchMetadata(url)
+                if (res.error) {
+                    setMetaError("No preview found, but you can still save.")
+                } else {
+                    setMetadata({ ...res, url }) // Store url in metadata to prevent loops
+                }
+            } catch (e) {
+                setMetaError("Could not fetch preview.")
+            } finally {
+                setLoadingMeta(false)
+            }
+        }, 800) // 800ms debounce
+
+        return () => clearTimeout(timer)
+    }, [url])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -57,8 +69,8 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
             setUrl("")
             setNote("")
             setMetadata(null)
-            setSuccess(false) // Reset local success state if any
-            // The user might want to see the new resource, router.refresh() is likely needed
+            setSuccess(false)
+            router.refresh()
         } else {
             toast.error(res.error || "Failed to add resource")
         }
@@ -71,7 +83,7 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
                 Add to this Collection
             </h3>
 
-            <form className="space-y-4 sm:space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
 
                 <div className="space-y-2">
                     <label className="text-xs sm:text-sm font-semibold text-foreground">

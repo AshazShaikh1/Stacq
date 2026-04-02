@@ -124,131 +124,263 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
 
             <div className="text-center space-y-2">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-                    {type === 'login' ? 'Welcome Back' : 'Create Account'}
+                    {step === 'signup-otp' ? 'Verify your mail' :
+                        step === 'recovery-email' ? 'Reset Password' :
+                            step === 'recovery-otp' ? 'New Password' :
+                                type === 'login' ? 'Welcome Back' : 'Create Account'}
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                    {type === 'login' ? 'Enter your details to continue' : 'Join the community of curators'}
+                    {step === 'signup-otp' ? `We sent a code to ${email}` :
+                        step === 'recovery-email' ? "Enter your email to receive a recovery code" :
+                            step === 'recovery-otp' ? "Enter the code and your new password" :
+                                type === 'login' ? 'Enter your details to continue' : 'Join the community of curators'}
                 </p>
             </div>
 
-            {/* FORM */}
-            <form onSubmit={handleAuth} className="flex flex-col gap-3">
+            {/* INITIAL STEP: LOGIN / SIGNUP */}
+            {step === 'initial' && (
+                <>
+                    <form onSubmit={handleAuth} className="flex flex-col gap-3">
+                        {type === "signup" && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Name"
+                                        value={displayName}
+                                        onChange={(e) => setDisplayName(e.target.value)}
+                                        required
+                                        className="pl-9 h-11 bg-background rounded-xl border-border focus:ring-primary/20"
+                                    />
+                                </div>
+                                <div className="relative">
+                                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                        className="pl-9 h-11 bg-background rounded-xl border-border focus:ring-primary/20"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
-                {type === "signup" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                                placeholder="Name"
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
+                                placeholder={type === 'login' ? "Email or username" : "Email address"}
+                                value={type === 'login' ? identifier : email}
+                                onChange={(e) => type === 'login' ? setIdentifier(e.target.value) : setEmail(e.target.value)}
                                 required
-                                className="pl-9 h-10 sm:h-11 bg-background rounded-xl border-border focus:ring-primary/20"
+                                type="text"
+                                className="pl-9 h-11 bg-background rounded-xl border-border focus:ring-primary/20"
                             />
                         </div>
 
-                        <div className="relative">
-                            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                required
-                                className="pl-9 h-10 sm:h-11 bg-background rounded-xl border-border focus:ring-primary/20"
-                            />
+                        <div className="space-y-1">
+                            <div className="relative">
+                                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="pl-9 pr-10 h-11 bg-background rounded-xl border-border focus:ring-primary/20"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+
+                            {type === 'login' && (
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setStep('recovery-email')}
+                                        className="text-[11px] sm:text-xs font-bold text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {type === 'signup' && password.length > 0 && (
+                            <div className="py-1">
+                                <PasswordValidation password={password} />
+                            </div>
+                        )}
+
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full h-11 bg-primary hover:bg-primary-dark text-primary-foreground text-sm sm:text-base font-black rounded-xl shadow-emerald/10 shadow-lg transition-all active:scale-95 disabled:opacity-70"
+                        >
+                            {loading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                type === 'login' ? 'Log In' : 'Get Started'
+                            )}
+                        </Button>
+                    </form>
+
+                    <div className="text-center">
+                        <button
+                            type="button"
+                            onClick={() => setType(type === 'login' ? 'signup' : 'login')}
+                            className="text-xs sm:text-sm font-bold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                        >
+                            {type === 'login' ? (
+                                <>Don't have an account? <span className="text-primary underline underline-offset-4">Join Stacq</span></>
+                            ) : (
+                                <>Already have an account? <span className="text-primary underline underline-offset-4">Log in</span></>
+                            )}
+                        </button>
+                    </div>
+
+                    <div className="relative mt-2">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-border" />
+                        </div>
+                        <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
+                            <span className="bg-background px-4 text-muted-foreground font-black tracking-widest">
+                                Or continue with
+                            </span>
                         </div>
                     </div>
-                )}
 
-                <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                        placeholder={type === 'login' ? "Email or username" : "Email address"}
-                        value={type === 'login' ? identifier : email}
-                        onChange={(e) => type === 'login' ? setIdentifier(e.target.value) : setEmail(e.target.value)}
-                        required
-                        type="text"
-                        className="pl-9 h-11 sm:h-12 bg-background rounded-xl border-border focus:ring-primary/20"
-                    />
-                </div>
+                    <Button
+                        type="button"
+                        onClick={() => signInWithGoogle()}
+                        variant="outline"
+                        className="w-full h-11 border-2 border-border hover:bg-surface text-foreground font-bold rounded-xl gap-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                    >
+                        <Chrome className="h-5 w-5 text-primary" />
+                        Google Account
+                    </Button>
+                </>
+            )}
 
-                <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-
-                    <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="pl-9 pr-10 h-11 sm:h-12 bg-background rounded-xl border-border focus:ring-primary/20"
-                    />
-
+            {/* SIGNUP OTP STEP */}
+            {step === 'signup-otp' && (
+                <form onSubmit={handleVerifySignup} className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="relative">
+                        <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Enter 6-digit code"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            required
+                            className="pl-9 h-12 bg-background rounded-xl border-border text-center tracking-[0.5em] font-black text-lg focus:ring-primary/20"
+                        />
+                    </div>
+                    <Button
+                        type="submit"
+                        disabled={loading || otp.length < 6}
+                        className="btn-primary w-full h-12 rounded-xl shadow-lg shadow-emerald/10 font-black"
+                    >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Verify Account"}
+                    </Button>
                     <button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setStep('initial')}
+                        className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 transition-colors"
                     >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        <ArrowLeft className="w-3 h-3" /> Back to Signup
                     </button>
-                </div>
+                </form>
+            )}
 
-                {type === 'signup' && password.length > 0 && (
-                    <div className="py-1">
-                        <PasswordValidation password={password} />
+            {/* RECOVERY EMAIL STEP */}
+            {step === 'recovery-email' && (
+                <form onSubmit={handleSendRecovery} className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Your email address"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            type="email"
+                            className="pl-9 h-12 bg-background rounded-xl border-border focus:ring-primary/20"
+                        />
                     </div>
-                )}
+                    <Button
+                        type="submit"
+                        disabled={loading || !email}
+                        className="btn-primary w-full h-12 rounded-xl shadow-lg shadow-emerald/10 font-black"
+                    >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Send Recovery Code"}
+                    </Button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setStep('initial')
+                            setType('login')
+                        }}
+                        className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <ArrowLeft className="w-3 h-3" /> Back to Login
+                    </button>
+                </form>
+            )}
 
-                <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-11 sm:h-12 bg-primary hover:bg-primary-dark text-primary-foreground text-sm sm:text-base font-black rounded-xl shadow-emerald/10 shadow-lg transition-all active:scale-95 disabled:opacity-70"
-                >
-                    {loading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                        type === 'login' ? 'Log In' : 'Get Started'
-                    )}
-                </Button>
+            {/* RECOVERY OTP & RESET STEP */}
+            {step === 'recovery-otp' && (
+                <form onSubmit={handleResetPassword} className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="relative">
+                        <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Enter code"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            required
+                            className="pl-9 h-11 bg-background rounded-xl border-border text-center tracking-widest font-bold focus:ring-primary/20"
+                        />
+                    </div>
+                    <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="New Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            className="pl-9 pr-10 h-11 bg-background rounded-xl border-border focus:ring-primary/20"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
 
-            </form>
+                    {password.length > 0 && <PasswordValidation password={password} />}
 
-            {/* Toggle Link */}
-            <div className="text-center">
-                <button
-                    type="button"
-                    onClick={() => setType(type === 'login' ? 'signup' : 'login')}
-                    className="text-xs sm:text-sm font-bold text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-                >
-                    {type === 'login' ? (
-                        <>Don't have an account? <span className="text-primary underline underline-offset-4">Join Stacq</span></>
-                    ) : (
-                        <>Already have an account? <span className="text-primary underline underline-offset-4">Log in</span></>
-                    )}
-                </button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative mt-2">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-[10px] sm:text-xs uppercase">
-                    <span className="bg-background px-4 text-muted-foreground font-black tracking-widest">
-                        Or continue with
-                    </span>
-                </div>
-            </div>
-
-            <Button
-                type="button"
-                onClick={() => signInWithGoogle()}
-                variant="outline"
-                className="w-full h-11 sm:h-12 border-2 border-border hover:bg-surface text-foreground font-bold rounded-xl gap-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
-            >
-                <Chrome className="h-5 w-5 text-primary" />
-                Google Account
-            </Button>
+                    <Button
+                        type="submit"
+                        disabled={loading || otp.length < 6 || !isPasswordValid(password)}
+                        className="btn-primary w-full h-11 rounded-xl shadow-lg shadow-emerald/10 font-black mt-2"
+                    >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Update Password"}
+                    </Button>
+                    <button
+                        type="button"
+                        onClick={() => setStep('recovery-email')}
+                        className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center justify-center gap-2 transition-colors mt-1"
+                    >
+                        <ArrowLeft className="w-3 h-3" /> Back
+                    </button>
+                </form>
+            )}
 
         </div>
     )

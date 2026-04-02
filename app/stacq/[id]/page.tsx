@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { ResourceCard } from '@/components/stacq/resource-card'
 import { AddResourceForm } from '@/components/stacq/add-resource-form'
 import { CollectionHeader } from '@/components/stacq/collection-header'
@@ -81,8 +82,8 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
 
             {/* Creator Bar + Follow/Save Actions */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-6 border-y border-border gap-6 sm:gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-primary font-bold border-2 border-background shadow-sm shrink-0">
+                <Link href={`/${profile?.username}`} className="flex items-center gap-4 group cursor-pointer">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-primary font-bold border-2 border-background shadow-sm shrink-0 group-hover:ring-2 group-hover:ring-primary/20 transition-all">
                         {profile?.avatar_url ? (
                             <div className="relative w-full h-full">
                                 <Image
@@ -99,10 +100,10 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
                         )}
                     </div>
                     <div>
-                        <p className="font-bold text-sm sm:text-base text-foreground">@{profile?.username}</p>
+                        <p className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">@{profile?.username}</p>
                         <p className="text-[10px] sm:text-sm text-muted-foreground font-semibold uppercase tracking-widest">Curator</p>
                     </div>
-                </div>
+                </Link>
 
                 {/* Follow or Add Resource depending on role */}
                 <div className="flex items-center gap-2 w-full sm:w-auto">
