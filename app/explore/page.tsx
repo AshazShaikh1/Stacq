@@ -20,6 +20,7 @@ export default async function ExplorePage({
             id,
             title,
             category,
+            thumbnail,
             profiles(username, avatar_url),
             resources(title, thumbnail)
         `)
@@ -35,7 +36,7 @@ export default async function ExplorePage({
             title: s.title,
             category: s.category,
             aspectRatio: ASPECT_RATIOS[ratioIndex],
-            thumbnail: s.resources?.[0]?.thumbnail,
+            thumbnail: s.thumbnail || s.resources?.[0]?.thumbnail,
             items: s.resources || [],
             curator: {
                 username: s.profiles?.username || "anonymous",

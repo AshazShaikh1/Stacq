@@ -68,19 +68,18 @@ export async function fetchMetadata(url: string) {
     }
 }
 
-export async function addResource(stacqId: string, url: string, note: string, metadata: any) {
+export async function addResource(stacqId: string, url: string, note: string, title?: string, thumbnail?: string) {
     const supabase = await createClient()
-
+ 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Security Halt. You must be actively logged in to curate." }
-
+ 
     const { error } = await supabase.from('resources').insert([{
         user_id: user.id, // Mandatory security binding 
         stacq_id: stacqId,
         url,
-        title: metadata?.title || url,
-        description: metadata?.description,
-        thumbnail: metadata?.image,
+        title: title || url,
+        thumbnail: thumbnail,
         note
     }])
 

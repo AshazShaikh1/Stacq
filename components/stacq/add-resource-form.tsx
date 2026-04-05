@@ -5,14 +5,17 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "../ui/textarea"
+import { ImageUpload } from "@/components/ui/image-upload"
 import { fetchMetadata, addResource } from "@/lib/actions/resource"
-import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2, Type } from "lucide-react"
 import { ResourceCard } from "./resource-card"
 import { toast } from "sonner"
 
 export function AddResourceForm({ stacqId }: { stacqId: string }) {
     const router = useRouter()
     const [url, setUrl] = useState("")
+    const [title, setTitle] = useState("")
+    const [thumbnail, setThumbnail] = useState("")
     const [note, setNote] = useState("")
 
     const [loadingMeta, setLoadingMeta] = useState(false)
@@ -20,7 +23,6 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
     const [metaError, setMetaError] = useState<string | null>(null)
 
     const [saving, setSaving] = useState(false)
-    const [success, setSuccess] = useState(false)
 
     // Debounced Live Metadata Fetching
     useEffect(() => {
@@ -44,7 +46,9 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
                 if (res.error) {
                     setMetaError("No preview found, but you can still save.")
                 } else {
-                    setMetadata({ ...res, url }) // Store url in metadata to prevent loops
+                    setMetadata({ ...res, url })
+                    setTitle(res.title || "")
+                    setThumbnail(res.image || "")
                 }
             } catch (e) {
                 setMetaError("Could not fetch preview.")
@@ -61,15 +65,16 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
         if (!url) return;
 
         setSaving(true)
-        const res = await addResource(stacqId, url, note, metadata)
+        const res = await addResource(stacqId, url, note, title, thumbnail)
         setSaving(false)
 
         if (res.success) {
             toast.success("Resource added to collection!")
             setUrl("")
+            setTitle("")
+            setThumbnail("")
             setNote("")
             setMetadata(null)
-            setSuccess(false)
             router.refresh()
         } else {
             toast.error(res.error || "Failed to add resource")
@@ -77,27 +82,36 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
     }
 
     return (
-        <div className="bg-white rounded-xl sm:rounded-2xl border border-border p-4 sm:p-6 shadow-sm">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-border p-5 sm:p-7 shadow-sm">
 
-            <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-5 tracking-tight">
-                Add to this Collection
-            </h3>
+            <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black shadow-sm">
+                    +
+                </div>
+                <div>
+                    <h3 className="text-xl sm:text-2xl font-black tracking-tight text-foreground leading-tight">
+                        Add to Collection
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5">
+                        Expand your stack with high-signal content.
+                    </p>
+                </div>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
 
                 <div className="space-y-2">
-                    <label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
                         Resource Link
                     </label>
 
                     <div className="relative">
-                        <LinkIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-
+                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             placeholder="https://example.com/article"
-                            className="pl-10 h-10 sm:h-11 text-sm border-slate-300"
+                            className="pl-10 h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm sm:text-base font-medium"
                             required
                             type="url"
                         />
@@ -105,56 +119,73 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
                 </div>
 
                 {loadingMeta && (
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-emerald-600 animate-pulse font-medium bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                    <div className="flex items-center gap-3 text-xs sm:text-sm text-primary animate-pulse font-black bg-primary/5 p-4 rounded-xl border border-primary/10">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Scanning link for preview...
+                        Scanning signal for preview...
                     </div>
                 )}
 
                 {metaError && (
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                        <AlertCircle className="w-4 h-4" />
+                    <div className="flex items-center gap-3 text-xs sm:text-sm text-amber-700 bg-amber-50 p-4 rounded-xl border border-amber-200 font-bold">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
                         {metaError}
                     </div>
                 )}
 
-                {metadata && (
-                    <div className="border-2 border-primary/20 rounded-xl overflow-hidden shadow-sm">
-                        <div className="bg-primary/5 py-1 px-3 border-b border-primary/10 text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest flex items-center gap-2">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Preview
+                {(metadata || url.length > 10) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+                                    Display Title
+                                </label>
+                                <div className="relative">
+                                    <Type className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder="Title of this resource"
+                                        className="pl-10 h-11 bg-surface rounded-xl border-border text-sm font-semibold"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+                                    Curator's Note
+                                </label>
+                                <Textarea
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    placeholder="Why is this valuable? Share your perspective..."
+                                    className="resize-none h-24 sm:h-28 text-sm border-border bg-surface rounded-xl p-4 font-medium"
+                                />
+                            </div>
                         </div>
 
-                        <div className="p-3 bg-white pointer-events-none opacity-90">
-                            <ResourceCard resource={{
-                                title: metadata.title || url,
-                                url: url,
-                                thumbnail: metadata.image,
-                                note: note || "Preview of your curator note"
-                            }} />
-                        </div>
+                        <ImageUpload
+                            value={thumbnail}
+                            onChange={setThumbnail}
+                            onRemove={() => setThumbnail("")}
+                            label="Resource Thumbnail"
+                        />
                     </div>
                 )}
-
-                <div className="space-y-2 pt-1">
-                    <label className="text-xs sm:text-sm font-semibold text-foreground">
-                        Curator's Note
-                    </label>
-
-                    <Textarea
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        placeholder="Why is this resource valuable?"
-                        className="resize-none h-20 sm:h-24 text-sm border-slate-300"
-                    />
-                </div>
 
                 <Button
                     type="submit"
                     disabled={saving || !url}
-                    className="w-full bg-primary hover:bg-primary-dark text-white rounded-full h-11 sm:h-12 text-sm sm:text-base"
+                    className="btn-primary w-full h-14 rounded-full font-black text-base sm:text-lg shadow-emerald shadow-lg active:scale-95 transition-transform disabled:opacity-50"
                 >
-                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Resource"}
+                    {saving ? (
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            Curating...
+                        </div>
+                    ) : (
+                        "Save to Stack"
+                    )}
                 </Button>
 
             </form>

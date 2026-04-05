@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
+import { ImageUpload } from "@/components/ui/image-upload"
 import { toast } from "sonner"
 import Image from "next/image"
 
@@ -27,7 +28,11 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
     const [deleting, setDeleting] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [saving, setSaving] = useState(false)
-    const [formData, setFormData] = useState({ title: title || "", note: note || "" })
+    const [formData, setFormData] = useState({ 
+        title: title || "", 
+        note: note || "",
+        thumbnail: thumbnail || ""
+    })
 
     const getDomain = (link: string) => {
         try {
@@ -116,21 +121,43 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
                                 <DialogTrigger className="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/5 transition-colors cursor-pointer">
                                     <Edit2 className="w-4 h-4" />
                                 </DialogTrigger>
-                                <DialogContent className="sm:max-w-md rounded-3xl">
+                                <DialogContent className="sm:max-w-2xl rounded-3xl p-6 sm:p-8">
                                     <DialogHeader>
-                                        <DialogTitle className="text-xl font-bold">Edit Resource</DialogTitle>
+                                        <DialogTitle className="text-2xl font-black tracking-tight mb-4">Edit Resource</DialogTitle>
                                     </DialogHeader>
-                                    <div className="space-y-4 py-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold uppercase text-primary tracking-widest">Title</label>
-                                            <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="rounded-xl border-border bg-surface" />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Display Title</label>
+                                                <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="h-12 rounded-xl border-border bg-surface font-semibold" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Curator's Note</label>
+                                                <Textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} className="rounded-xl border-border bg-surface min-h-[120px] font-medium" />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-xs font-bold uppercase text-primary tracking-widest">Curator's Note</label>
-                                            <Textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} className="rounded-xl border-border bg-surface min-h-[100px]" />
+                                            <ImageUpload 
+                                                value={formData.thumbnail}
+                                                onChange={(url) => setFormData({ ...formData, thumbnail: url })}
+                                                onRemove={() => setFormData({ ...formData, thumbnail: "" })}
+                                                label="Resource Thumbnail"
+                                            />
                                         </div>
-                                        <Button onClick={handleSave} disabled={saving} className="w-full bg-primary hover:bg-primary-dark text-primary-foreground rounded-xl h-12 font-bold shadow-emerald shadow-sm">
-                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-2" />Save Changes</>}
+                                    </div>
+                                    <div className="pt-6 border-t border-border mt-6">
+                                        <Button onClick={handleSave} disabled={saving} className="w-full bg-primary hover:bg-primary-dark text-primary-foreground rounded-full h-14 font-black shadow-emerald shadow-lg active:scale-95 transition-transform">
+                                            {saving ? (
+                                                <div className="flex items-center gap-3">
+                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                    Saving...
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <Check className="w-5 h-5" />
+                                                    Save Changes
+                                                </div>
+                                            )}
                                         </Button>
                                     </div>
                                 </DialogContent>
@@ -145,4 +172,4 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
             </div>
         </div>
     )
-}
+}

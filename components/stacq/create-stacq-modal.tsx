@@ -7,24 +7,25 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { createStacq } from "@/lib/actions/stacq"
-import { Loader2, PlusSquare } from "lucide-react"
+import { ImageUpload } from "@/components/ui/image-upload"
+import { Loader2, PlusSquare, Hash, AlignLeft, Layout } from "lucide-react"
 import { toast } from "sonner"
 
 export function CreateStacqModal({ children }: { children: React.ReactElement }) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState("")
     const [category, setCategory] = useState("")
+    const [thumbnail, setThumbnail] = useState("")
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
-        const res = await createStacq(title, description, category)
+        const res = await createStacq(title, description, category, thumbnail)
         if (res.error) {
             toast.error(res.error)
             setLoading(false)
@@ -40,76 +41,92 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger render={children} />
 
-            <DialogContent className="w-[95%] sm:max-w-md border-border">
+            <DialogContent className="w-[95%] sm:max-w-2xl border-border p-6 sm:p-8 rounded-4xl">
 
-                <DialogHeader className="space-y-1.5 sm:space-y-2">
-
-                    <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight">
+                <DialogHeader className="space-y-2 mb-4">
+                    <DialogTitle className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
                         Create a Collection
                     </DialogTitle>
-
-                    <DialogDescription className="text-sm">
-                        Give your stack a title, a category tag, and explain why you're curating it.
+                    <DialogDescription className="text-sm sm:text-base font-medium text-muted-foreground">
+                        Stack high-signal resources and share your curation with the world.
                     </DialogDescription>
-
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 pt-2">
+                <form onSubmit={handleSubmit} className="space-y-6 pt-2">
 
-                    <div className="space-y-1.5 sm:space-y-2">
-                        <label className="text-xs sm:text-sm font-semibold text-foreground">
-                            Title
-                        </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+                                    Stack Title
+                                </label>
+                                <div className="relative">
+                                    <Layout className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder="e.g. Next.js Mastery"
+                                        required
+                                        className="h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold"
+                                    />
+                                </div>
+                            </div>
 
-                        <Input
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="e.g. Next.js Mastery"
-                            required
-                            className="h-10 sm:h-11 text-sm focus-visible:ring-primary focus-visible:border-primary border-border"
+                            <div className="space-y-2">
+                                <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+                                    Category Tag
+                                </label>
+                                <div className="relative">
+                                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        placeholder="e.g. Tech, Productivity"
+                                        required
+                                        className="h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <ImageUpload
+                            value={thumbnail}
+                            onChange={setThumbnail}
+                            onRemove={() => setThumbnail("")}
+                            label="Collection Thumbnail"
                         />
                     </div>
 
-                    <div className="space-y-1.5 sm:space-y-2">
-                        <label className="text-xs sm:text-sm font-semibold text-foreground">
-                            Category
+                    <div className="space-y-2">
+                        <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+                            The "Why" (Description)
                         </label>
-
-                        <Input
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            placeholder="e.g. Tech, Design, Productivity"
-                            required
-                            className="h-10 sm:h-11 text-sm focus-visible:ring-primary focus-visible:border-primary border-border"
-                        />
+                        <div className="relative">
+                            <AlignLeft className="absolute left-3 top-4 h-4 w-4 text-muted-foreground" />
+                            <Textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Why are you putting this collection together? What's the signal?"
+                                required
+                                className="resize-none h-28 pl-10 pt-3.5 bg-surface rounded-xl border-border text-sm font-medium"
+                            />
+                        </div>
                     </div>
 
-                    <div className="space-y-1.5 sm:space-y-2">
-                        <label className="text-xs sm:text-sm font-semibold text-foreground">
-                            Description (The "Why")
-                        </label>
-
-                        <Textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Why are you putting this collection together? What's the value?"
-                            required
-                            className="resize-none h-20 sm:h-24 text-sm focus-visible:ring-primary focus-visible:border-primary border-border"
-                        />
-                    </div>
-
-                    <div className="pt-2">
+                    <div className="pt-4">
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="w-full h-11 sm:h-12 rounded-full font-bold text-sm sm:text-base bg-primary hover:bg-primary-dark shadow-emerald cursor-pointer transition-transform hover:scale-[1.02]"
+                            className="btn-primary w-full h-14 rounded-full font-black text-base sm:text-lg shadow-emerald shadow-lg active:scale-95 transition-transform"
                         >
-                            {loading
-                                ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin mr-2" />
-                                : <PlusSquare className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                            }
-
-                            {loading ? "Creating..." : "Create Collection"}
+                            {loading ? (
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                            ) : (
+                                <div className="flex items-center gap-3">
+                                    <PlusSquare className="w-5 h-5" />
+                                    Launch Collection
+                                </div>
+                            )}
                         </Button>
                     </div>
 

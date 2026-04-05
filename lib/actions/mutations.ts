@@ -39,37 +39,37 @@ export async function toggleSaveCollection(stacqId: string) {
     return { success: true }
 }
 
-export async function updateCollection(id: string, updates: { title?: string, description?: string, category?: string }) {
+export async function updateCollection(id: string, updates: { title?: string, description?: string, category?: string, thumbnail?: string }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Security Exception: Must be logged in to modify layers." }
-
+ 
     const { error } = await supabase
         .from('stacqs')
         .update(updates)
         .eq('id', id)
         .eq('user_id', user.id)
-
+ 
     if (error) return { error: error.message }
-
+ 
     revalidatePath(`/stacq/${id}`)
     revalidatePath(`/`)
     return { success: true }
 }
-
-export async function updateResource(id: string, updates: { title?: string, note?: string }) {
+ 
+export async function updateResource(id: string, updates: { title?: string, note?: string, thumbnail?: string }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Unauthorized" }
-
+ 
     const { error } = await supabase
         .from('resources')
         .update(updates)
         .eq('id', id)
         .eq('user_id', user.id)
-
+ 
     if (error) return { error: error.message }
-
+ 
     revalidatePath(`/stacq/[id]`, 'page')
     return { success: true }
 }

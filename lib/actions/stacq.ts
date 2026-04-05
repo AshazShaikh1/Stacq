@@ -2,20 +2,21 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-export async function createStacq(title: string, description: string, category: string) {
+export async function createStacq(title: string, description: string, category: string, thumbnail?: string) {
     const supabase = await createClient()
-
+ 
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
         return { error: "You must be logged in to create a collection." }
     }
-
+ 
     const { data, error } = await supabase.from('stacqs').insert([{
         user_id: user.id,
         title,
         description,
-        category
+        category,
+        thumbnail
     }]).select()
 
     if (error) {

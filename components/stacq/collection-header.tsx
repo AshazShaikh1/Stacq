@@ -6,6 +6,7 @@ import { updateCollection } from "@/lib/actions/mutations"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { ImageUpload } from "@/components/ui/image-upload"
 import { Loader2, Edit2, Check, X } from "lucide-react"
 import { toast } from "sonner"
 
@@ -16,7 +17,8 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
     const [formData, setFormData] = useState({
         title: stacq.title || "",
         category: stacq.category || "",
-        description: stacq.description || ""
+        description: stacq.description || "",
+        thumbnail: stacq.thumbnail || ""
     })
 
     const handleSave = async () => {
@@ -35,43 +37,54 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
     if (isEditing) {
         return (
             <div className="mb-10 relative bg-surface p-6 md:p-8 rounded-3xl border border-border shadow-sm w-full">
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Category Tag</label>
-                        <Input
-                            value={formData.category}
-                            onChange={e => setFormData({ ...formData, category: e.target.value })}
-                            className="bg-background font-semibold text-primary max-w-xs h-12 rounded-xl"
-                            placeholder="e.g. Frontend"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Collection Title</label>
-                        <Input
-                            value={formData.title}
-                            onChange={e => setFormData({ ...formData, title: e.target.value })}
-                            className="text-2xl md:text-3xl font-black h-16 bg-background rounded-xl"
-                            placeholder="Awesome Links"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Curator's Description</label>
-                        <Textarea
-                            value={formData.description}
-                            onChange={e => setFormData({ ...formData, description: e.target.value })}
-                            className="bg-background resize-none h-28 rounded-xl"
-                            placeholder="Why did you curate this collection?"
-                        />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Category Tag</label>
+                            <Input
+                                value={formData.category}
+                                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                className="bg-background font-semibold text-primary max-w-xs h-12 rounded-xl"
+                                placeholder="e.g. Frontend"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Collection Title</label>
+                            <Input
+                                value={formData.title}
+                                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                className="text-2xl md:text-3xl font-black h-16 bg-background rounded-xl"
+                                placeholder="Awesome Links"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Curator's Description</label>
+                            <Textarea
+                                value={formData.description}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                className="bg-background resize-none h-28 rounded-xl"
+                                placeholder="Why did you curate this collection?"
+                            />
+                        </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 pt-3">
-                        <button onClick={handleSave} disabled={loading} className="inline-flex items-center justify-center bg-primary hover:bg-primary-dark text-primary-foreground rounded-full px-8 h-12 font-bold shadow-emerald shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer">
-                            {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Check className="w-5 h-5 mr-2" />} Save Changes
-                        </button>
-                        <button onClick={() => setIsEditing(false)} disabled={loading} className="inline-flex items-center justify-center rounded-full px-8 h-12 font-bold text-muted-foreground hover:bg-surface-hover transition-colors cursor-pointer">
-                            <X className="w-5 h-5 mr-2" /> Cancel
-                        </button>
+                    <div className="space-y-4">
+                        <ImageUpload 
+                            value={formData.thumbnail}
+                            onChange={(url) => setFormData({ ...formData, thumbnail: url })}
+                            onRemove={() => setFormData({ ...formData, thumbnail: "" })}
+                            label="Collection Thumbnail"
+                        />
                     </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-border mt-6">
+                    <button onClick={handleSave} disabled={loading} className="inline-flex items-center justify-center bg-primary hover:bg-primary-dark text-primary-foreground rounded-full px-8 h-12 font-bold shadow-emerald shadow-sm transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer">
+                        {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Check className="w-5 h-5 mr-2" />} Save Changes
+                    </button>
+                    <button onClick={() => setIsEditing(false)} disabled={loading} className="inline-flex items-center justify-center rounded-full px-8 h-12 font-bold text-muted-foreground hover:bg-surface-hover transition-colors cursor-pointer">
+                        <X className="w-5 h-5 mr-2" /> Cancel
+                    </button>
                 </div>
             </div>
         )
