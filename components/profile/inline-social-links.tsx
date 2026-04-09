@@ -67,7 +67,7 @@ export function InlineSocialLinks({ profile, isOwnProfile }: { profile: any, isO
             <div className="flex flex-col gap-3 pt-3 sm:pt-4 w-full max-w-md bg-surface p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-border shadow-sm">
 
                 <p className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-wider mb-2">
-                    Curator Links
+                    Stacqer Links
                 </p>
 
                 {links.map((link, index) => (

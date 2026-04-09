@@ -72,7 +72,7 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"] }: { 
         setSaving(false)
 
         if (res.success) {
-            toast.success("Resource added to collection!")
+            toast.success("Added to Stacq")
             setUrl("")
             setTitle("")
             setThumbnail("")

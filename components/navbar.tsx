@@ -139,7 +139,7 @@ export function Navbar() {
                   ))
                 ) : (
                   <div className="p-3 sm:p-4 text-[11px] sm:text-xs text-muted-foreground text-center font-medium italic">
-                    No collections found.
+                    No stacqs found.
                   </div>
                 )}
 
@@ -173,7 +173,7 @@ export function Navbar() {
 
                   <DropdownMenuLabel className="p-3">
                     <p className="font-extrabold text-foreground text-sm sm:text-base">
-                      {session.user.user_metadata.full_name || "Curator"}
+                      {session.user.user_metadata.full_name || "Stacqer"}
                     </p>
                     <p className="text-[11px] sm:text-xs text-muted-foreground truncate font-medium">
                       {session.user.email}

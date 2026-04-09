@@ -136,7 +136,7 @@ export function InlineProfileEditor({ profile, isOwnProfile }: { profile: any, i
             </div>
 
             <p className="text-sm sm:text-base md:text-lg text-foreground/80 max-w-2xl leading-relaxed">
-                {profile.bio || "This curator hasn't added a bio yet. They prefer to let their collections do the talking."}
+                {profile.bio || "This stacqer hasn't added a bio yet. They prefer to let their stacqs do the talking."}
             </p>
 
             {isOwnProfile && (

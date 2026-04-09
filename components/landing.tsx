@@ -23,15 +23,13 @@ const LandingPageUI = () => {
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center">
 
                         <Badge variant="outline" className="mb-6 sm:mb-8 border-primary text-primary px-3 py-1 rounded-full text-xs font-semibold bg-primary/5 tracking-wider">
-                            THE CURATION PLATFORM
+                            THE STACQING PLATFORM
                         </Badge>
 
-                        <h1 className="max-w-4xl text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground mb-4 sm:mb-6">
-                            The Expert Filter <br className="hidden sm:block" />
-                            for the <span className="text-primary">Digital Age.</span>
+                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-foreground leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                            The Expert Filter for the <span className="bg-clip-text text-transparent bg-linear-to-r from-primary via-emerald-400 to-teal-500 animate-gradient">Digital Age</span>
                         </h1>
-
-                        <p className="max-w-2xl text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 leading-relaxed text-balance">
+                        <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground font-medium mb-10 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
                             Stop searching and start finding. Stacq helps you curate the high-signal resources that Google and AI often miss.
                         </p>
 
@@ -41,7 +39,7 @@ const LandingPageUI = () => {
                             </Button>
 
                             <Button onClick={() => router.push('/explore')} variant="outline" className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full btn-outline border-border cursor-pointer">
-                                Browse Collections
+                                Browse Stacqs
                             </Button>
                         </div>
 
@@ -78,11 +76,11 @@ const LandingPageUI = () => {
                                     </div>
 
                                     <h3 className="text-xl sm:text-2xl md:text-3xl font-bold">
-                                        Tested by People.
+                                        Verified Stacqers.
                                     </h3>
 
                                     <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-                                        We don’t compete with algorithms. We complement them. Every link in a Stacq comes with a &quot;Why&quot;—the personal context from a real human who actually used the tool, read the article, or ran the code.
+                                        Follow experts in design, engineering, and tech ventures. See what their filter captures—the high-signal resources that Google and AI often miss.
                                     </p>
 
                                 </div>
@@ -117,7 +115,7 @@ const LandingPageUI = () => {
                                     </h3>
 
                                     <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-                                        Stop digging through 10-page Reddit threads or generic AI lists. Discover &quot;Stacks&quot; curated by experts who have already done the trial and error for you.
+                                        Stop digging through generic AI lists. Discover stacqs curated by stacqers who have already done the trial and error for you.
                                     </p>
 
                                 </div>
@@ -148,11 +146,11 @@ const LandingPageUI = () => {
                                     </div>
 
                                     <h3 className="text-xl sm:text-2xl md:text-3xl font-bold">
-                                        Your Personal Knowledge Base.
+                                        Personal Stacqs.
                                     </h3>
 
                                     <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
-                                        Transform your scattered bookmarks into a clean, professional library. Organise the best of the internet into Stacks that you can share with your team, your students, or the world.
+                                        Transform your scattered bookmarks into a clean, professional library. Build your personal knowledge base and share it with the world.
                                     </p>
 
                                 </div>
@@ -190,7 +188,7 @@ const LandingPageUI = () => {
                         </h2>
 
                         <p className="text-base sm:text-lg md:text-xl md:leading-relaxed text-primary-foreground/90 mb-8 sm:mb-10 max-w-2xl mx-auto">
-                            Join thousands of learners, developers, and creators building their personal knowledge bases on Stacq.
+                            Join thousands of learners, developers, and creators building their personal knowledge bases on stacq.in.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -199,8 +197,8 @@ const LandingPageUI = () => {
                                 Create your account
                             </Button>
 
-                            <Button variant="secondary" className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full bg-white text-primary hover:bg-white/90 shadow-lg cursor-pointer">
-                                Browse collections
+                            <Button onClick={() => router.push('/explore')} variant="secondary" className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg rounded-full bg-white text-primary hover:bg-white/90 shadow-lg cursor-pointer">
+                                Browse Stacqs
                             </Button>
 
                         </div>

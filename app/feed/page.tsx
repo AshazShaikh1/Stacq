@@ -34,7 +34,7 @@ export default async function FeedPage() {
             category: s.category,
             thumbnail: coverImage,
             items: s.resources || [],
-            curator: {
+            stacqer: {
                 username: s.username || "anonymous",
                 avatar: s.avatar_url
             },
@@ -54,7 +54,7 @@ export default async function FeedPage() {
                         </h1>
 
                         <p className="text-sm sm:text-base text-muted-foreground font-semibold mt-1">
-                            Trending collections from the community.
+                            Trending stacqs from the community.
                         </p>
                     </div>
 
@@ -71,7 +71,7 @@ export default async function FeedPage() {
                         </div>
 
                         <h3 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                            No collections yet
+                            No stacqs yet
                         </h3>
 
                         <p className="text-muted-foreground mt-3 font-medium max-w-sm text-sm sm:text-base leading-relaxed">

@@ -12,8 +12,8 @@ export function StacqCard({ item }: { item?: any }) {
             { title: "Another great resource" },
             { title: "A third useful tool" }
         ],
-        curator: {
-            username: "curator123",
+        stacqer: {
+            username: "stacqer123",
             avatar: ""
         },
     };
@@ -21,8 +21,8 @@ export function StacqCard({ item }: { item?: any }) {
     const title = stacq.title || "Untitled Stacq"
     const thumbnail = stacq.thumbnail || stacq.items?.[0]?.thumbnail || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop"
     const stacqItems = stacq.items || []
-    const username = stacq.curator?.username || "anonymous"
-    const avatar = stacq.curator?.avatar || ""
+    const username = stacq.stacqer?.username || "anonymous"
+    const avatar = stacq.stacqer?.avatar || ""
     const remixCount = stacq.remixCount || 0
 
     return (

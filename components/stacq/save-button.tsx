@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Bookmark, Loader2 } from "lucide-react"
-import { toggleSaveCollection } from "@/lib/actions/mutations"
+import { toggleSaveStacq } from "@/lib/actions/mutations"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth/auth-provider"
 import { toast } from "sonner"
@@ -28,12 +28,12 @@ export function SaveButton({
         const previousState = isSaved
         setIsSaved(!isSaved)
         
-        const res = await toggleSaveCollection(stacqId)
+        const res = await toggleSaveStacq(stacqId)
         if (res.error) {
             setIsSaved(previousState)
             toast.error(res.error)
         } else {
-            toast.success(isSaved ? "Saved to library" : "Removed from library")
+            toast.success(!isSaved ? "Saved to Library" : "Removed from Library")
         }
     }
 

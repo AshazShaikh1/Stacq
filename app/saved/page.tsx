@@ -29,7 +29,7 @@ export default async function SavedPage() {
             aspectRatio: ['aspect-square', 'aspect-video', 'aspect-[4/5]', 'aspect-[3/4]'][Math.floor(Math.random() * 4)],
             thumbnail: s.resources?.[0]?.thumbnail,
             items: s.resources || [],
-            curator: {
+            stacqer: {
                 username: s.profiles?.username || "anonymous",
                 avatar: s.profiles?.avatar_url
             },
@@ -53,7 +53,7 @@ export default async function SavedPage() {
                         </h1>
 
                         <p className="text-muted-foreground font-medium text-xs sm:text-sm mt-1">
-                            {formattedItems.length} high-signal collections saved for later.
+                            {formattedItems.length} high-signal stacqs saved for later.
                         </p>
                     </div>
 
@@ -78,14 +78,14 @@ export default async function SavedPage() {
                         </h2>
 
                         <p className="text-muted-foreground max-w-sm mt-3 text-sm sm:text-base font-medium">
-                            The best curators have a well-stocked library. Start building yours by exploring the community feed.
+                            The best stacqers have a well-stocked library. Start building yours by exploring the community feed.
                         </p>
 
                         <a
                             href="/explore"
                             className="mt-8 sm:mt-10 inline-flex items-center justify-center bg-primary hover:bg-primary-dark text-primary-foreground rounded-full px-8 sm:px-10 h-12 sm:h-14 text-sm sm:text-base font-black shadow-emerald shadow-sm transition-all hover:scale-105 active:scale-95"
                         >
-                            Explore Collections
+                            Explore Stacqs
                         </a>
 
                     </div>

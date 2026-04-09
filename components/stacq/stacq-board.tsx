@@ -20,13 +20,13 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { updateCollection, updateResourceOrders, renameSection } from '@/lib/actions/mutations'
+import { updateStacq, updateResourceOrders, renameSection } from '@/lib/actions/mutations'
 import { Plus, GripVertical, Edit2, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ResourceCard } from './resource-card'
-import { EmptyState } from './empty-state'
+import { EmptyState } from '@/components/stacq/empty-state'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -100,7 +100,7 @@ function SortableSection({ id, sectionName, items, isOwner, onRename, isSectionD
             {!isSectionDragging && (
               items.length === 0 ? (
                 <div className="text-center py-6 text-sm text-muted-foreground font-medium italic">
-                  Drop resources here
+                  Drop resources here or use the add form below
                 </div>
               ) : (
                 items.map(item => (
@@ -192,7 +192,7 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
     setItems(prev => ({ ...prev, [name]: [] }));
     setNewSectionName("");
     // Sync
-    await updateCollection(initialStacq.id, { section_order: nextSections });
+    await updateStacq(initialStacq.id, { section_order: nextSections });
   }
 
   const handleRenameSection = async (oldName: string, newName: string) => {
@@ -282,7 +282,7 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
         const newSections = arrayMove(sections, activeIndex, overIndex);
         setSections(newSections);
         // Sync
-        await updateCollection(initialStacq.id, { section_order: newSections });
+        await updateStacq(initialStacq.id, { section_order: newSections });
       }
       return;
     }
@@ -360,23 +360,23 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
         >
           <div className="space-y-8">
             {/* Horizontal adding utility */}
-            <div className="relative">
+            <div className="relative group">
               <Input
                 value={newSectionName}
                 onChange={e => setNewSectionName(e.target.value)}
                 placeholder="New section name... (e.g. Must Reads)"
-                className="bg-surface border-border h-14 rounded-2xl pr-32 sm:pr-40 text-base"
+                className="bg-surface border-border h-12 sm:h-14 rounded-2xl pr-28 sm:pr-40 text-sm sm:text-base focus:bg-background transition-all"
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddSection() }}
               />
-              <Button onClick={handleAddSection} className="absolute right-1 top-1 bottom-1 h-12 w-[80px] sm:w-[130px] font-bold rounded-xl whitespace-nowrap p-0 sm:font-bold">
-                <Plus className="w-4 h-4 sm:mr-2" />
+              <Button onClick={handleAddSection} className="absolute right-1 top-1 bottom-1 h-10 sm:h-12 w-[70px] sm:w-[130px] font-bold rounded-xl whitespace-nowrap p-0 transition-transform active:scale-95">
+                <Plus className="w-4 h-4 sm:mr-1.5" />
                 <span className="hidden sm:inline">Add Section</span>
-                <span className="sm:hidden ml-1">Add</span>
+                <span className="sm:hidden ml-0.5">Add</span>
               </Button>
             </div>
 
             <SortableContext items={sections} strategy={verticalListSortingStrategy}>
-              <div className="space-y-10 pl-6 sm:pl-10"> {/* Left padding reserves space for drag handles */}
+              <div className="space-y-10 pl-10 sm:pl-14"> {/* Left padding reserves space for drag handles */}
                 {sections.map(section => (
                   <SortableSection key={section} id={section} sectionName={section} items={items[section] || []} isOwner={isOwner} onRename={handleRenameSection} isSectionDragging={activeType === 'Section'} availableSections={sections} />
                 ))}

@@ -19,7 +19,7 @@ export default function ProfileLoading() {
 
                     {/* Stats row skeleton */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:flex gap-8 md:gap-16 mt-10 py-6 border-t border-border/50">
-                        {['Collections', 'Resources', 'Followers'].map((label) => (
+                        {['Stacqs', 'Resources', 'Followers'].map((label) => (
                             <div key={label} className="space-y-2">
                                 <div className="h-10 w-16 bg-muted rounded-xl" />
                                 <div className="h-3 w-20 bg-muted rounded" />

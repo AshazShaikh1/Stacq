@@ -30,7 +30,7 @@ export function ReportContent() {
 
             <div className="bg-surface border border-border p-6 md:p-8 rounded-3xl shadow-sm space-y-8">
                 <p className="text-foreground font-medium leading-relaxed">
-                    Please email our team with a link to the offending collection or profile, and a brief description of the issue.
+                    Please email our team with a link to the offending stacq or profile, and a brief description of the issue.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">

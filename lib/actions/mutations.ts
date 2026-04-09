@@ -3,12 +3,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-/** * Toggles a "Save" for a collection. * If it exists, delete it (unsave). If not, insert it (save). */
-export async function toggleSaveCollection(stacqId: string) {
+/** * Toggles a "Save" for a stacq. * If it exists, delete it (unsave). If not, insert it (save). */
+export async function toggleSaveStacq(stacqId: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) return { error: "Security Exception: Must be logged in to save collections." }
+    if (!user) return { error: "Security Exception: Must be logged in to save stacqs." }
 
     // 1. Check if the save already exists
     const { data: existingSave } = await supabase
@@ -39,7 +39,7 @@ export async function toggleSaveCollection(stacqId: string) {
     return { success: true }
 }
 
-export async function updateCollection(id: string, updates: { title?: string, description?: string, category?: string, thumbnail?: string, section_order?: string[] }) {
+export async function updateStacq(id: string, updates: { title?: string, description?: string, category?: string, thumbnail?: string, section_order?: string[] }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Security Exception: Must be logged in to modify layers." }
@@ -91,7 +91,7 @@ export async function deleteResource(id: string) {
     return { success: true }
 }
 
-export async function deleteCollection(id: string) {
+export async function deleteStacq(id: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Unauthorized" }
@@ -143,7 +143,7 @@ export async function renameSection(stacqId: string, oldName: string, newName: s
         .eq('user_id', user.id)
         .single()
 
-    if (fetchError || !stacq) return { error: "Failed to fetch collection for rename" }
+    if (fetchError || !stacq) return { error: "Failed to fetch stacq for rename" }
 
     // 2. Replace section in order
     const nextOrder = (stacq.section_order || []).map((s: string) => s === oldName ? newName : s)

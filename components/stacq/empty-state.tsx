@@ -9,7 +9,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ 
     title = "Nothing to see here yet", 
-    description = "Check back soon — the curator is still refining this stack.",
+    description = "Check back soon — the stacqer is still refining this stacq.",
     icon = <Inbox className="w-12 h-12 text-primary opacity-50 mb-4" />,
     actionButton
 }: EmptyStateProps) {

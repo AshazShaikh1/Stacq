@@ -6,14 +6,14 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
-export function ShareButton({ title, collectionId }: { title: string, collectionId: string }) {
+export function ShareButton({ title, stacqId }: { title: string, stacqId: string }) {
     const [copied, setCopied] = useState(false)
     const [shareUrl, setShareUrl] = useState("")
 
     // 1. Only set the URL once the component mounts in the browser
     useEffect(() => {
-        setShareUrl(`${window.location.origin}/stacq/${collectionId}`)
-    }, [collectionId])
+        setShareUrl(`${window.location.origin}/stacq/${stacqId}`)
+    }, [stacqId])
 
     const handleShare = async () => {
         // Guard clause in case it's clicked before URL is set

@@ -30,7 +30,7 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
             toast.error(res.error)
             setLoading(false)
         } else if (res.success) {
-            toast.success("Collection created successfully!")
+            toast.success("Stacq created successfully!")
             setOpen(false)
             setLoading(false)
             router.push(`/stacq/${res.stacqId}`)
@@ -41,21 +41,21 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger render={children} />
 
-            <DialogContent className="w-[95%] sm:max-w-2xl border-border p-6 sm:p-8 rounded-4xl">
+            <DialogContent className="w-[95%] sm:max-w-2xl border-border p-5 sm:p-7 rounded-3xl sm:rounded-4xl">
 
-                <DialogHeader className="space-y-2 mb-4">
+                <DialogHeader className="space-y-1 mb-2">
                     <DialogTitle className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-                        Create a Collection
+                        Create a Stacq
                     </DialogTitle>
                     <DialogDescription className="text-sm sm:text-base font-medium text-muted-foreground">
                         Stack high-signal resources and share your curation with the world.
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+                <form onSubmit={handleSubmit} className="space-y-4 pt-1">
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="space-y-4">
                             <div className="space-y-2">
                                 <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
                                     Stack Title
@@ -93,7 +93,7 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
                             value={thumbnail}
                             onChange={setThumbnail}
                             onRemove={() => setThumbnail("")}
-                            label="Collection Thumbnail"
+                            label="Stacq Thumbnail"
                         />
                     </div>
 
@@ -108,23 +108,23 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Why are you putting this collection together? What's the signal?"
                                 required
-                                className="resize-none h-28 pl-10 pt-3.5 bg-surface rounded-xl border-border text-sm font-medium"
+                                className="resize-none h-24 sm:h-28 pl-10 pt-3 bg-surface rounded-xl border-border text-sm font-medium"
                             />
                         </div>
                     </div>
 
-                    <div className="pt-4">
+                    <div className="pt-2 sm:pt-4">
                         <Button
                             type="submit"
                             disabled={loading}
-                            className="btn-primary w-full h-14 rounded-full font-black text-base sm:text-lg shadow-emerald shadow-lg active:scale-95 transition-transform"
+                            className="btn-primary w-full h-12 sm:h-14 rounded-full font-black text-base sm:text-lg shadow-emerald shadow-lg active:scale-95 transition-transform"
                         >
                             {loading ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />
                             ) : (
                                 <div className="flex items-center gap-3">
                                     <PlusSquare className="w-5 h-5" />
-                                    Launch Collection
+                                    Launch Stacq
                                 </div>
                             )}
                         </Button>

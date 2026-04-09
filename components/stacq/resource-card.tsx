@@ -113,11 +113,11 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                         </a>
                     </div>
 
-                    <a
-                        href={url}
-                        target="_blank"
+                    <a 
+                        href={url} 
+                        target="_blank" 
                         rel="noopener noreferrer"
-                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-9 sm:h-10 px-6 sm:px-8 text-xs sm:text-sm font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
+                        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-11 sm:h-12 px-8 sm:px-10 text-sm sm:text-base font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
                     >
                         Visit Link
                     </a>
@@ -153,9 +153,13 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                     </DialogHeader>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Display Title</label>
-                                                <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="h-12 rounded-xl border-border bg-surface font-semibold" />
+                                            <div>
+                                                <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Resource Title</label>
+                                                <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="h-11 sm:h-12 text-base font-bold bg-background rounded-xl" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">Stacqer's Note</label>
+                                                <Textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} className="h-24 sm:h-28 bg-background resize-none rounded-xl text-sm" placeholder="Why is this resource high-signal?" />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Section (Optional)</label>
@@ -191,10 +195,6 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                                         </Badge>
                                                     </div>
                                                 )}
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Curator's Note</label>
-                                                <Textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} className="rounded-xl border-border bg-surface min-h-[80px] font-medium" />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
@@ -232,7 +232,7 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete this resource from the collection.
+                                            This action cannot be undone. This will permanently delete this resource from the stacq.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>

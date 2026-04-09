@@ -137,7 +137,7 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                     {step === 'signup-otp' ? `We sent a code to ${email}` :
                         step === 'recovery-email' ? "Enter your email to receive a recovery code" :
                             step === 'recovery-otp' ? "Enter the code and your new password" :
-                                type === 'login' ? 'Enter your details to continue' : 'Join the community of curators'}
+                                type === 'login' ? 'Enter your details to continue' : 'Join the community of stacqers'}
                 </p>
             </div>
 
@@ -162,8 +162,11 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                                     <Input
                                         placeholder="Username"
                                         value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
+                                        onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
                                         required
+                                        autoCapitalize="none"
+                                        autoCorrect="off"
+                                        spellCheck={false}
                                         className="pl-9 h-11 bg-background rounded-xl border-border focus:ring-primary/20"
                                     />
                                 </div>

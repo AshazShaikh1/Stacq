@@ -37,7 +37,7 @@ export async function updateProfile(
             .single()
             
         if (existing) {
-            return { error: "That username is already taken by another curator!" }
+            return { error: "That username is already taken by another stacqer!" }
         }
         payload.username = newUsername
     }
