@@ -70,9 +70,16 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
 
     const derivedSections = new Set<string>(stacq.section_order || [])
     if (stacq.resources) {
-        stacq.resources.forEach((r: any) => derivedSections.add(r.section || 'Default'))
+        stacq.resources.forEach((r: any) => {
+            if (r.section) derivedSections.add(r.section)
+        })
     }
-    derivedSections.add('Default')
+    
+    // Only provide "Default" as a starting point if no sections are defined yet
+    if (derivedSections.size === 0) {
+        derivedSections.add('Default')
+    }
+    
     const sections = Array.from(derivedSections)
 
     return (

@@ -190,6 +190,7 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                                     <Select
                                                         value={formData.section}
                                                         onValueChange={(val) => {
+                                                            if (!val) return;
                                                             if (val === "new-section") {
                                                                 setIsCreatingSection(true);
                                                                 setFormData({ ...formData, section: "" });
@@ -198,16 +199,16 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                                             }
                                                         }}
                                                     >
-                                                        <SelectTrigger className="w-full h-12 bg-surface border-border rounded-xl text-sm font-bold px-4 hover:border-primary/30 transition-all">
+                                                        <SelectTrigger className="w-full h-12 bg-surface border-border rounded-xl text-sm font-medium px-4 hover:border-primary/30 transition-all">
                                                             <SelectValue placeholder="Select a section" />
                                                         </SelectTrigger>
                                                         <SelectContent className="rounded-xl border-border shadow-2xl">
                                                             {availableSections.map((sec) => (
-                                                                <SelectItem key={sec} value={sec} className="font-bold py-2.5">
+                                                                <SelectItem key={sec} value={sec} className="py-2.5">
                                                                     {sec.length > 25 ? sec.substring(0, 25) + "..." : sec}
                                                                 </SelectItem>
                                                             ))}
-                                                            <SelectItem value="new-section" className="text-primary font-black py-2.5 border-t border-border/50 mt-1">
+                                                            <SelectItem value="new-section" className="text-primary py-2.5 border-t border-border/50 mt-1 font-bold">
                                                                 <div className="flex items-center gap-2">
                                                                     <PlusSquare className="w-4 h-4" />
                                                                     + Add New Section
