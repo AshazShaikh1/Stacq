@@ -2,13 +2,24 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { updateCollection } from "@/lib/actions/mutations"
+import { updateCollection, deleteCollection } from "@/lib/actions/mutations"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ImageUpload } from "@/components/ui/image-upload"
-import { Loader2, Edit2, Check, X } from "lucide-react"
+import { Loader2, Edit2, Check, X, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: boolean }) {
     const router = useRouter()
@@ -20,6 +31,7 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
         description: stacq.description || "",
         thumbnail: stacq.thumbnail || ""
     })
+    const [deleting, setDeleting] = useState(false)
 
     const handleSave = async () => {
         setLoading(true)
@@ -31,6 +43,19 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
             toast.success("Collection updated")
             setIsEditing(false)
             router.refresh()
+        }
+    }
+
+    const handleDelete = async () => {
+        setDeleting(true)
+        const res = await deleteCollection(stacq.id)
+        if (res.error) {
+            toast.error(res.error)
+            setDeleting(false)
+        } else {
+            toast.success("Collection deleted")
+            // Navigation to home is handled by revalidatePath in mutation or router push
+            router.push('/')
         }
     }
 
@@ -111,9 +136,30 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
             </div>
 
             {isOwner && (
-                <button onClick={() => setIsEditing(true)} className="absolute -top-4 -right-2 md:top-0 md:-right-16 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 p-3 text-muted-foreground hover:text-primary bg-background hover:bg-surface rounded-full shadow-sm hover:shadow-md border border-border hover:border-primary cursor-pointer z-10">
-                    <Edit2 className="w-5 h-5" />
-                </button>
+                <div className="absolute -top-4 -right-2 md:top-0 md:-right-16 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col gap-2 z-10">
+                    <button onClick={() => setIsEditing(true)} className="p-3 text-muted-foreground hover:text-primary bg-background hover:bg-surface rounded-full shadow-sm hover:shadow-md border border-border hover:border-primary cursor-pointer">
+                        <Edit2 className="w-5 h-5" />
+                    </button>
+                    <AlertDialog>
+                        <AlertDialogTrigger className="p-3 text-muted-foreground hover:text-destructive bg-background hover:bg-destructive/10 rounded-full shadow-sm hover:shadow-md border border-border cursor-pointer">
+                            {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-2xl">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Collection</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Are you sure you want to delete this collection and all of its resources? This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full">
+                                    Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
             )}
         </div>
     )

@@ -68,7 +68,7 @@ export async function fetchMetadata(url: string) {
     }
 }
 
-export async function addResource(stacqId: string, url: string, note: string, title?: string, thumbnail?: string) {
+export async function addResource(stacqId: string, url: string, note: string, title?: string, thumbnail?: string, section: string = "Default") {
     const supabase = await createClient()
  
     const { data: { user } } = await supabase.auth.getUser()
@@ -80,7 +80,8 @@ export async function addResource(stacqId: string, url: string, note: string, ti
         url,
         title: title || url,
         thumbnail: thumbnail,
-        note
+        note,
+        section
     }])
 
     if (error) {

@@ -17,6 +17,7 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
     const [title, setTitle] = useState("")
     const [thumbnail, setThumbnail] = useState("")
     const [note, setNote] = useState("")
+    const [section, setSection] = useState("Default")
 
     const [loadingMeta, setLoadingMeta] = useState(false)
     const [metadata, setMetadata] = useState<any>(null)
@@ -65,7 +66,7 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
         if (!url) return;
 
         setSaving(true)
-        const res = await addResource(stacqId, url, note, title, thumbnail)
+        const res = await addResource(stacqId, url, note, title, thumbnail, section)
         setSaving(false)
 
         if (res.success) {
@@ -74,6 +75,7 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
             setTitle("")
             setThumbnail("")
             setNote("")
+            setSection("Default")
             setMetadata(null)
             router.refresh()
         } else {
@@ -100,20 +102,33 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
 
             <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
 
-                <div className="space-y-2">
-                    <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
-                        Resource Link
-                    </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                        <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+                            Resource Link
+                        </label>
 
-                    <div className="relative">
-                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <div className="relative">
+                            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                placeholder="https://example.com/article"
+                                className="pl-10 h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm sm:text-base font-medium"
+                                required
+                                type="url"
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+                            Section (Optional)
+                        </label>
                         <Input
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder="https://example.com/article"
-                            className="pl-10 h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm sm:text-base font-medium"
-                            required
-                            type="url"
+                            value={section}
+                            onChange={(e) => setSection(e.target.value)}
+                            placeholder="e.g. Getting Started"
+                            className="h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm sm:text-base font-medium"
                         />
                     </div>
                 </div>

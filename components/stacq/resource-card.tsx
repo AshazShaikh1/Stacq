@@ -11,6 +11,17 @@ import { Button } from "@/components/ui/button"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { toast } from "sonner"
 import Image from "next/image"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function ResourceCard({ resource, isOwner = false }: { resource?: any, isOwner?: boolean }) {
     const router = useRouter()
@@ -23,7 +34,7 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
         note: "This is my go-to utility framework. Check out the typography plugin specifically for beautiful text defaults!"
     }
 
-    const { id, title, url, thumbnail, note } = item;
+    const { id, title, url, thumbnail, note, section } = item;
 
     const [deleting, setDeleting] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
@@ -31,7 +42,8 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
     const [formData, setFormData] = useState({ 
         title: title || "", 
         note: note || "",
-        thumbnail: thumbnail || ""
+        thumbnail: thumbnail || "",
+        section: section || "Default"
     })
 
     const getDomain = (link: string) => {
@@ -132,8 +144,12 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
                                                 <Input value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="h-12 rounded-xl border-border bg-surface font-semibold" />
                                             </div>
                                             <div className="space-y-2">
+                                                <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Section (Optional)</label>
+                                                <Input value={formData.section} onChange={e => setFormData({ ...formData, section: e.target.value })} placeholder="e.g. Getting Started" className="h-12 rounded-xl border-border bg-surface font-semibold" />
+                                            </div>
+                                            <div className="space-y-2">
                                                 <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Curator's Note</label>
-                                                <Textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} className="rounded-xl border-border bg-surface min-h-[120px] font-medium" />
+                                                <Textarea value={formData.note} onChange={e => setFormData({ ...formData, note: e.target.value })} className="rounded-xl border-border bg-surface min-h-[80px] font-medium" />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
@@ -163,9 +179,25 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
                                 </DialogContent>
                             </Dialog>
 
-                            <button onClick={handleDelete} disabled={deleting} className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer">
-                                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                            </button>
+                            <AlertDialog>
+                                <AlertDialogTrigger className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer">
+                                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="rounded-2xl">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete this resource from the collection.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full">
+                                            Delete
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                     )}
                 </div>

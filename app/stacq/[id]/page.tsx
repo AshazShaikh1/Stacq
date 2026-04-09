@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ResourceCard } from '@/components/stacq/resource-card'
+import { StacqBoard } from '@/components/stacq/stacq-board'
 import { AddResourceForm } from '@/components/stacq/add-resource-form'
 import { CollectionHeader } from '@/components/stacq/collection-header'
 import { FollowButton } from '@/components/profile/follow-button'
@@ -27,9 +28,9 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
     const { data: stacq, error } = await supabase
         .from('stacqs')
         .select(`
-            id, title, description, category, user_id,
+            id, title, description, category, user_id, section_order,
             profiles(id, username, display_name, avatar_url),
-            resources(id, title, url, thumbnail, note)
+            resources(id, title, url, thumbnail, note, section, order_index)
         `)
         .eq('id', id)
         .single()
@@ -128,20 +129,9 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
                 </div>
             </div>
 
-            {/* Resources List */}
-            <div className="space-y-6 pt-2">
-                {stacq.resources && stacq.resources.length > 0 ? (
-                    stacq.resources.map((item: any) => (
-                        <ResourceCard key={item.id} resource={item} isOwner={isOwner} />
-                    ))
-                ) : (
-                    <div className="text-center py-20 border-2 border-dashed border-border rounded-3xl bg-surface/50 mt-4">
-                        <p className="text-foreground/70 font-semibold text-lg">This collection is empty.</p>
-                        <p className="text-muted-foreground mt-2 text-base max-w-xs mx-auto">
-                            {isOwner ? "Time to build! Click \"Add Resource\" above to curate your first link." : "Check back soon — the curator is still refining this stack."}
-                        </p>
-                    </div>
-                )}
+            {/* Interactive Board */}
+            <div className="pt-2">
+                <StacqBoard initialStacq={stacq} isOwner={isOwner} />
             </div>
         </div>
     )
