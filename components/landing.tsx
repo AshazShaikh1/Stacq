@@ -27,12 +27,12 @@ const LandingPageUI = () => {
                         </Badge>
 
                         <h1 className="max-w-4xl text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground mb-4 sm:mb-6">
-                            The Filter for a <br className="hidden sm:block" />
-                            <span className="text-primary">Noisy Internet.</span>
+                            The Expert Filter <br className="hidden sm:block" />
+                            for the <span className="text-primary">Digital Age.</span>
                         </h1>
 
                         <p className="max-w-2xl text-base sm:text-lg md:text-xl text-muted-foreground mb-8 sm:mb-10 leading-relaxed text-balance">
-                            Google finds it. AI summarizes it. Stacq tells you if it’s actually worth your time. Build your personal network of human-tested resources.
+                            Stop searching and start finding. Stacq helps you curate the high-signal resources that Google and AI often miss.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -259,8 +259,11 @@ const LandingPageUI = () => {
                     <p>© 2026 Stacq. All rights reserved.</p>
 
                     <div className="flex gap-6">
-                        <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-                        <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+                        <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+                        <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+                        <a href="/about" className="hover:text-white transition-colors">About</a>
+                        <a href="/contact" className="hover:text-white transition-colors">Contact</a>
+                        <a href="/report" className="hover:text-white transition-colors">Report Issue</a>
                     </div>
 
                 </div>

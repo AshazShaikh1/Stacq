@@ -32,6 +32,8 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
         thumbnail: stacq.thumbnail || ""
     })
     const [deleting, setDeleting] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(false)
+    const isLongDescription = stacq.description && stacq.description.length > 200
 
     const handleSave = async () => {
         setLoading(true)
@@ -127,10 +129,18 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
                 </h1>
 
                 {stacq.description && (
-                    <div className="bg-primary/5 py-4 px-6 md:py-6 md:px-8 rounded-2xl md:rounded-3xl border-l-[6px] border-primary inline-block text-left shadow-sm max-w-3xl">
-                        <p className="text-lg md:text-xl italic text-foreground/80 font-medium leading-relaxed">
+                    <div className="bg-primary/5 py-4 px-6 md:py-6 md:px-8 rounded-2xl md:rounded-3xl border-l-[6px] border-primary inline-block w-full sm:w-auto text-left shadow-sm max-w-full md:max-w-3xl transition-all">
+                        <p className={`text-lg md:text-xl italic text-foreground/80 font-medium leading-relaxed whitespace-pre-wrap ${!isExpanded ? 'line-clamp-4' : ''}`}>
                             "{stacq.description}"
                         </p>
+                        {isLongDescription && (
+                            <button 
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                className="text-sm font-bold text-primary hover:underline mt-2 cursor-pointer"
+                            >
+                                {isExpanded ? "Show Less" : "Read More"}
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

@@ -21,6 +21,7 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
     const [username, setUsername] = useState("")
     const [displayName, setDisplayName] = useState("")
     const [otp, setOtp] = useState("")
+    const [agreedToTerms, setAgreedToTerms] = useState(false)
 
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -39,6 +40,9 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
 
         try {
             if (type === 'signup') {
+                if (!agreedToTerms) {
+                    throw new Error("You must agree to the Terms and Privacy Policy")
+                }
                 if (!isPasswordValid(password)) {
                     throw new Error("Password does not meet requirements")
                 }
@@ -210,6 +214,22 @@ export default function AuthForm({ type: initialType }: { type: 'login' | 'signu
                                 </div>
                             )}
                         </div>
+
+                        {type === 'signup' && (
+                            <div className="flex items-start gap-2 py-1 animate-in fade-in slide-in-from-top-1 duration-300">
+                                <input 
+                                    type="checkbox" 
+                                    id="terms" 
+                                    checked={agreedToTerms}
+                                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                    className="mt-1 h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary/20 accent-primary"
+                                    required
+                                />
+                                <label htmlFor="terms" className="text-[11px] sm:text-xs text-muted-foreground leading-tight select-none">
+                                    I agree to the <a href="/terms" className="text-primary hover:underline font-bold" target="_blank">Terms & Conditions</a> and <a href="/privacy" className="text-primary hover:underline font-bold" target="_blank">Privacy Policy</a>.
+                                </label>
+                            </div>
+                        )}
 
                         {type === 'signup' && password.length > 0 && (
                             <div className="py-1">

@@ -7,17 +7,19 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "../ui/textarea"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { fetchMetadata, addResource } from "@/lib/actions/resource"
-import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2, Type } from "lucide-react"
+import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2, Type, X } from "lucide-react"
 import { ResourceCard } from "./resource-card"
 import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 
-export function AddResourceForm({ stacqId }: { stacqId: string }) {
+export function AddResourceForm({ stacqId, availableSections = ["Default"] }: { stacqId: string, availableSections?: string[] }) {
     const router = useRouter()
     const [url, setUrl] = useState("")
     const [title, setTitle] = useState("")
     const [thumbnail, setThumbnail] = useState("")
     const [note, setNote] = useState("")
     const [section, setSection] = useState("Default")
+    const [isCreatingSection, setIsCreatingSection] = useState(false)
 
     const [loadingMeta, setLoadingMeta] = useState(false)
     const [metadata, setMetadata] = useState<any>(null)
@@ -76,6 +78,7 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
             setThumbnail("")
             setNote("")
             setSection("Default")
+            setIsCreatingSection(false)
             setMetadata(null)
             router.refresh()
         } else {
@@ -124,12 +127,38 @@ export function AddResourceForm({ stacqId }: { stacqId: string }) {
                         <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
                             Section (Optional)
                         </label>
-                        <Input
-                            value={section}
-                            onChange={(e) => setSection(e.target.value)}
-                            placeholder="e.g. Getting Started"
-                            className="h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm sm:text-base font-medium"
-                        />
+                        {isCreatingSection ? (
+                            <div className="flex gap-2">
+                                <Input
+                                    value={section === "Default" ? "" : section}
+                                    onChange={(e) => setSection(e.target.value)}
+                                    placeholder="New section name"
+                                    className="h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm font-medium flex-1"
+                                    autoFocus
+                                />
+                                <Button type="button" onClick={() => { setIsCreatingSection(false); setSection("Default"); }} variant="outline" className="h-12 w-12 rounded-xl text-muted-foreground p-0">
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {availableSections.map((sec) => (
+                                    <Badge 
+                                        key={sec} 
+                                        onClick={() => setSection(sec)}
+                                        className={`px-4 py-2 cursor-pointer text-sm select-none border border-border shadow-none font-bold rounded-lg ${section === sec ? 'bg-primary text-primary-foreground hover:bg-primary-dark shadow-sm scale-[1.02] transform transition-all border-primary/50' : 'bg-surface hover:bg-surface-hover hover:border-primary/30 text-muted-foreground'}`}
+                                    >
+                                        {sec}
+                                    </Badge>
+                                ))}
+                                <Badge 
+                                    onClick={() => { setIsCreatingSection(true); setSection(""); }}
+                                    className="px-4 py-2 cursor-pointer text-sm select-none border border-dashed text-primary border-primary/40 bg-primary/5 hover:bg-primary/10 shadow-none font-bold rounded-lg"
+                                >
+                                    <Type className="w-3 h-3 mr-1" /> New Section
+                                </Badge>
+                            </div>
+                        )}
                     </div>
                 </div>
 

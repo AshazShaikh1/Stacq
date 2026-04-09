@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ExternalLink, Quote, Trash2, Edit2, Loader2, Check } from "lucide-react"
+import { ExternalLink, Quote, Trash2, Edit2, Loader2, Check, X } from "lucide-react"
 import { deleteResource, updateResource } from "@/lib/actions/mutations"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { toast } from "sonner"
 import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-export function ResourceCard({ resource, isOwner = false }: { resource?: any, isOwner?: boolean }) {
+export function ResourceCard({ resource, isOwner = false, availableSections = ["Default"] }: { resource?: any, isOwner?: boolean, availableSections?: string[] }) {
     const router = useRouter()
 
     const item = resource || {
@@ -45,6 +46,9 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
         thumbnail: thumbnail || "",
         section: section || "Default"
     })
+    const [isCreatingSection, setIsCreatingSection] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(false)
+    const isLongNote = note && note.length > 150
 
     const getDomain = (link: string) => {
         try {
@@ -122,9 +126,19 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
                 <div className="mt-4 pt-4 border-t border-border relative">
                     <div className="flex gap-3 items-start">
                         <Quote className="w-4 h-4 text-primary shrink-0 mt-1 opacity-40" />
-                        <p className="text-sm md:text-base text-foreground/70 leading-relaxed font-medium pr-10">
-                            {note || "No curator note provided."}
-                        </p>
+                        <div className="flex-1">
+                            <p className={`text-sm md:text-base text-foreground/70 leading-relaxed font-medium pr-10 whitespace-pre-wrap ${!isExpanded ? 'line-clamp-3' : ''}`}>
+                                {note || "No curator note provided."}
+                            </p>
+                            {isLongNote && (
+                                <button 
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                    className="text-xs font-bold text-primary hover:underline mt-1 cursor-pointer"
+                                >
+                                    {isExpanded ? "Show Less" : "Read More"}
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {isOwner && (
@@ -145,7 +159,38 @@ export function ResourceCard({ resource, isOwner = false }: { resource?: any, is
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Section (Optional)</label>
-                                                <Input value={formData.section} onChange={e => setFormData({ ...formData, section: e.target.value })} placeholder="e.g. Getting Started" className="h-12 rounded-xl border-border bg-surface font-semibold" />
+                                                {isCreatingSection ? (
+                                                    <div className="flex gap-2">
+                                                        <Input 
+                                                            value={formData.section === "Default" ? "" : formData.section} 
+                                                            onChange={e => setFormData({ ...formData, section: e.target.value })} 
+                                                            placeholder="New section name" 
+                                                            className="h-12 rounded-xl border-border bg-surface font-semibold flex-1" 
+                                                            autoFocus
+                                                        />
+                                                        <Button type="button" onClick={() => { setIsCreatingSection(false); setFormData({ ...formData, section: section || "Default" }); }} variant="outline" className="h-12 w-12 rounded-xl text-muted-foreground p-0">
+                                                            <X className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {availableSections.map((sec) => (
+                                                            <Badge 
+                                                                key={sec} 
+                                                                onClick={() => setFormData({ ...formData, section: sec })}
+                                                                className={`px-4 py-2 cursor-pointer text-sm select-none border border-border shadow-none font-bold rounded-lg ${formData.section === sec ? 'bg-primary text-primary-foreground hover:bg-primary-dark shadow-sm scale-[1.02] transform transition-all border-primary/50' : 'bg-surface hover:bg-surface-hover hover:border-primary/30 text-muted-foreground'}`}
+                                                            >
+                                                                {sec}
+                                                            </Badge>
+                                                        ))}
+                                                        <Badge 
+                                                            onClick={() => { setIsCreatingSection(true); setFormData({ ...formData, section: "" }); }}
+                                                            className="px-4 py-2 cursor-pointer text-sm select-none border border-dashed text-primary border-primary/40 bg-primary/5 hover:bg-primary/10 shadow-none font-bold rounded-lg"
+                                                        >
+                                                            <Edit2 className="w-3 h-3 mr-1" /> New Section
+                                                        </Badge>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Curator's Note</label>

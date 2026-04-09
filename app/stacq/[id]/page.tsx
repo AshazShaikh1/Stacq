@@ -75,8 +75,16 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
     const isFollowingCreator = !!followResult.data
     const isSaved = !!saveResult.data
 
+    // Compute sections for the AddResourceForm Dropdown
+    const derivedSections = new Set<string>(stacq.section_order || [])
+    if (stacq.resources) {
+        stacq.resources.forEach((r: any) => derivedSections.add(r.section || 'Default'))
+    }
+    derivedSections.add('Default')
+    const sections = Array.from(derivedSections)
+
     return (
-        <div className="max-w-4xl mx-auto p-6 md:p-12 pb-24 md:pb-12 space-y-8 min-h-screen">
+        <div className="max-w-5xl mx-auto p-4 sm:p-6 md:p-8 pb-24 md:pb-12 space-y-8 min-h-screen overflow-x-hidden w-full">
 
             {/* Inline Editable Collection Header (owner only) */}
             <CollectionHeader stacq={stacq} isOwner={isOwner} />
@@ -122,7 +130,7 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
                                 <PlusSquare className="w-4 h-4 mr-2" /> Add Resource
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-2xl p-0 border-none bg-transparent shadow-none">
-                                <AddResourceForm stacqId={stacq.id} />
+                                <AddResourceForm stacqId={stacq.id} availableSections={sections} />
                             </DialogContent>
                         </Dialog>
                     )}

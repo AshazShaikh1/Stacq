@@ -28,7 +28,7 @@ export function ShareButton({ title, collectionId }: { title: string, collection
                 })
                 return
             } catch (err) {
-                console.log("Share cancelled")
+                
             }
         }
 
