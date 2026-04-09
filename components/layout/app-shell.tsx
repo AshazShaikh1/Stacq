@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 session ? "md:ml-20 lg:ml-64" : ""
             )}
         >
-            <div className="pb-32 md:pb-0">
+            <div className={cn(session ? "pb-32 md:pb-0" : "")}>
                 {children}
             </div>
         </div>

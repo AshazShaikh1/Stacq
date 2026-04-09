@@ -13,15 +13,23 @@ import { toast } from "sonner"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { PlusSquare } from "lucide-react"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
 export function ResourceCard({ resource, isOwner = false, availableSections = ["Default"] }: { resource?: any, isOwner?: boolean, availableSections?: string[] }) {
@@ -38,10 +46,11 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
     const { id, title, url, thumbnail, note, section } = item;
 
     const [deleting, setDeleting] = useState(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [saving, setSaving] = useState(false)
-    const [formData, setFormData] = useState({ 
-        title: title || "", 
+    const [formData, setFormData] = useState({
+        title: title || "",
         note: note || "",
         thumbnail: thumbnail || "",
         section: section || "Default"
@@ -63,11 +72,12 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
         const res = await deleteResource(id)
         if (res.error) {
             toast.error(res.error)
+            setDeleting(false)
         } else {
             toast.success("Resource deleted")
+            setIsDeleteDialogOpen(false)
             router.refresh()
         }
-        setDeleting(false)
     }
 
     const handleSave = async () => {
@@ -113,9 +123,9 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                         </a>
                     </div>
 
-                    <a 
-                        href={url} 
-                        target="_blank" 
+                    <a
+                        href={url}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-11 sm:h-12 px-8 sm:px-10 text-sm sm:text-base font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
                     >
@@ -131,7 +141,7 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                 {note || "No curator note provided."}
                             </p>
                             {isLongNote && (
-                                <button 
+                                <button
                                     onClick={() => setIsExpanded(!isExpanded)}
                                     className="text-xs font-bold text-primary hover:underline mt-1 cursor-pointer"
                                 >
@@ -164,41 +174,52 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                             <div className="space-y-2">
                                                 <label className="text-[10px] sm:text-xs font-bold uppercase text-primary tracking-widest">Section (Optional)</label>
                                                 {isCreatingSection ? (
-                                                    <div className="flex gap-2">
-                                                        <Input 
-                                                            value={formData.section === "Default" ? "" : formData.section} 
-                                                            onChange={e => setFormData({ ...formData, section: e.target.value })} 
-                                                            placeholder="New section name" 
-                                                            className="h-12 rounded-xl border-border bg-surface font-semibold flex-1" 
+                                                    <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                                                        <Input
+                                                            value={formData.section === "Default" ? "" : formData.section}
+                                                            onChange={e => setFormData({ ...formData, section: e.target.value })}
+                                                            placeholder="New section name"
+                                                            className="h-12 rounded-xl border-border bg-surface font-bold flex-1"
                                                             autoFocus
                                                         />
-                                                        <Button type="button" onClick={() => { setIsCreatingSection(false); setFormData({ ...formData, section: section || "Default" }); }} variant="outline" className="h-12 w-12 rounded-xl text-muted-foreground p-0">
+                                                        <Button type="button" onClick={() => { setIsCreatingSection(false); setFormData({ ...formData, section: section || "Default" }); }} variant="outline" className="h-12 w-12 rounded-xl text-muted-foreground p-0 hover:bg-destructive/5 hover:text-destructive">
                                                             <X className="w-4 h-4" />
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex flex-wrap gap-2 mt-2">
-                                                        {availableSections.map((sec) => (
-                                                            <Badge 
-                                                                key={sec} 
-                                                                onClick={() => setFormData({ ...formData, section: sec })}
-                                                                className={`px-4 py-2 cursor-pointer text-sm select-none border border-border shadow-none font-bold rounded-lg ${formData.section === sec ? 'bg-primary text-primary-foreground hover:bg-primary-dark shadow-sm scale-[1.02] transform transition-all border-primary/50' : 'bg-surface hover:bg-surface-hover hover:border-primary/30 text-muted-foreground'}`}
-                                                            >
-                                                                {sec}
-                                                            </Badge>
-                                                        ))}
-                                                        <Badge 
-                                                            onClick={() => { setIsCreatingSection(true); setFormData({ ...formData, section: "" }); }}
-                                                            className="px-4 py-2 cursor-pointer text-sm select-none border border-dashed text-primary border-primary/40 bg-primary/5 hover:bg-primary/10 shadow-none font-bold rounded-lg"
-                                                        >
-                                                            <Edit2 className="w-3 h-3 mr-1" /> New Section
-                                                        </Badge>
-                                                    </div>
+                                                    <Select
+                                                        value={formData.section}
+                                                        onValueChange={(val) => {
+                                                            if (val === "new-section") {
+                                                                setIsCreatingSection(true);
+                                                                setFormData({ ...formData, section: "" });
+                                                            } else {
+                                                                setFormData({ ...formData, section: val });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <SelectTrigger className="w-full h-12 bg-surface border-border rounded-xl text-sm font-bold px-4 hover:border-primary/30 transition-all">
+                                                            <SelectValue placeholder="Select a section" />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="rounded-xl border-border shadow-2xl">
+                                                            {availableSections.map((sec) => (
+                                                                <SelectItem key={sec} value={sec} className="font-bold py-2.5">
+                                                                    {sec.length > 25 ? sec.substring(0, 25) + "..." : sec}
+                                                                </SelectItem>
+                                                            ))}
+                                                            <SelectItem value="new-section" className="text-primary font-black py-2.5 border-t border-border/50 mt-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <PlusSquare className="w-4 h-4" />
+                                                                    + Add New Section
+                                                                </div>
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <ImageUpload 
+                                            <ImageUpload
                                                 value={formData.thumbnail}
                                                 onChange={(url) => setFormData({ ...formData, thumbnail: url })}
                                                 onRemove={() => setFormData({ ...formData, thumbnail: "" })}
@@ -224,11 +245,11 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                                 </DialogContent>
                             </Dialog>
 
-                            <AlertDialog>
-                                <AlertDialogTrigger className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer">
+                            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                <AlertDialogTrigger className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer outline-none">
                                     {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                 </AlertDialogTrigger>
-                                <AlertDialogContent className="rounded-2xl">
+                                <AlertDialogContent className="rounded-2xl max-w-[90vw] sm:max-w-md">
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                         <AlertDialogDescription>
@@ -249,4 +270,4 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
             </div>
         </div>
     )
-}
+}

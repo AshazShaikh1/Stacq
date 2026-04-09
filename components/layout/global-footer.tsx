@@ -10,7 +10,7 @@ export function GlobalFooter() {
     if (pathname === "/") return null
 
     return (
-        <footer className="w-full py-4 text-center text-[10px] sm:text-xs font-bold text-muted-foreground/60 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-auto border-t border-border/50">
+        <footer className="w-full py-2.5 text-center text-[10px] sm:text-xs font-bold text-muted-foreground/50 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 mt-auto border-t border-border/30">
             <p>© {new Date().getFullYear()} Stacq.in</p>
             <a href="/about" className="hover:text-primary transition-colors cursor-pointer">About</a>
             <a href="/terms" className="hover:text-primary transition-colors cursor-pointer">Terms</a>

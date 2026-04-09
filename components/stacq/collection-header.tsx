@@ -146,7 +146,7 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
             </div>
 
             {isOwner && (
-                <div className="flex md:block md:absolute md:top-0 md:-right-16 md:opacity-0 group-hover:opacity-100 transition-all duration-300 gap-2 z-10 mt-6 md:mt-0 justify-center md:justify-start">
+                <div className="flex md:absolute md:top-4 md:right-4 md:opacity-0 group-hover:opacity-100 transition-all duration-300 gap-2 z-10 mt-6 md:mt-0 justify-center">
                     <button onClick={() => setIsEditing(true)} className="p-3 text-muted-foreground hover:text-primary bg-background hover:bg-surface rounded-full shadow-sm hover:shadow-md border border-border hover:border-primary cursor-pointer transition-all active:scale-95">
                         <Edit2 className="w-5 h-5" />
                     </button>

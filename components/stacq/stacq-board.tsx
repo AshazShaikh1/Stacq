@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   DndContext,
   DragOverlay,
@@ -60,54 +61,59 @@ function SortableSection({ id, sectionName, items, isOwner, onRename, isSectionD
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="bg-surface/30 p-2 md:p-6 rounded-3xl border border-border/50 space-y-4">
-      <div className="flex items-center justify-between group/header">
-        <div className="flex items-center gap-2 flex-1">
-          {isOwner && !isEditing && (
-            <div {...attributes} {...listeners} className="touch-none p-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground opacity-50 group-hover/header:opacity-100 transition-opacity rounded-md hover:bg-surface-hover">
-              <GripVertical className="w-5 h-5" />
-            </div>
-          )}
+    <div ref={setNodeRef} style={style} className="relative bg-surface/30 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-border/50 space-y-4">
 
+      {/* 1. Drag Handle: Now acts as the top "border" area */}
+      {isOwner && !isEditing && (
+        <div {...attributes} {...listeners} className="touch-none flex justify-center w-full py-1 mb-1 cursor-grab active:cursor-grabbing">
+          <div className="w-12 h-1.5 bg-muted-foreground/20 rounded-full" />
+        </div>
+      )}
+
+      {/* 2. Title Section: Now has full width below the handle */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
           {isEditing ? (
-            <div className="flex items-center gap-2 flex-1 pr-4">
-              <Input value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }} className="h-9 font-black text-lg bg-background" autoFocus />
-              <button onClick={handleSave} className="p-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors">
-                <Check className="w-4 h-4" />
-              </button>
-              <button onClick={() => { setIsEditing(false); setEditValue(sectionName); }} className="p-2 hover:bg-surface-hover text-muted-foreground rounded-lg transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+            <div className="flex items-center gap-2 w-full">
+              <Input
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                className="h-9 font-bold text-base bg-background w-full"
+                autoFocus
+              />
+              <div className="flex gap-1">
+                <button onClick={handleSave} className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <Check className="w-4 h-4" />
+                </button>
+                <button onClick={() => setIsEditing(false)} className="p-2 text-muted-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ) : (
-            <h2 className="text-2xl font-black tracking-tight text-foreground px-2">{sectionName}</h2>
+            <h2 className="text-lg md:text-2xl font-black tracking-tight text-foreground leading-tight wrap-break-word">
+              {sectionName}
+            </h2>
           )}
         </div>
 
         {isOwner && !isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="p-2 opacity-0 group-hover/header:opacity-100 transition-opacity text-muted-foreground hover:text-primary rounded-lg hover:bg-background/80"
+            className="p-1.5 text-muted-foreground hover:text-primary transition-colors shrink-0"
           >
             <Edit2 className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      <div className={`transition-all duration-300 ease-in-out origin-top ${isSectionDragging ? 'grid-rows-[0fr] opacity-0 overflow-hidden' : 'grid-rows-[1fr] opacity-100'}`}>
+      {/* 3. Resources Container */}
+      <div className={`transition-all duration-300 ${isSectionDragging ? 'opacity-0' : 'opacity-100'}`}>
         <SortableContext id={id} items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          <div className={`space-y-4 min-h-[50px] p-2 rounded-2xl bg-background/50 border border-dashed border-border/50 ${isSectionDragging ? 'min-h-0 py-0 border-transparent' : ''}`}>
-            {!isSectionDragging && (
-              items.length === 0 ? (
-                <div className="text-center py-6 text-sm text-muted-foreground font-medium italic">
-                  Drop resources here or use the add form below
-                </div>
-              ) : (
-                items.map(item => (
-                  <SortableResource key={item.id} item={item} isOwner={isOwner} availableSections={availableSections} />
-                ))
-              )
-            )}
+          <div className="space-y-4 min-h-[40px] p-1 rounded-xl">
+            {items.map(item => (
+              <SortableResource key={item.id} item={item} isOwner={isOwner} availableSections={availableSections} />
+            ))}
           </div>
         </SortableContext>
       </div>
@@ -129,14 +135,21 @@ function SortableResource({ item, isOwner, availableSections }: { item: any, isO
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    // Make sure it sits above others during drag if needed, handled mainly by DragOverlay though
   }
 
   return (
     <div ref={setNodeRef} style={style} className="relative group/resource">
       {isOwner && (
-        <div {...attributes} {...listeners} className="touch-none absolute -left-3 top-1/2 -translate-y-1/2 -translate-x-full p-2 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground opacity-70 sm:opacity-0 group-hover/resource:opacity-100 transition-opacity rounded-md bg-surface border border-border flex z-10">
-          <GripVertical className="w-4 h-4" />
+        <div {...attributes} {...listeners} className="touch-none absolute left-1/2 -translate-x-1/2 -top-1.5 z-20 cursor-grab active:cursor-grabbing sm:static sm:translate-x-0 sm:left-auto sm:top-auto sm:w-auto">
+          {/* Mobile Handle: Tiny thin pill to avoid adding height */}
+          <div className="sm:hidden bg-surface border border-border px-4 py-0.5 rounded-full shadow-sm">
+            <div className="w-6 h-0.5 bg-muted-foreground/20 rounded-full" />
+          </div>
+
+          {/* Desktop Handle: Traditional Side Grip */}
+          <div className="hidden sm:flex absolute left-2 top-1/2 -translate-y-1/2 -translate-x-full p-2 opacity-0 group-hover/resource:opacity-100 transition-opacity rounded-md bg-surface border border-border text-muted-foreground">
+            <GripVertical className="w-4 h-4" />
+          </div>
         </div>
       )}
       <ResourceCard resource={item} isOwner={isOwner} availableSections={availableSections} />
@@ -147,21 +160,18 @@ function SortableResource({ item, isOwner, availableSections }: { item: any, isO
 // --- Main Board Component ---
 
 export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwner: boolean }) {
-  // Compute initial derived state
-  // 1. Ensure backwards compatibility: collect all sections from resources that aren't in section_order
+  const router = useRouter()
   const derivedSections = new Set<string>(initialStacq.section_order || []);
   const initialResources = initialStacq.resources || [];
   initialResources.forEach((r: any) => derivedSections.add(r.section || 'Default'));
   const allSectionsArray = Array.from(derivedSections);
 
-  // 2. Group resources, sorted by order_index
   const groupedResources: Record<string, any[]> = {};
   allSectionsArray.forEach(sec => groupedResources[sec] = []);
   initialResources.forEach((r: any) => {
     groupedResources[r.section || 'Default'].push(r);
   });
 
-  // Sort inside each section
   Object.keys(groupedResources).forEach(sec => {
     groupedResources[sec].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
   });
@@ -170,12 +180,11 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
   const [items, setItems] = useState<Record<string, any[]>>(groupedResources)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activeType, setActiveType] = useState<'Section' | 'Resource' | null>(null)
-
   const [newSectionName, setNewSectionName] = useState("")
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
@@ -183,29 +192,23 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
     const name = newSectionName.trim();
     if (!name) return;
     if (sections.includes(name)) {
-      toast.error("A section with this name already exists");
+      toast.error("Exists");
       return;
     }
-
     const nextSections = [...sections, name];
     setSections(nextSections);
     setItems(prev => ({ ...prev, [name]: [] }));
     setNewSectionName("");
-    // Sync
     await updateStacq(initialStacq.id, { section_order: nextSections });
   }
 
   const handleRenameSection = async (oldName: string, newName: string) => {
     if (sections.includes(newName)) {
-      toast.error("A section with this name already exists");
+      toast.error("Exists");
       return;
     }
-
-    // Update Local Sections
     const nextSections = sections.map(s => s === oldName ? newName : s);
     setSections(nextSections);
-
-    // Update Local Items Dictionary
     setItems(prev => {
       const newItems = { ...prev };
       const targetItems = [...(newItems[oldName] || [])];
@@ -214,7 +217,6 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
       delete newItems[oldName];
       return newItems;
     });
-
     const res = await renameSection(initialStacq.id, oldName, newName);
     if (res.error) toast.error(res.error);
   }
@@ -234,44 +236,29 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
 
   const onDragOver = (event: DragOverEvent) => {
     if (activeType !== 'Resource') return;
-
     const { active, over } = event;
     if (!over) return;
-
     const activeContainer = findContainer(active.id as string);
     const overContainer = findContainer(over.id as string);
+    if (!activeContainer || !overContainer || activeContainer === overContainer) return;
 
-    if (!activeContainer || !overContainer || activeContainer === overContainer) {
-      return;
-    }
-
-    // Moving between containers
     setItems((prev) => {
       const activeItems = [...prev[activeContainer]];
       const overItems = [...prev[overContainer]];
       const activeIndex = activeItems.findIndex(i => i.id === active.id);
       const overIndex = over.id in prev ? overItems.length + 1 : overItems.findIndex(i => i.id === over.id);
-
       let newIndex = overIndex >= 0 ? overIndex : overItems.length;
-
       const itemToMove = activeItems[activeIndex];
-      itemToMove.section = overContainer; // update local pointer
-
+      itemToMove.section = overContainer;
       activeItems.splice(activeIndex, 1);
       overItems.splice(newIndex, 0, itemToMove);
-
-      return {
-        ...prev,
-        [activeContainer]: activeItems,
-        [overContainer]: overItems,
-      };
+      return { ...prev, [activeContainer]: activeItems, [overContainer]: overItems };
     });
   }
 
   const onDragEnd = async (event: DragEndEvent) => {
     setActiveId(null)
     setActiveType(null)
-
     const { active, over } = event;
     if (!over) return;
 
@@ -281,8 +268,8 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
       if (activeIndex !== overIndex) {
         const newSections = arrayMove(sections, activeIndex, overIndex);
         setSections(newSections);
-        // Sync
         await updateStacq(initialStacq.id, { section_order: newSections });
+        router.refresh();
       }
       return;
     }
@@ -290,54 +277,42 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
     if (activeType === 'Resource') {
       const activeContainer = findContainer(active.id as string);
       const overContainer = findContainer(over.id as string);
-
       if (!activeContainer || !overContainer) return;
 
       if (activeContainer === overContainer) {
         const activeIndex = items[activeContainer].findIndex(i => i.id === active.id);
         const overIndex = items[overContainer].findIndex(i => i.id === over.id);
-
         if (activeIndex !== overIndex) {
           const newContainerItems = arrayMove(items[activeContainer], activeIndex, overIndex);
           setItems(prev => ({ ...prev, [activeContainer]: newContainerItems }));
-
-          // Sync bulk for this container
-          const updates = newContainerItems.map((itm, idx) => ({
-            id: itm.id,
-            section: activeContainer,
-            order_index: idx
-          }));
+          const updates = newContainerItems.map((itm, idx) => ({ id: itm.id, section: activeContainer, order_index: idx }));
           await updateResourceOrders(updates);
+          router.refresh();
         }
       } else {
-        // It was handled securely in DragOver and dropped in a new container.
-        // But we need to sync BOTH containers' indexes to the backend to be safe.
         const updatesOne = items[activeContainer].map((itm, idx) => ({ id: itm.id, section: activeContainer, order_index: idx }));
         const updatesTwo = items[overContainer].map((itm, idx) => ({ id: itm.id, section: overContainer, order_index: idx }));
         await updateResourceOrders([...updatesOne, ...updatesTwo]);
+        router.refresh();
       }
     }
   }
 
-  // Find the mocked active resource strictly for DragOverlay matching
-  const activeResource = activeType === 'Resource'
-    ? Object.values(items).flat().find(r => r.id === activeId)
-    : null;
+  const activeResource = activeType === 'Resource' ? Object.values(items).flat().find(r => r.id === activeId) : null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8 px-2 md:px-0">
       {!isOwner ? (
-        // Visitor View (Static Read-Only List)
-        <div className="space-y-10 pt-2">
+        <div className="space-y-8 md:space-y-10 pt-2">
           {sections.length > 0 && items ? (
             sections.map((section) => {
-              if (items[section]?.length === 0) return null; // Hide empty sections for visitors
+              if (items[section]?.length === 0) return null;
               return (
-                <div key={section} className="space-y-6">
+                <div key={section} className="space-y-4 md:space-y-6">
                   {section !== "Default" && (
-                    <h2 className="text-2xl font-black tracking-tight text-foreground border-b border-border pb-2 inline-block pr-6">{section}</h2>
+                    <h2 className="text-xl md:text-2xl font-black tracking-tight text-foreground border-b border-border pb-1.5 md:pb-2 inline-block pr-6">{section}</h2>
                   )}
-                  <div className="space-y-6">
+                  <div className="space-y-4 md:space-y-6">
                     {items[section].map((item: any) => (
                       <ResourceCard key={item.id} resource={item} isOwner={false} />
                     ))}
@@ -350,49 +325,40 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
           )}
         </div>
       ) : (
-        // Curator View (Interactive Drag & Drop Board)
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnd={onDragEnd}
-        >
-          <div className="space-y-8">
-            {/* Horizontal adding utility */}
+        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
+          <div className="space-y-6 md:space-y-8">
             <div className="relative group">
               <Input
                 value={newSectionName}
                 onChange={e => setNewSectionName(e.target.value)}
-                placeholder="New section name... (e.g. Must Reads)"
-                className="bg-surface border-border h-12 sm:h-14 rounded-2xl pr-28 sm:pr-40 text-sm sm:text-base focus:bg-background transition-all"
+                placeholder="New section..."
+                className="bg-surface border-border h-11 md:h-14 rounded-xl md:rounded-2xl pr-24 md:pr-40 text-sm md:text-base"
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddSection() }}
               />
-              <Button onClick={handleAddSection} className="absolute right-1 top-1 bottom-1 h-10 sm:h-12 w-[70px] sm:w-[130px] font-bold rounded-xl whitespace-nowrap p-0 transition-transform active:scale-95">
-                <Plus className="w-4 h-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">Add Section</span>
-                <span className="sm:hidden ml-0.5">Add</span>
+              <Button onClick={handleAddSection} className="absolute right-1 top-1 bottom-1 h-9 md:h-12 w-[60px] md:w-[130px] font-bold rounded-lg md:rounded-xl p-0">
+                <Plus className="w-4 h-4 md:mr-1.5" />
+                <span className="hidden md:inline">Add Section</span>
+                <span className="md:hidden">Add</span>
               </Button>
             </div>
 
             <SortableContext items={sections} strategy={verticalListSortingStrategy}>
-              <div className="space-y-10 pl-10 sm:pl-14"> {/* Left padding reserves space for drag handles */}
+              <div className="space-y-8 pl-0 md:pl-14"> {/* Removed mobile left padding (pl-0) to give sections 100% width */}
                 {sections.map(section => (
                   <SortableSection key={section} id={section} sectionName={section} items={items[section] || []} isOwner={isOwner} onRename={handleRenameSection} isSectionDragging={activeType === 'Section'} availableSections={sections} />
                 ))}
               </div>
             </SortableContext>
-
           </div>
 
           <DragOverlay dropAnimation={null}>
             {activeId && activeType === 'Section' ? (
-              <div className="bg-surface/90 backdrop-blur pb-6 p-6 rounded-3xl border border-primary shadow-2xl opacity-80">
-                <h2 className="text-2xl font-black">{activeId}</h2>
+              <div className="bg-surface p-4 md:p-6 rounded-2xl md:rounded-3xl border border-primary shadow-2xl">
+                <h2 className="text-xl md:text-2xl font-black">{activeId}</h2>
               </div>
             ) : null}
             {activeId && activeType === 'Resource' && activeResource ? (
-              <div className="shadow-2xl opacity-90 scale-105 rotate-1">
+              <div className="shadow-2xl opacity-90 scale-105">
                 <ResourceCard resource={activeResource} isOwner={true} availableSections={sections} />
               </div>
             ) : null}

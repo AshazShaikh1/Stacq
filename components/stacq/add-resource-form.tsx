@@ -7,10 +7,17 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "../ui/textarea"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { fetchMetadata, addResource } from "@/lib/actions/resource"
-import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2, Type, X } from "lucide-react"
+import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2, Type, X, PlusSquare } from "lucide-react"
 import { ResourceCard } from "./resource-card"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 export function AddResourceForm({ stacqId, availableSections = ["Default"] }: { stacqId: string, availableSections?: string[] }) {
     const router = useRouter()
@@ -128,36 +135,47 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"] }: { 
                             Section (Optional)
                         </label>
                         {isCreatingSection ? (
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                                 <Input
                                     value={section === "Default" ? "" : section}
                                     onChange={(e) => setSection(e.target.value)}
-                                    placeholder="New section name"
-                                    className="h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm font-medium flex-1"
+                                    placeholder="Enter new section name"
+                                    className="h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm font-bold flex-1"
                                     autoFocus
                                 />
-                                <Button type="button" onClick={() => { setIsCreatingSection(false); setSection("Default"); }} variant="outline" className="h-12 w-12 rounded-xl text-muted-foreground p-0">
+                                <Button type="button" onClick={() => { setIsCreatingSection(false); setSection("Default"); }} variant="outline" className="h-12 w-12 rounded-xl text-muted-foreground p-0 hover:bg-destructive/5 hover:text-destructive transition-colors">
                                     <X className="w-4 h-4" />
                                 </Button>
                             </div>
                         ) : (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {availableSections.map((sec) => (
-                                    <Badge 
-                                        key={sec} 
-                                        onClick={() => setSection(sec)}
-                                        className={`px-4 py-2 cursor-pointer text-sm select-none border border-border shadow-none font-bold rounded-lg ${section === sec ? 'bg-primary text-primary-foreground hover:bg-primary-dark shadow-sm scale-[1.02] transform transition-all border-primary/50' : 'bg-surface hover:bg-surface-hover hover:border-primary/30 text-muted-foreground'}`}
-                                    >
-                                        {sec}
-                                    </Badge>
-                                ))}
-                                <Badge 
-                                    onClick={() => { setIsCreatingSection(true); setSection(""); }}
-                                    className="px-4 py-2 cursor-pointer text-sm select-none border border-dashed text-primary border-primary/40 bg-primary/5 hover:bg-primary/10 shadow-none font-bold rounded-lg"
-                                >
-                                    <Type className="w-3 h-3 mr-1" /> New Section
-                                </Badge>
-                            </div>
+                            <Select 
+                                value={section} 
+                                onValueChange={(val) => {
+                                    if (val === "new-section") {
+                                        setIsCreatingSection(true);
+                                        setSection("");
+                                    } else {
+                                        setSection(val);
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="w-full h-12 bg-surface border-border rounded-xl text-sm font-bold px-4 hover:border-primary/30 transition-all">
+                                    <SelectValue placeholder="Select a section" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-border shadow-2xl">
+                                    {availableSections.map((sec) => (
+                                        <SelectItem key={sec} value={sec} className="font-bold py-2.5">
+                                            {sec.length > 25 ? sec.substring(0, 25) + "..." : sec}
+                                        </SelectItem>
+                                    ))}
+                                    <SelectItem value="new-section" className="text-primary font-black py-2.5 border-t border-border/50 mt-1">
+                                        <div className="flex items-center gap-2">
+                                            <PlusSquare className="w-4 h-4" />
+                                            + Add New Section
+                                        </div>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         )}
                     </div>
                 </div>
