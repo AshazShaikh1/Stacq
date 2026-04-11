@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ResourceCard } from '@/components/stacq/resource-card'
 import { StacqBoard } from '@/components/stacq/stacq-board'
-import { AddResourceForm } from '@/components/stacq/add-resource-form'
+import { AddResourceDialog } from '@/components/stacq/add-resource-dialog'
 import { CollectionHeader } from '@/components/stacq/collection-header'
 import { FollowButton } from '@/components/profile/follow-button'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
@@ -132,16 +132,9 @@ export default async function StacqDetailPage({ params }: { params: Promise<{ id
                         </div>
                     )}
 
-                    {/* Add Resource: Takes full width only if forced by narrow screen */}
+                    {/* Add Resource: Now managed by a client-side dialog component for auto-closure */}
                     {isOwner && (
-                        <Dialog>
-                            <DialogTrigger className="flex-1 sm:flex-none inline-flex items-center justify-center whitespace-nowrap text-xs h-10 bg-primary hover:opacity-90 text-primary-foreground rounded-full px-4 sm:px-8 shadow-sm font-bold transition-all active:scale-95 border-none outline-none">
-                                <PlusSquare className="w-4 h-4 mr-2" /> Add Resource
-                            </DialogTrigger>
-                            <DialogContent className="w-[95vw] max-w-[400px] sm:max-w-2xl p-0 border-none bg-transparent shadow-none rounded-3xl overflow-hidden">
-                                <AddResourceForm stacqId={stacq.id} availableSections={sections} />
-                            </DialogContent>
-                        </Dialog>
+                        <AddResourceDialog stacqId={stacq.id} availableSections={sections} />
                     )}
                 </div>
             </div>

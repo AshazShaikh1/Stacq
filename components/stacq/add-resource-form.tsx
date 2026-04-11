@@ -19,7 +19,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 
-export function AddResourceForm({ stacqId, availableSections = ["Default"] }: { stacqId: string, availableSections?: string[] }) {
+export function AddResourceForm({ stacqId, availableSections = ["Default"], onSuccess }: { stacqId: string, availableSections?: string[], onSuccess?: () => void }) {
     const router = useRouter()
     const [url, setUrl] = useState("")
     const [title, setTitle] = useState("")
@@ -87,6 +87,7 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"] }: { 
             setSection("Default")
             setIsCreatingSection(false)
             setMetadata(null)
+            if (onSuccess) onSuccess();
             router.refresh()
         } else {
             toast.error(res.error || "Failed to add resource")

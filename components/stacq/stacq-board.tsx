@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
@@ -188,6 +188,26 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
+  useEffect(() => {
+    const derivedSections = new Set<string>(initialStacq.section_order || []);
+    const initialResources = initialStacq.resources || [];
+    initialResources.forEach((r: any) => derivedSections.add(r.section || 'Default'));
+    const allSectionsArray = Array.from(derivedSections);
+
+    const groupedResources: Record<string, any[]> = {};
+    allSectionsArray.forEach(sec => groupedResources[sec] = []);
+    initialResources.forEach((r: any) => {
+      groupedResources[r.section || 'Default'].push(r);
+    });
+
+    Object.keys(groupedResources).forEach(sec => {
+      groupedResources[sec].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+    });
+
+    setSections(allSectionsArray);
+    setItems(groupedResources);
+  }, [initialStacq])
+
   const handleAddSection = async () => {
     const name = newSectionName.trim();
     if (!name) return;
@@ -264,8 +284,14 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
 
     if (activeType === 'Section') {
       const activeIndex = sections.indexOf(active.id as string);
-      const overIndex = sections.indexOf(over.id as string);
-      if (activeIndex !== overIndex) {
+      let overIndex = sections.indexOf(over.id as string);
+      
+      if (overIndex === -1) {
+        const container = findContainer(over.id as string);
+        if (container) overIndex = sections.indexOf(container);
+      }
+
+      if (activeIndex !== overIndex && overIndex !== -1) {
         const newSections = arrayMove(sections, activeIndex, overIndex);
         setSections(newSections);
         await updateStacq(initialStacq.id, { section_order: newSections });
