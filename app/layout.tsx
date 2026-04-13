@@ -7,6 +7,8 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { GlobalFooter } from "@/components/layout/global-footer";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -68,6 +70,8 @@ export default function RootLayout({
               <GlobalFooter />
             </div>
           </AppShell>
+          <Analytics />
+          <SpeedInsights />
         </AuthProvider>
       </body>
     </html>
