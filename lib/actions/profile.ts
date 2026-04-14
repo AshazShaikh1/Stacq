@@ -1,75 +1,94 @@
-/* eslint-disable */
-"use server"
+"use server";
 
-import { createClient } from '@/lib/supabase/server'
-import { profileSchema } from '@/lib/validations/schemas'
+import { createClient } from "@/lib/supabase/server";
+import { profileSchema } from "@/lib/validations/schemas";
+
+export interface ProfileUpdateUpdates {
+  display_name?: string;
+  username?: string;
+  bio?: string | null;
+  twitter?: string | null;
+  github?: string | null;
+  website?: string | null;
+  social_links?: { platform: string; url: string }[];
+}
 
 export async function updateProfile(
-    userId: string, 
-    currentUsername: string, 
-    updates: { 
-        display_name?: string, 
-        username?: string, 
-        bio?: string, 
-        twitter?: string, 
-        github?: string, 
-        website?: string, 
-        social_links?: { platform: string, url: string }[] 
-    }
+  userId: string,
+  currentUsername: string,
+  updates: ProfileUpdateUpdates,
 ) {
-    const supabase = await createClient()
+  const supabase = await createClient();
 
-    // 1. Validation via Zod
-    const validation = profileSchema.safeParse(updates)
-    if (!validation.success) {
-        return { error: validation.error.issues[0].message }
+  // Use .partial() so we only validate fields that are actually provided
+  const validation = profileSchema.partial().safeParse(updates);
+
+  if (!validation.success) {
+    return { error: validation.error.issues[0].message };
+  }
+
+  // 2. Verify session
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || user.id !== userId) {
+    return {
+      error: "Unauthorized request. You can only edit your own profile.",
+    };
+  }
+
+  const payload: Record<
+    string,
+    string | { platform: string; url: string }[] | null | undefined
+  > = {};
+
+  // Map Partial Keys safely preserving nulls but ignoring undefined closures
+  if (updates.display_name !== undefined)
+    payload.display_name = updates.display_name;
+  if (updates.bio !== undefined) payload.bio = updates.bio;
+  if (updates.social_links !== undefined)
+    payload.social_links = updates.social_links;
+  if (updates.twitter !== undefined)
+    payload.twitter = (updates.twitter || "")
+      .replace("https://x.com/", "")
+      .replace("https://twitter.com/", "");
+  if (updates.github !== undefined)
+    payload.github = (updates.github || "").replace("https://github.com/", "");
+  if (updates.website !== undefined)
+    payload.website = (updates.website || "")
+      .replace("https://", "")
+      .replace("http://", "");
+
+  let newUsername = currentUsername;
+
+  // Only strike the unique database check if the username payload explicitly demands mutation
+  if (
+    updates.username !== undefined &&
+    updates.username.trim().toLowerCase() !== currentUsername
+  ) {
+    newUsername = updates.username.trim().toLowerCase();
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", newUsername)
+      .single();
+
+    if (existing) {
+      return { error: "That username is already taken by another stacqer!" };
     }
+    payload.username = newUsername;
+  }
 
-    // 2. Verify session
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user || user.id !== userId) {
-        return { error: "Unauthorized request. You can only edit your own profile." }
-    }
+  // Process and sanitize inputs before pushing to DB
+  const { error } = await supabase
+    .from("profiles")
+    .update(payload)
+    .eq("id", userId);
 
+  if (error) {
+    console.error("Profile Update Error:", error);
+    return { error: "Database error updating profile. Please try again." };
+  }
 
-    const payload: Record<string, string | { platform: string, url: string }[] | null> = {}
-
-
-    // Map Partial Keys safely preserving nulls but ignoring undefined closures
-    if (updates.display_name !== undefined) payload.display_name = updates.display_name
-    if (updates.bio !== undefined) payload.bio = updates.bio
-    if (updates.social_links !== undefined) payload.social_links = updates.social_links
-    if (updates.twitter !== undefined) payload.twitter = updates.twitter.replace('https://x.com/', '').replace('https://twitter.com/', '')
-    if (updates.github !== undefined) payload.github = updates.github.replace('https://github.com/', '')
-    if (updates.website !== undefined) payload.website = updates.website.replace('https://', '').replace('http://', '')
-
-    let newUsername = currentUsername
-
-    // Only strike the unique database check if the username payload explicitly demands mutation
-    if (updates.username !== undefined && updates.username.trim().toLowerCase() !== currentUsername) {
-        newUsername = updates.username.trim().toLowerCase()
-        const { data: existing } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('username', newUsername)
-            .single()
-            
-        if (existing) {
-            return { error: "That username is already taken by another stacqer!" }
-        }
-        payload.username = newUsername
-    }
-
-    // Process and sanitize inputs before pushing to DB
-    const { error } = await supabase
-        .from('profiles')
-        .update(payload)
-        .eq('id', userId)
-
-    if (error) {
-        console.error("Profile Update Error:", error)
-        return { error: "Database error updating profile. Please try again." }
-    }
-
-    return { success: true, newUsername }
+  return { success: true, newUsername };
 }

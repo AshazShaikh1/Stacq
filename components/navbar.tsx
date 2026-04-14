@@ -1,16 +1,20 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import Image from "next/image"
-import { useEffect, useState, useRef } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
-import { signOut } from "@/lib/supabase/actions"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/components/auth/auth-provider"
-import { Search, LogOut, User, Library, Plus, Loader2 } from "lucide-react"
-import dynamic from 'next/dynamic'
-const CreateStacqModal = dynamic(() => import("./stacq/create-stacq-modal").then(mod => mod.CreateStacqModal), { ssr: false })
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { signOut } from "@/lib/supabase/actions";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/components/auth/auth-provider";
+import { Search, LogOut, User, Library, Plus, Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+const CreateStacqModal = dynamic(
+  () =>
+    import("./stacq/create-stacq-modal").then((mod) => mod.CreateStacqModal),
+  { ssr: false },
+);
 
 import {
   DropdownMenu,
@@ -19,9 +23,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,62 +36,63 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 
 export function Navbar() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const { session, loading, openAuthModal } = useAuth()
-  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false)
+  const router = useRouter();
+  const pathname = usePathname();
+  const { session, loading, openAuthModal } = useAuth();
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
 
-  const isLandingPage = pathname === "/"
+  const isLandingPage = pathname === "/";
 
   // Search State
-  const [searchQuery, setSearchQuery] = useState("")
-  const [suggestions, setSuggestions] = useState<any[]>([])
-  const [isSearching, setIsSearching] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<
+    { id: string; title: string; slug: string }[]
+  >([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const searchRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Close suggestions on click outside
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false)
+        setShowSuggestions(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Live Search Logic (Debounced)
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (searchQuery.length < 2) {
-        setSuggestions([])
-        return
+        setSuggestions([]);
+        return;
       }
-      setIsSearching(true)
-      const supabase = createClient()
+      setIsSearching(true);
+      const supabase = createClient();
       const { data } = await supabase
-        .from('stacqs')
-        .select('id, title')
-        .ilike('title', `%${searchQuery}%`)
-        .limit(5)
+        .from("stacqs")
+        .select("id, title, slug")
+        .ilike("title", `%${searchQuery}%`)
+        .limit(5);
 
-      setSuggestions(data || [])
-      setIsSearching(false)
-    }
+      setSuggestions(data || []);
+      setIsSearching(false);
+    };
 
-    const timer = setTimeout(fetchSuggestions, 300)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+    const timer = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   return (
     <nav className="border-b border-border bg-surface sticky top-0 z-50 glass-effect">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-4">
-
         {/* Logo */}
         <Link
           href="/"
@@ -104,7 +109,7 @@ export function Navbar() {
             />
           ) : (
             <Image
-              src="/logo-text.svg"
+              src="/logo-text-dark.svg"
               alt="Stacq Logo"
               width={100}
               height={32}
@@ -114,43 +119,46 @@ export function Navbar() {
           )}
         </Link>
 
-
-
         {/* Search Bar */}
         {!isLandingPage && (
-          <div ref={searchRef} className="relative flex-1 max-w-xs sm:max-w-md mx-0 sm:mx-4">
+          <div
+            ref={searchRef}
+            className="relative flex-1 max-w-xs sm:max-w-md mx-0 sm:mx-4"
+          >
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
 
               <Input
                 placeholder="Search..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSuggestions(true);
+                }}
                 onFocus={() => setShowSuggestions(true)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === "Enter") {
                     router.push(`/explore?q=${searchQuery}`);
                     setShowSuggestions(false);
                   }
                 }}
-                className="pl-8 sm:pl-9 h-9 sm:h-10 text-xs sm:text-sm bg-background border-transparent rounded-full focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all w-full"
+                className="pl-8 sm:pl-9 h-9 sm:h-10 text-base sm:text-sm bg-background border-transparent rounded-full focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all w-full"
               />
             </div>
 
             {/* Suggestions Dropdown */}
-            {showSuggestions && (searchQuery.length > 1) && (
+            {showSuggestions && searchQuery.length > 1 && (
               <div className="absolute top-11 sm:top-12 left-0 right-0 sm:left-0 sm:right-auto sm:w-full bg-background border border-border rounded-xl sm:rounded-2xl shadow-2xl p-2 z-60 animate-in fade-in zoom-in-95 duration-200">
-
                 {isSearching ? (
                   <div className="p-4 flex justify-center">
                     <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-primary" />
                   </div>
                 ) : suggestions.length > 0 ? (
-                  suggestions.map(s => (
+                  suggestions.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => {
-                        router.push(`/stacq/${s.id}`);
+                        router.push(`/stacq/${s.slug || s.id}`);
                         setShowSuggestions(false);
                         setSearchQuery("");
                       }}
@@ -165,7 +173,6 @@ export function Navbar() {
                     No stacqs found.
                   </div>
                 )}
-
               </div>
             )}
           </div>
@@ -176,7 +183,6 @@ export function Navbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-2 sm:gap-3">
-
           {!loading && session ? (
             <>
               <CreateStacqModal>
@@ -192,20 +198,22 @@ export function Navbar() {
               </CreateStacqModal>
 
               <DropdownMenu>
-
-                <DropdownMenuTrigger className="outline-none" data-testid="nav-avatar-btn">
-
+                <DropdownMenuTrigger
+                  className="outline-none"
+                  data-testid="nav-avatar-btn"
+                >
                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border-2 border-background ring-1 ring-border hover:ring-primary transition-all cursor-pointer">
                     <AvatarImage src={session.user.user_metadata.avatar_url} />
                     <AvatarFallback className="bg-primary/10 text-primary font-black text-sm">
                       {session.user.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-
                 </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-56 sm:w-64 p-2 rounded-xl sm:rounded-2xl shadow-2xl border-border bg-background">
-
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 sm:w-64 p-2 rounded-xl sm:rounded-2xl shadow-2xl border-border bg-background"
+                >
                   <DropdownMenuLabel className="p-3">
                     <p className="font-extrabold text-foreground text-sm sm:text-base">
                       {session.user.user_metadata.full_name || "Stacqer"}
@@ -226,9 +234,8 @@ export function Navbar() {
                     My Profile
                   </DropdownMenuItem>
 
-
                   <DropdownMenuItem
-                    onSelect={() => router.push('/saved')}
+                    onSelect={() => router.push("/saved")}
                     className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 cursor-pointer flex items-center gap-3 font-bold hover:bg-surface text-foreground transition-colors group text-sm"
                   >
                     <Library className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -245,10 +252,8 @@ export function Navbar() {
                     <LogOut className="w-4 h-4 transition-colors" />
                     Sign Out
                   </DropdownMenuItem>
-
                 </DropdownMenuContent>
               </DropdownMenu>
-
             </>
           ) : (
             <div className="flex items-center gap-2 sm:gap-4">
@@ -260,7 +265,7 @@ export function Navbar() {
               </Link>
 
               <Button
-                onClick={() => openAuthModal('login')}
+                onClick={() => openAuthModal("login")}
                 variant="ghost"
                 className="rounded-full font-bold text-muted-foreground hover:text-foreground hidden sm:inline-flex text-sm"
               >
@@ -268,7 +273,7 @@ export function Navbar() {
               </Button>
 
               <Button
-                onClick={() => openAuthModal('signup')}
+                onClick={() => openAuthModal("signup")}
                 className="bg-primary hover:bg-primary-dark text-primary-foreground rounded-full font-black px-4 sm:px-6 text-xs sm:text-sm shadow-emerald/20 hover:shadow-lg transition-all active:scale-95"
               >
                 Join Stacq
@@ -278,14 +283,18 @@ export function Navbar() {
         </div>
       </div>
 
-      <AlertDialog open={showSignoutConfirm} onOpenChange={setShowSignoutConfirm}>
+      <AlertDialog
+        open={showSignoutConfirm}
+        onOpenChange={setShowSignoutConfirm}
+      >
         <AlertDialogContent className="rounded-3xl border-border bg-background max-w-[90vw] sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl sm:text-2xl font-black tracking-tight">
               Sign Out
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base font-medium text-muted-foreground">
-              Are you sure you want to sign out of your account? You'll need to log in again to access your library and create new stacqs.
+              Are you sure you want to sign out of your account? You&apos;ll
+              need to log in again to access your library and create new stacqs.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-4">
@@ -305,5 +314,5 @@ export function Navbar() {
         </AlertDialogContent>
       </AlertDialog>
     </nav>
-  )
+  );
 }

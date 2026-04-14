@@ -1,2 +1,7 @@
-/* eslint-disable */
-export type Json = any; // Dummy to prevent import errors in other files
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
