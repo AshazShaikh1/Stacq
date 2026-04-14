@@ -20,7 +20,7 @@ export function ContactContent() {
                     <MessageSquare className="w-8 h-8" />
                 </div>
                 <h1 className="text-4xl font-black tracking-tight text-foreground">
-                    We'd love to hear from you.
+                    We&apos;d love to hear from you.
                 </h1>
                 <p className="text-xl text-muted-foreground font-medium">
                     Whether you have a feature request, a bug report, or just want to chat about curation.

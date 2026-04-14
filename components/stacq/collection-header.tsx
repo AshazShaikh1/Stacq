@@ -63,7 +63,7 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
 
     if (isEditing) {
         return (
-            <div className="mb-10 relative bg-surface p-6 md:p-8 rounded-3xl border border-border shadow-sm w-full">
+            <header className="mb-10 relative bg-surface p-6 md:p-8 rounded-3xl border border-border shadow-sm w-full">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                         <div>
@@ -113,12 +113,12 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
                         <X className="w-5 h-5 mr-2" /> Cancel
                     </button>
                 </div>
-            </div>
+            </header>
         )
     }
 
     return (
-        <div className="mb-10 relative group inline-block w-full transition-all">
+        <header className="mb-10 relative group inline-block w-full transition-all">
             <div className="text-center md:text-left">
                 <Badge variant="outline" className="mb-4 bg-primary/10 text-primary border-primary/20 px-3 py-1 font-extrabold tracking-tight">
                     # {stacq.category || "Uncategorized"}
@@ -171,6 +171,6 @@ export function CollectionHeader({ stacq, isOwner }: { stacq: any, isOwner: bool
                     </AlertDialog>
                 </div>
             )}
-        </div>
+        </header>
     )
 }

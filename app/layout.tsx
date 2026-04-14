@@ -13,11 +13,13 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -39,7 +41,13 @@ export const metadata: Metadata = {
     title: "Stacq",
     description: "Stop searching and start finding. Stacq helps you curate the high-signal resources that Google and AI often miss.",
   },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/apple-touch-icon.svg",
+  },
 };
+
 
 // Non-blocking layout: passes null as initialSession so the page tree
 // renders immediately. The AuthProvider hydrates session client-side.

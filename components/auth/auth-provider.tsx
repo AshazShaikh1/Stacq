@@ -30,6 +30,7 @@ export function AuthProvider({
 
     useEffect(() => {
         // Only fetch if initialSession was missing or might be stale
+
         if (!initialSession) {
             supabase.auth.getSession().then(({ data: { session } }) => {
                 setSession(session)
@@ -46,6 +47,7 @@ export function AuthProvider({
 
         return () => subscription.unsubscribe()
     }, [initialSession, supabase.auth])
+
 
     const openAuthModal = (type: 'login' | 'signup' = 'login') => {
         setModalType(type)

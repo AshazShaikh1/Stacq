@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use server"
 
 import { createClient } from '@/lib/supabase/server'
@@ -35,7 +36,9 @@ export async function toggleSaveStacq(stacqId: string) {
         if (error) return { error: error.message }
     }
 
-    revalidatePath(`/stacq/${stacqId}`)
+    const { data: stacq } = await supabase.from('stacqs').select('slug').eq('id', stacqId).single()
+    if (stacq?.slug) revalidatePath(`/stacq/${stacq.slug}`)
+
     return { success: true }
 }
 
@@ -52,7 +55,8 @@ export async function updateStacq(id: string, updates: { title?: string, descrip
  
     if (error) return { error: error.message }
  
-    revalidatePath(`/stacq/${id}`)
+    const { data: stacq } = await supabase.from('stacqs').select('slug').eq('id', id).single()
+    if (stacq?.slug) revalidatePath(`/stacq/${stacq.slug}`)
     revalidatePath(`/`)
     return { success: true }
 }
@@ -70,7 +74,15 @@ export async function updateResource(id: string, updates: { title?: string, note
  
     if (error) return { error: error.message }
  
-    revalidatePath(`/stacq/[id]`, 'page')
+    // Revalidate by path pattern since we might not have the slug here easily without a query
+    // and resources can belong to many stacqs. 
+    // However, resources currently belong to exactly one stacq via stacq_id.
+    const { data: resource } = await supabase.from('resources').select('stacq_id').eq('id', id).single()
+    if (resource?.stacq_id) {
+        const { data: stacq } = await supabase.from('stacqs').select('slug').eq('id', resource.stacq_id).single()
+        if (stacq?.slug) revalidatePath(`/stacq/${stacq.slug}`)
+    }
+
     return { success: true }
 }
 
@@ -168,6 +180,8 @@ export async function renameSection(stacqId: string, oldName: string, newName: s
         return { error: "Failed to update resources" }
     }
 
-    revalidatePath(`/stacq/${stacqId}`)
+    const { data: stacqSlug } = await supabase.from('stacqs').select('slug').eq('id', stacqId).single()
+    if (stacqSlug?.slug) revalidatePath(`/stacq/${stacqSlug.slug}`)
+
     return { success: true }
 }

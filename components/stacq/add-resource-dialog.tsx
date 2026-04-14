@@ -14,12 +14,15 @@ export function AddResourceDialog({ stacqId, availableSections }: { stacqId: str
                 <PlusSquare className="w-4 h-4 mr-2" /> Add Resource
             </DialogTrigger>
             <DialogContent className="w-[95vw] max-w-[400px] sm:max-w-2xl p-0 border-none bg-transparent shadow-none rounded-3xl overflow-hidden">
-                <AddResourceForm 
-                    stacqId={stacqId} 
-                    availableSections={availableSections} 
-                    onSuccess={() => setOpen(false)}
-                />
+                <div className="max-h-[85vh] overflow-y-auto custom-scrollbar bg-white rounded-3xl mt-4 sm:mt-0">
+                    <AddResourceForm 
+                        stacqId={stacqId} 
+                        availableSections={availableSections} 
+                        onSuccess={() => setOpen(false)}
+                    />
+                </div>
             </DialogContent>
+
         </Dialog>
     )
 }

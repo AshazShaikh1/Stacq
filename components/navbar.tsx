@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useEffect, useState, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -8,7 +9,9 @@ import { signOut } from "@/lib/supabase/actions"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth/auth-provider"
 import { Search, LogOut, User, Library, Plus, Loader2 } from "lucide-react"
-import { CreateStacqModal } from "./stacq/create-stacq-modal"
+import dynamic from 'next/dynamic'
+const CreateStacqModal = dynamic(() => import("./stacq/create-stacq-modal").then(mod => mod.CreateStacqModal), { ssr: false })
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,10 +91,30 @@ export function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="w-9 h-9 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center text-white font-black text-lg sm:text-xl shadow-emerald hover:scale-105 transition-all cursor-pointer shrink-0"
+          className="hover:scale-105 transition-all cursor-pointer shrink-0"
         >
-          S
+          {session ? (
+            <Image
+              src="/favicon.svg"
+              alt="Stacq Logo"
+              width={32}
+              height={32}
+              priority
+              className="w-8 h-8 sm:w-10 sm:h-10"
+            />
+          ) : (
+            <Image
+              src="/logo-text.svg"
+              alt="Stacq Logo"
+              width={100}
+              height={32}
+              priority
+              className="h-8 w-auto sm:h-10"
+            />
+          )}
         </Link>
+
+
 
         {/* Search Bar */}
         {!isLandingPage && (
@@ -156,9 +179,21 @@ export function Navbar() {
 
           {!loading && session ? (
             <>
+              <CreateStacqModal>
+                <Button
+                  variant="ghost"
+                  aria-label="Create Stacq"
+                  data-testid="nav-create-btn"
+                  className="rounded-full font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-2 px-3 h-9 sm:h-10 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Create</span>
+                </Button>
+              </CreateStacqModal>
 
               <DropdownMenu>
-                <DropdownMenuTrigger className="outline-none">
+
+                <DropdownMenuTrigger className="outline-none" data-testid="nav-avatar-btn">
 
                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border-2 border-background ring-1 ring-border hover:ring-primary transition-all cursor-pointer">
                     <AvatarImage src={session.user.user_metadata.avatar_url} />
@@ -184,11 +219,13 @@ export function Navbar() {
 
                   <DropdownMenuItem
                     onClick={() => router.push(`/profile`)}
+                    data-testid="nav-profile-link"
                     className="rounded-lg sm:rounded-xl p-2.5 sm:p-3 cursor-pointer flex items-center gap-3 font-bold hover:bg-surface text-foreground transition-colors group text-sm"
                   >
                     <User className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     My Profile
                   </DropdownMenuItem>
+
 
                   <DropdownMenuItem
                     onSelect={() => router.push('/saved')}
@@ -214,7 +251,14 @@ export function Navbar() {
 
             </>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Link
+                href="/explore"
+                className="text-sm font-bold text-muted-foreground hover:text-primary transition-colors hidden sm:block"
+              >
+                Explore
+              </Link>
+
               <Button
                 onClick={() => openAuthModal('login')}
                 variant="ghost"
@@ -231,7 +275,6 @@ export function Navbar() {
               </Button>
             </div>
           )}
-
         </div>
       </div>
 

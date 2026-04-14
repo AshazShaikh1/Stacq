@@ -32,7 +32,17 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
-export function ResourceCard({ resource, isOwner = false, availableSections = ["Default"] }: { resource?: any, isOwner?: boolean, availableSections?: string[] }) {
+export function ResourceCard({ 
+    resource, 
+    isOwner = false, 
+    availableSections = ["Default"],
+    priority = false 
+}: { 
+    resource?: any, 
+    isOwner?: boolean, 
+    availableSections?: string[],
+    priority?: boolean
+}) {
     const router = useRouter()
 
     const item = resource || {
@@ -44,6 +54,16 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
     }
 
     const { id, title, url, thumbnail, note, section } = item;
+
+    const getDomain = (link: string) => {
+        try {
+            return new URL(link).hostname.replace('www.', '')
+        } catch {
+            return link
+        }
+    }
+
+    const domain = getDomain(url)
 
     const [deleting, setDeleting] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -59,13 +79,6 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
     const [isExpanded, setIsExpanded] = useState(false)
     const isLongNote = note && note.length > 150
 
-    const getDomain = (link: string) => {
-        try {
-            return new URL(link).hostname.replace('www.', '')
-        } catch {
-            return link
-        }
-    }
 
     const handleDelete = async () => {
         setDeleting(true)
@@ -94,15 +107,24 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
     }
 
     return (
-        <div className="relative group bg-background hover:bg-surface border border-border hover:border-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md flex flex-col sm:flex-row active:scale-[0.99] sm:active:scale-100">
+        <article className="relative group bg-background hover:bg-surface border border-border hover:border-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md flex flex-col sm:flex-row active:scale-[0.99] sm:active:scale-100">
             <div className="w-full sm:w-36 md:w-44 shrink-0 aspect-video sm:aspect-square bg-surface border-b sm:border-b-0 sm:border-r border-border overflow-hidden relative">
                 <Image
                     src={thumbnail || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop"}
-                    alt={title || "Resource"}
+                    alt={title ? `Cover image for ${title}` : "Resource thumbnail"}
                     fill
-                    sizes="(max-width: 640px) 100vw, 176px"
+                    sizes="(max-width: 639px) 100vw, (max-width: 767px) 176px, 176px"
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
+                    priority={priority}
+                    loading={priority ? undefined : "lazy"}
+                    onLoad={() => {
+                        if (typeof window !== 'undefined' && (window as any).performance) {
+                            performance.mark(`resource-image-load-${id}`);
+                        }
+                    }}
+                    onError={(e: any) => {
+                        e.target.src = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop"
+                    }}
                 />
             </div>
 
@@ -117,8 +139,9 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1 uppercase tracking-wider"
+                            aria-label={`Visit ${domain} (opens in new tab)`}
                         >
-                            {getDomain(url)}
+                            {domain}
                             <ExternalLink className="w-3 h-3" />
                         </a>
                     </div>
@@ -128,10 +151,12 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                         target="_blank"
                         rel="noopener noreferrer"
                         className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-11 sm:h-12 px-8 sm:px-10 text-sm sm:text-base font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
+                        aria-label={`Visit external link for ${title}`}
                     >
                         Visit Link
                     </a>
                 </div>
+
 
                 <div className="mt-4 pt-4 border-t border-border relative">
                     <div className="flex gap-3 items-start">
@@ -154,7 +179,7 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                     {isOwner && (
                         <div className="absolute bottom-0 right-0 flex items-center gap-1 bg-background/80 backdrop-blur-sm pl-2 py-1 rounded-tl-xl transition-opacity opacity-100 md:opacity-0 group-hover:opacity-100">
                             <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-                                <DialogTrigger className="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/5 transition-colors cursor-pointer">
+                                <DialogTrigger className="p-2 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/5 transition-colors cursor-pointer" aria-label="Edit resource">
                                     <Edit2 className="w-4 h-4" />
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-2xl rounded-3xl p-6 sm:p-8">
@@ -247,7 +272,7 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                             </Dialog>
 
                             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                                <AlertDialogTrigger className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer outline-none">
+                                <AlertDialogTrigger className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors cursor-pointer outline-none" aria-label="Delete resource">
                                     {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="rounded-2xl max-w-[90vw] sm:max-w-md">
@@ -269,6 +294,6 @@ export function ResourceCard({ resource, isOwner = false, availableSections = ["
                     )}
                 </div>
             </div>
-        </div>
+        </article>
     )
 }

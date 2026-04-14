@@ -10,8 +10,44 @@ import { FollowButton } from "@/components/profile/follow-button"
 import { PlusSquare, Compass } from "lucide-react"
 import { ProfileHeaderClient } from "@/components/profile/profile-header-client"
 
-// ISR: Cache profile pages for 120 seconds
-export const revalidate = 120
+import { Metadata, ResolvingMetadata } from 'next'
+
+type Props = {
+    params: Promise<{ username: string }>
+}
+
+export async function generateMetadata(
+    { params }: Props,
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    const { username } = await params
+    const supabase = await createClient()
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, display_name, bio')
+        .eq('username', username)
+        .single()
+
+    if (!profile) {
+        return { title: 'User Not Found | Stacq' }
+    }
+
+    const name = profile.display_name || profile.username
+    const title = `${name} (@${profile.username}) | Stacqer Profile`
+    const description = profile.bio || `Explore the curated collections and resource stacqs by ${name} on Stacq.`
+
+    return {
+        title,
+        description,
+        alternates: {
+            canonical: `https://stacq.in/${username}`,
+        }
+    }
+}
+
+// ISR: 60s
+export const revalidate = 60
 
 export default async function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
     const { username } = await params;
@@ -19,7 +55,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, username, display_name, avatar_url, bio, followers_count')
         .eq('username', username)
         .single()
 
@@ -29,10 +65,11 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
         .from('stacqs')
         .select(`
             id,
+            slug,
             title,
             category,
             profiles(username, avatar_url),
-            resources(title, thumbnail)
+            resources(thumbnail)
         `)
         .eq('user_id', profile.id)
         .order('created_at', { ascending: false })
@@ -57,6 +94,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
 
     const formattedItems = (stacqs || []).map((s: any) => ({
         id: s.id,
+        slug: s.slug,
         title: s.title,
         aspectRatio: ['aspect-square', 'aspect-[4/5]', 'aspect-[3/4]', 'aspect-[2/3]'][Math.floor(Math.random() * 4)],
         thumbnail: s.resources?.[0]?.thumbnail,

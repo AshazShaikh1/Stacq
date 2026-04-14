@@ -7,10 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Edit2, Check, X, Loader2 } from "lucide-react"
 
+import { profileSchema } from "@/lib/validations/schemas"
+
 export function InlineProfileEditor({ profile, isOwnProfile }: { profile: any, isOwnProfile: boolean }) {
     const router = useRouter()
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [errors, setErrors] = useState<Record<string, string>>({})
     const [error, setError] = useState<string | null>(null)
 
     const [formData, setFormData] = useState({
@@ -19,7 +22,24 @@ export function InlineProfileEditor({ profile, isOwnProfile }: { profile: any, i
         bio: profile.bio || ""
     })
 
+    const validate = () => {
+        const result = profileSchema.safeParse(formData)
+        if (!result.success) {
+            const newErrors: Record<string, string> = {}
+            result.error.issues.forEach((err: any) => {
+                const path = err.path[0] as string
+                newErrors[path] = err.message
+            })
+            setErrors(newErrors)
+            return false
+        }
+        setErrors({})
+        return true
+    }
+
     const handleSave = async () => {
+        if (!validate()) return
+
         setLoading(true)
         setError(null)
         const res = await updateProfile(profile.id, profile.username, formData)
@@ -44,8 +64,10 @@ export function InlineProfileEditor({ profile, isOwnProfile }: { profile: any, i
             bio: profile.bio || ""
         })
         setError(null)
+        setErrors({})
         setIsEditing(false)
     }
+
 
     if (isEditing) {
         return (
@@ -65,10 +87,11 @@ export function InlineProfileEditor({ profile, isOwnProfile }: { profile: any, i
                     <Input
                         value={formData.display_name}
                         onChange={e => setFormData({ ...formData, display_name: e.target.value })}
-                        className="text-xl sm:text-2xl font-black h-12 sm:h-14 bg-background rounded-xl border-border"
+                        className={`text-xl sm:text-2xl font-black h-12 sm:h-14 bg-background rounded-xl border-border ${errors.display_name ? 'border-destructive' : ''}`}
                         placeholder="Your Name"
                     />
                 </div>
+                {errors.display_name && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.display_name}</p>}
 
                 <div>
                     <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1 block">
@@ -81,10 +104,11 @@ export function InlineProfileEditor({ profile, isOwnProfile }: { profile: any, i
                         <Input
                             value={formData.username}
                             onChange={e => setFormData({ ...formData, username: e.target.value.toLowerCase() })}
-                            className="h-11 sm:h-12 bg-background rounded-xl pl-7 sm:pl-8 border-border lowercase font-semibold"
+                            className={`h-11 sm:h-12 bg-background rounded-xl pl-7 sm:pl-8 border-border lowercase font-semibold ${errors.username ? 'border-destructive' : ''}`}
                             placeholder="username"
                         />
                     </div>
+                    {errors.username && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.username}</p>}
                 </div>
 
                 <div>
@@ -95,10 +119,11 @@ export function InlineProfileEditor({ profile, isOwnProfile }: { profile: any, i
                     <Textarea
                         value={formData.bio}
                         onChange={e => setFormData({ ...formData, bio: e.target.value })}
-                        className="bg-background resize-none h-20 sm:h-24 rounded-xl border-border text-sm"
+                        className={`bg-background resize-none h-20 sm:h-24 rounded-xl border-border text-sm ${errors.bio ? 'border-destructive' : ''}`}
                         placeholder="A short description about yourself..."
                     />
                 </div>
+                {errors.bio && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.bio}</p>}
 
                 <div className="flex items-center gap-2 sm:gap-3 pt-1 flex-wrap">
                     <button

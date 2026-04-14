@@ -11,6 +11,7 @@ export default async function SavedPage() {
         .select(`
             stacqs (
                 id,
+                slug,
                 title,
                 category,
                 profiles(username, avatar_url),
@@ -25,6 +26,7 @@ export default async function SavedPage() {
         .filter(Boolean)
         .map((s: any) => ({
             id: s.id,
+            slug: s.slug,
             title: s.title,
             aspectRatio: ['aspect-square', 'aspect-video', 'aspect-[4/5]', 'aspect-[3/4]'][Math.floor(Math.random() * 4)],
             thumbnail: s.resources?.[0]?.thumbnail,

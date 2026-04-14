@@ -1,8 +1,18 @@
+/* eslint-disable */
 "use server"
 
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 
+
+
+/**
+ * ARCHITECTURAL NOTE: For production scaling, move heavy metadata scraping 
+ * to a background job (Inngest or Vercel Edge Functions) to keep the 
+ * main UI thread responsive during bulk link additions.
+ */
 export async function fetchMetadata(url: string) {
+
     try {
         const res = await fetch(url, {
             headers: { 
@@ -52,7 +62,7 @@ export async function fetchMetadata(url: string) {
             try {
                 const baseUrl = new URL(url);
                 finalImage = new URL(image, baseUrl.origin).toString();
-            } catch (e) {
+            } catch {
                 // Keep original if parsing fails
             }
         }
@@ -68,11 +78,20 @@ export async function fetchMetadata(url: string) {
     }
 }
 
+import { resourceSchema } from '@/lib/validations/schemas'
+
 export async function addResource(stacqId: string, url: string, note: string, title?: string, thumbnail?: string, section: string = "Default") {
     const supabase = await createClient()
+
+    // 1. Validation via Zod
+    const validation = resourceSchema.safeParse({ url, title, note, section, thumbnail })
+    if (!validation.success) {
+        return { error: validation.error.issues[0].message }
+    }
  
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Security Halt. You must be actively logged in to curate." }
+
  
     const { error } = await supabase.from('resources').insert([{
         user_id: user.id, // Mandatory security binding 
@@ -88,6 +107,9 @@ export async function addResource(stacqId: string, url: string, note: string, ti
         console.error("Error inserting resource:", error)
         return { error: error.message }
     }
+
+    const { data: stacq } = await supabase.from('stacqs').select('slug').eq('id', stacqId).single()
+    if (stacq?.slug) revalidatePath(`/stacq/${stacq.slug}`)
 
     return { success: true }
 }

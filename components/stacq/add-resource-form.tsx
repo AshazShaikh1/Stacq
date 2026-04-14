@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "../ui/textarea"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { fetchMetadata, addResource } from "@/lib/actions/resource"
+import { resourceSchema } from "@/lib/validations/schemas"
 import { Loader2, Link as LinkIcon, AlertCircle, CheckCircle2, Type, X, PlusSquare } from "lucide-react"
+
 import { ResourceCard } from "./resource-card"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -32,6 +34,7 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"], onSu
     const [metadata, setMetadata] = useState<any>(null)
     const [metaError, setMetaError] = useState<string | null>(null)
 
+    const [errors, setErrors] = useState<Record<string, string>>({})
     const [saving, setSaving] = useState(false)
 
     // Debounced Live Metadata Fetching
@@ -70,9 +73,25 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"], onSu
         return () => clearTimeout(timer)
     }, [url])
 
+    const validate = () => {
+        const result = resourceSchema.safeParse({ url, title, thumbnail, note, section })
+        if (!result.success) {
+            const newErrors: Record<string, string> = {}
+            result.error.issues.forEach((err: any) => {
+                const path = err.path[0] as string
+                newErrors[path] = err.message
+            })
+            setErrors(newErrors)
+            return false
+        }
+        setErrors({})
+        return true
+    }
+
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!url) return;
+        if (!validate()) return
 
         setSaving(true)
         const res = await addResource(stacqId, url, note, title, thumbnail, section)
@@ -87,6 +106,7 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"], onSu
             setSection("Default")
             setIsCreatingSection(false)
             setMetadata(null)
+            setErrors({})
             if (onSuccess) onSuccess();
             router.refresh()
         } else {
@@ -95,23 +115,21 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"], onSu
     }
 
     return (
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-border p-5 sm:p-7 shadow-sm">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-border p-4 sm:p-7 shadow-sm">
 
-            <div className="flex items-center gap-3 mb-6 sm:mb-8">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black shadow-sm">
+            <div className="flex items-center gap-3 mb-4 sm:mb-8">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black shadow-sm text-sm sm:text-base">
                     +
                 </div>
                 <div>
-                    <h3 className="text-xl sm:text-2xl font-black tracking-tight text-foreground leading-tight">
+                    <h3 className="text-lg sm:text-2xl font-black tracking-tight text-foreground leading-tight">
                         Add to Collection
                     </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5">
-                        Expand your stack with high-signal content.
-                    </p>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-2">
@@ -125,11 +143,10 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"], onSu
                                 value={url}
                                 onChange={(e) => setUrl(e.target.value)}
                                 placeholder="https://example.com/article"
-                                className="pl-10 h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm sm:text-base font-medium"
-                                required
-                                type="url"
+                                className={`pl-10 h-12 bg-surface rounded-xl border-border focus:ring-primary/20 text-sm sm:text-base font-medium ${errors.url ? 'border-destructive' : ''}`}
                             />
                         </div>
+                        {errors.url && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.url}</p>}
                     </div>
                     <div className="space-y-2">
                         <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
@@ -209,10 +226,10 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"], onSu
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
                                         placeholder="Title of this resource"
-                                        className="pl-10 h-11 bg-surface rounded-xl border-border text-sm font-semibold"
-                                        required
+                                        className={`pl-10 h-11 bg-surface rounded-xl border-border text-sm font-semibold ${errors.title ? 'border-destructive' : ''}`}
                                     />
                                 </div>
+                                {errors.title && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.title}</p>}
                             </div>
 
                             <div className="space-y-2">
@@ -223,8 +240,9 @@ export function AddResourceForm({ stacqId, availableSections = ["Default"], onSu
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
                                     placeholder="Why is this valuable? Share your perspective..."
-                                    className="resize-none h-24 sm:h-28 text-sm border-border bg-surface rounded-xl p-4 font-medium"
+                                    className={`resize-none h-24 sm:h-28 text-sm border-border bg-surface rounded-xl p-4 font-medium ${errors.note ? 'border-destructive' : ''}`}
                                 />
+                                {errors.note && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.note}</p>}
                             </div>
                         </div>
 

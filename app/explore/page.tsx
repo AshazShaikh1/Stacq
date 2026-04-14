@@ -2,8 +2,18 @@ import { createClient } from '@/lib/supabase/server'
 import MasonryFeed from "@/components/feed/masonry-feed"
 import { Search, Compass } from "lucide-react"
 
-// ISR: Cache explore/search results for 30 seconds
-export const revalidate = 30
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+    title: 'Explore Curated Collections | Stacq',
+    description: 'Discover high-signal collections of resources curated by the community. Search for frontend, design, productivity, and more.',
+    alternates: {
+        canonical: 'https://stacq.in/explore',
+    }
+}
+
+// ISR: 60s
+export const revalidate = 60
 
 export default async function ExplorePage({
     searchParams
@@ -13,26 +23,40 @@ export default async function ExplorePage({
     const { q } = await searchParams;
     const supabase = await createClient()
 
-    // 1. Fetch search results with joined profile/resource data
-    const { data: results } = await supabase
-        .from('stacqs')
-        .select(`
-            id,
-            title,
-            category,
-            thumbnail,
-            profiles(username, avatar_url),
-            resources(title, thumbnail)
-        `)
-        .ilike('title', `%${q || ''}%`)
-        .order('created_at', { ascending: false })
+    let items: any[] = []
+    let fetchError: any = null
+
+    try {
+        // 1. Fetch search results with joined profile/resource data
+        const { data: results, error } = await supabase
+            .from('stacqs')
+            .select(`
+                id,
+                slug,
+                title,
+                category,
+                thumbnail,
+                profiles(username, avatar_url),
+                resources(title, thumbnail)
+            `)
+            .ilike('title', `%${q || ''}%`)
+            .order('created_at', { ascending: false })
+
+        if (error) throw error;
+        items = results || [];
+
+    } catch (err) {
+        console.error("Explore Search Error:", err)
+        fetchError = err
+    }
 
     // 2. Format results for MasonryFeed compatibility
     const ASPECT_RATIOS = ['aspect-square', 'aspect-video', 'aspect-[4/5]', 'aspect-[3/4]']
-    const formattedResults = (results || []).map((s: any) => {
+    const formattedResults = items.map((s: any) => {
         const ratioIndex = s.id.charCodeAt(0) % ASPECT_RATIOS.length
         return {
             id: s.id,
+            slug: s.slug,
             title: s.title,
             category: s.category,
             aspectRatio: ASPECT_RATIOS[ratioIndex],
@@ -62,20 +86,29 @@ export default async function ExplorePage({
                         )}
                     </h1>
                     <p className="text-muted-foreground mt-2 font-bold text-sm md:text-base">
-                        Found {formattedResults.length} high-signal collections matching your interests.
+                        {fetchError 
+                            ? "Database signal lost. Showing maintenance state." 
+                            : `Found ${formattedResults.length} high-signal collections matching your interests.`}
                     </p>
                 </div>
 
                 {formattedResults.length > 0 ? (
                     <MasonryFeed items={formattedResults} />
                 ) : (
-                    <div className="py-32 text-center bg-background border-2 border-dashed border-border/50 rounded-[3rem] shadow-sm flex flex-col items-center justify-center px-6 mx-2">
+                    <div 
+                        data-testid="empty-explore-state"
+                        className="py-32 text-center bg-background border-2 border-dashed border-border/50 rounded-[3rem] shadow-sm flex flex-col items-center justify-center px-6 mx-2"
+                    >
                         <div className="w-24 h-24 bg-surface rounded-full flex items-center justify-center mb-8 border border-border">
                             <Search className="w-10 h-10 text-primary/20" />
                         </div>
-                        <h3 className="text-2xl font-black text-foreground tracking-tight">No collections found</h3>
+                        <h3 className="text-2xl font-black text-foreground tracking-tight">
+                            {fetchError ? "Discovery Offline" : "No collections found"}
+                        </h3>
                         <p className="text-muted-foreground mt-3 font-medium max-w-sm text-base leading-relaxed">
-                            We couldn't find any results for that search. Try another keyword or explore trending collections.
+                            {fetchError 
+                                ? "We're having trouble retrieving collections right now. Please check back in a moment." 
+                                : "We couldn't find any results for that search. Try another keyword or explore trending collections."}
                         </p>
                         <div className="flex flex-col sm:flex-row items-center gap-4 mt-10 w-full justify-center">
                             <a 
@@ -96,4 +129,4 @@ export default async function ExplorePage({
             </div>
         </section>
     )
-}
+}

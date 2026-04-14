@@ -4,7 +4,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Compass, PlusSquare, Bookmark, User } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { CreateStacqModal } from "@/components/stacq/create-stacq-modal"
+import dynamic from 'next/dynamic'
+const CreateStacqModal = dynamic(() => import("@/components/stacq/create-stacq-modal").then(mod => mod.CreateStacqModal), { ssr: false })
 import { useAuth } from "@/components/auth/auth-provider"
 
 const navItems = [

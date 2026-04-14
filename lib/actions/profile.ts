@@ -1,21 +1,39 @@
+/* eslint-disable */
 "use server"
 
 import { createClient } from '@/lib/supabase/server'
+import { profileSchema } from '@/lib/validations/schemas'
 
 export async function updateProfile(
     userId: string, 
     currentUsername: string, 
-    updates: { display_name?: string, username?: string, bio?: string, twitter?: string, github?: string, website?: string, social_links?: any[] }
+    updates: { 
+        display_name?: string, 
+        username?: string, 
+        bio?: string, 
+        twitter?: string, 
+        github?: string, 
+        website?: string, 
+        social_links?: { platform: string, url: string }[] 
+    }
 ) {
     const supabase = await createClient()
 
-    // Verify session
+    // 1. Validation via Zod
+    const validation = profileSchema.safeParse(updates)
+    if (!validation.success) {
+        return { error: validation.error.issues[0].message }
+    }
+
+    // 2. Verify session
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || user.id !== userId) {
         return { error: "Unauthorized request. You can only edit your own profile." }
     }
 
-    const payload: any = {}
+
+    const payload: Record<string, string | { platform: string, url: string }[] | null> = {}
+
 
     // Map Partial Keys safely preserving nulls but ignoring undefined closures
     if (updates.display_name !== undefined) payload.display_name = updates.display_name

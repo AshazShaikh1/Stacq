@@ -10,21 +10,41 @@ import { createStacq } from "@/lib/actions/stacq"
 import { ImageUpload } from "@/components/ui/image-upload"
 import { Loader2, PlusSquare, Hash, AlignLeft, Layout } from "lucide-react"
 import { toast } from "sonner"
+import { stacqSchema } from "@/lib/validations/schemas"
 
 export function CreateStacqModal({ children }: { children: React.ReactElement }) {
+
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
+    const [errors, setErrors] = useState<Record<string, string>>({})
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState("")
     const [category, setCategory] = useState("")
     const [thumbnail, setThumbnail] = useState("")
 
+    const validate = () => {
+        const result = stacqSchema.safeParse({ title, description, category, thumbnail })
+        if (!result.success) {
+            const newErrors: Record<string, string> = {}
+            result.error.issues.forEach((err: any) => {
+                const path = err.path[0] as string
+                newErrors[path] = err.message
+            })
+            setErrors(newErrors)
+            return false
+        }
+        setErrors({})
+        return true
+    }
+
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setLoading(true)
+        if (!validate()) return
 
+        setLoading(true)
         const res = await createStacq(title, description, category, thumbnail)
         if (res.error) {
             toast.error(res.error)
@@ -33,9 +53,10 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
             toast.success("Stacq created successfully!")
             setOpen(false)
             setLoading(false)
-            router.push(`/stacq/${res.stacqId}`)
+            router.push(`/stacq/${res.slug}`)
         }
     }
+
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -66,10 +87,11 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
                                         placeholder="e.g. Next.js Mastery"
-                                        required
-                                        className="h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold"
+                                        data-testid="create-stacq-title"
+                                        className={`h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold ${errors.title ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}
                                     />
                                 </div>
+                                {errors.title && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.title}</p>}
                             </div>
 
                             <div className="space-y-2">
@@ -82,10 +104,11 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
                                         value={category}
                                         onChange={(e) => setCategory(e.target.value)}
                                         placeholder="e.g. Tech, Productivity"
-                                        required
-                                        className="h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold"
+                                        data-testid="create-stacq-category"
+                                        className={`h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold ${errors.category ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}
                                     />
                                 </div>
+                                {errors.category && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.category}</p>}
                             </div>
                         </div>
 
@@ -107,18 +130,21 @@ export function CreateStacqModal({ children }: { children: React.ReactElement })
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Why are you putting this collection together? What's the signal?"
-                                required
-                                className="resize-none h-24 sm:h-28 pl-10 pt-3 bg-surface rounded-xl border-border text-sm font-medium"
+                                data-testid="create-stacq-description"
+                                className={`resize-none h-24 sm:h-28 pl-10 pt-3 bg-surface rounded-xl border-border text-sm font-medium ${errors.description ? 'border-destructive focus-visible:ring-destructive/20' : ''}`}
                             />
                         </div>
+                        {errors.description && <p className="text-[10px] font-bold text-destructive animate-in fade-in slide-in-from-top-1">{errors.description}</p>}
                     </div>
 
                     <div className="pt-2 sm:pt-4">
                         <Button
                             type="submit"
                             disabled={loading}
+                            data-testid="create-stacq-submit"
                             className="btn-primary w-full h-12 sm:h-14 rounded-full font-black text-base sm:text-lg shadow-emerald shadow-lg active:scale-95 transition-transform"
                         >
+
                             {loading ? (
                                 <Loader2 className="w-6 h-6 animate-spin" />
                             ) : (

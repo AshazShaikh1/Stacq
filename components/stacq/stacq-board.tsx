@@ -22,8 +22,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { updateStacq, updateResourceOrders, renameSection } from '@/lib/actions/mutations'
-import { Plus, GripVertical, Edit2, Check, X } from 'lucide-react'
+import { Plus, GripVertical, Edit2, Check, X, ChevronDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ResourceCard } from './resource-card'
@@ -33,7 +34,8 @@ import { CSS } from '@dnd-kit/utilities'
 
 // --- Subcomponents for DnD Contexts ---
 
-function SortableSection({ id, sectionName, items, isOwner, onRename, isSectionDragging, availableSections }: { id: string, sectionName: string, items: any[], isOwner: boolean, onRename: (oldName: string, newName: string) => void, isSectionDragging?: boolean, availableSections: string[] }) {
+function SortableSection({ id, sectionName, items, isOwner, onRename, isSectionDragging, availableSections, isCollapsed, onToggleCollapse }: { id: string, sectionName: string, items: any[], isOwner: boolean, onRename: (oldName: string, newName: string) => void, isSectionDragging?: boolean, availableSections: string[], isCollapsed: boolean, onToggleCollapse: () => void }) {
+
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(sectionName)
 
@@ -61,7 +63,7 @@ function SortableSection({ id, sectionName, items, isOwner, onRename, isSectionD
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="relative bg-surface/30 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-border/50 space-y-4">
+    <section ref={setNodeRef} style={style} className="relative bg-surface/30 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-border/50 space-y-4">
 
       {/* 1. Drag Handle: Now acts as the top "border" area */}
       {isOwner && !isEditing && (
@@ -97,31 +99,61 @@ function SortableSection({ id, sectionName, items, isOwner, onRename, isSectionD
           )}
         </div>
 
-        {isOwner && !isEditing && (
+        <div className="flex items-center gap-1 shrink-0">
+          {isOwner && !isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
           <button
-            onClick={() => setIsEditing(true)}
-            className="p-1.5 text-muted-foreground hover:text-primary transition-colors shrink-0"
+            onClick={onToggleCollapse}
+            className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
           >
-            <Edit2 className="w-4 h-4" />
+            {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
-        )}
+        </div>
       </div>
 
+
+
       {/* 3. Resources Container */}
-      <div className={`transition-all duration-300 ${isSectionDragging ? 'opacity-0' : 'opacity-100'}`}>
+      {!isCollapsed && (
+        <div className={`transition-all duration-300 ${isSectionDragging ? 'opacity-0' : 'opacity-100'}`}>
+
         <SortableContext id={id} items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-4 min-h-[40px] p-1 rounded-xl">
-            {items.map(item => (
-              <SortableResource key={item.id} item={item} isOwner={isOwner} availableSections={availableSections} />
+            {items.map((item, idx) => (
+              <SortableResource 
+                key={item.id} 
+                item={item} 
+                isOwner={isOwner} 
+                availableSections={availableSections} 
+                priority={idx < 2} 
+              />
             ))}
           </div>
         </SortableContext>
       </div>
-    </div>
+      )}
+    </section>
+
   )
 }
 
-function SortableResource({ item, isOwner, availableSections }: { item: any, isOwner: boolean, availableSections: string[] }) {
+function SortableResource({ 
+  item, 
+  isOwner, 
+  availableSections, 
+  priority = false 
+}: { 
+  item: any, 
+  isOwner: boolean, 
+  availableSections: string[], 
+  priority?: boolean 
+}) {
   const {
     attributes,
     listeners,
@@ -152,7 +184,7 @@ function SortableResource({ item, isOwner, availableSections }: { item: any, isO
           </div>
         </div>
       )}
-      <ResourceCard resource={item} isOwner={isOwner} availableSections={availableSections} />
+      <ResourceCard resource={item} isOwner={isOwner} availableSections={availableSections} priority={priority} />
     </div>
   )
 }
@@ -180,7 +212,10 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
   const [items, setItems] = useState<Record<string, any[]>>(groupedResources)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activeType, setActiveType] = useState<'Section' | 'Resource' | null>(null)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+  const [isDndMode, setIsDndMode] = useState(false)
   const [newSectionName, setNewSectionName] = useState("")
+
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -252,7 +287,11 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
   const onDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)
     setActiveType(event.active.data.current?.type)
+    if (event.active.data.current?.type === 'Section') {
+      setIsDndMode(true)
+    }
   }
+
 
   const onDragOver = (event: DragOverEvent) => {
     if (activeType !== 'Resource') return;
@@ -279,6 +318,7 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
   const onDragEnd = async (event: DragEndEvent) => {
     setActiveId(null)
     setActiveType(null)
+    setIsDndMode(false)
     const { active, over } = event;
     if (!over) return;
 
@@ -369,12 +409,29 @@ export function StacqBoard({ initialStacq, isOwner }: { initialStacq: any, isOwn
             </div>
 
             <SortableContext items={sections} strategy={verticalListSortingStrategy}>
-              <div className="space-y-8 pl-0 md:pl-14"> {/* Removed mobile left padding (pl-0) to give sections 100% width */}
+              <div className="space-y-4 md:space-y-8 pl-0 md:pl-14"> {/* Reduced spacing when collapsed */}
                 {sections.map(section => (
-                  <SortableSection key={section} id={section} sectionName={section} items={items[section] || []} isOwner={isOwner} onRename={handleRenameSection} isSectionDragging={activeType === 'Section'} availableSections={sections} />
+                  <SortableSection 
+                    key={section} 
+                    id={section} 
+                    sectionName={section} 
+                    items={items[section] || []} 
+                    isOwner={isOwner} 
+                    onRename={handleRenameSection} 
+                    isSectionDragging={activeType === 'Section'} 
+                    availableSections={sections} 
+                    isCollapsed={isDndMode || collapsedSections.has(section)}
+                    onToggleCollapse={() => {
+                      const next = new Set(collapsedSections);
+                      if (next.has(section)) next.delete(section);
+                      else next.add(section);
+                      setCollapsedSections(next);
+                    }}
+                  />
                 ))}
               </div>
             </SortableContext>
+
           </div>
 
           <DragOverlay dropAnimation={null}>

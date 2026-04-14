@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, FolderOpen, Link as LinkIcon, Share2, Rocket } from 'lucide-react'
 import { signInWithGoogle } from '@/lib/supabase/actions'
+import Image from 'next/image'
 
 const LandingPageUI = () => {
     const router = useRouter()
@@ -27,7 +28,7 @@ const LandingPageUI = () => {
                         </Badge>
 
                         <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-foreground leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                            The Expert Filter for the <span className="bg-clip-text text-transparent bg-linear-to-r from-primary via-emerald-400 to-teal-500 animate-gradient">Digital Age</span>
+                            The Expert Filter for the <span className="text-primary">Digital Age</span>
                         </h1>
                         <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground font-medium mb-10 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
                             Stop searching and start finding. Stacq helps you curate the high-signal resources that Google and AI often miss.
@@ -214,61 +215,68 @@ const LandingPageUI = () => {
 
 
             {/* Footer */}
-            <footer className="w-full bg-[#0a0a0a] text-zinc-400 py-10 sm:py-12 md:py-16 px-4 sm:px-6 lg:px-8">
-
-                <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12 mb-10 sm:mb-12 md:mb-16">
-
-                    <div className="col-span-1 sm:col-span-2 space-y-4">
-
-                        <div className="flex items-center gap-2 mb-4">
-
-                            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center text-white font-black text-lg sm:text-xl shadow-sm">
-                                S
+            <footer className="w-full bg-[#0a0a0a] text-zinc-400 py-16 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-zinc-800/50">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+                        {/* Brand Column */}
+                        <div className="md:col-span-4 space-y-6">
+                            <div className="flex items-center gap-3">
+                                <Image className='hover:scale-105 transition-all cursor-pointer shrink-0' src={"/logo-text.svg"} alt="Stacq" width={200} height={200} />
                             </div>
-
-                            <span className="text-white font-bold text-lg sm:text-xl tracking-tight">
-                                Stacq
-                            </span>
-
+                            <p className="text-sm text-zinc-500 max-w-xs leading-relaxed">
+                                The human filter for the digital age. Curate, organize, and share high-signal resources with a global community of experts.
+                            </p>
                         </div>
 
-                        <p className="text-sm text-zinc-500 max-w-sm">
-                            Stacq is a modern platform for curating and sharing the things you love from the internet.
-                        </p>
-
+                        {/* Links Columns */}
+                        <div className="md:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-8">
+                            <div>
+                                <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-6">Product</h4>
+                                <ul className="space-y-4 text-sm">
+                                    <li><a href="/explore" className="hover:text-primary transition-colors">Explore</a></li>
+                                    <li><a href="/feed" className="hover:text-primary transition-colors">Discovery</a></li>
+                                    <li><a href="/signup" className="hover:text-primary transition-colors">Get Started</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-6">Account</h4>
+                                <ul className="space-y-4 text-sm">
+                                    <li><a href="/login" className="hover:text-primary transition-colors">Log In</a></li>
+                                    <li><a href="/signup" className="hover:text-primary transition-colors">Sign Up</a></li>
+                                    <li><a href="/profile" className="hover:text-primary transition-colors">My Profile</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-6">Links</h4>
+                                <ul className="space-y-4 text-sm">
+                                    <li><a href="/contact" className="hover:text-primary transition-colors">Contact</a></li>
+                                    <li><a href="/report" className="hover:text-primary transition-colors">Report Issue</a></li>
+                                    <li><a href="/about" className="hover:text-primary transition-colors">About Us</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="text-white font-bold text-sm uppercase tracking-widest mb-6">Policies</h4>
+                                <ul className="space-y-4 text-sm">
+                                    <li><a href="/privacy" className="hover:text-primary transition-colors">Privacy</a></li>
+                                    <li><a href="/terms" className="hover:text-primary transition-colors">Terms</a></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
 
-
-                    <div>
-                        <h4 className="text-white font-semibold mb-6">Account</h4>
-
-                        <ul className="space-y-4 text-sm">
-                            <li><a href="/login" className="hover:text-primary transition-colors">Log in</a></li>
-                            <li><a href="/signup" className="hover:text-primary transition-colors">Sign up</a></li>
-                        </ul>
-
+                    {/* Bottom Bar */}
+                    <div className="pt-8 border-t border-zinc-800/50 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-medium text-zinc-500">
+                        <p>© 2026 Stacq. Powered by human curation.</p>
+                        <div className="flex gap-8">
+                            <a href="https://twitter.com/stacq" className="hover:text-white transition-colors">Twitter</a>
+                            <a href="https://instagram.com/stacq" className="hover:text-white transition-colors">Instagram</a>
+                        </div>
                     </div>
-
                 </div>
-
-
-                <div className="max-w-7xl mx-auto pt-8 border-t border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-
-                    <p>© 2026 Stacq. All rights reserved.</p>
-
-                    <div className="flex gap-6">
-                        <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-                        <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
-                        <a href="/about" className="hover:text-white transition-colors">About</a>
-                        <a href="/contact" className="hover:text-white transition-colors">Contact</a>
-                        <a href="/report" className="hover:text-white transition-colors">Report Issue</a>
-                    </div>
-
-                </div>
-
             </footer>
 
-        </div>
+
+        </div >
     )
 }
 
