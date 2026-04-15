@@ -5,9 +5,17 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import Image from "next/image";
 import { FeedItem, Resource } from "@/lib/types";
+
+function getDomain(url: string) {
+  try {
+    return new URL(url).hostname.replace("www.", "");
+  } catch {
+    return url;
+  }
+}
 
 export function StacqCard({ item }: { item: FeedItem }) {
   const title = item.title || "Untitled Stacq";
@@ -19,7 +27,7 @@ export function StacqCard({ item }: { item: FeedItem }) {
 
   const username = item.stacqer?.username || "anonymous";
   const avatar = item.stacqer?.avatar || "";
-  const remixCount = item.remixCount || 0;
+  const displayName = item.stacqer?.display_name || username;
 
   return (
     <Card className="overflow-hidden transition-all duration-300 md:hover:-translate-y-1 border-border/50 md:border-transparent md:hover:border-primary active:scale-[0.98] md:active:scale-100 hover:shadow-xl hover:shadow-primary/10 cursor-pointer bg-background group">
@@ -41,12 +49,22 @@ export function StacqCard({ item }: { item: FeedItem }) {
       </CardHeader>
 
       <CardContent className="p-3 sm:p-4 pt-0 text-xs sm:text-sm text-muted-foreground">
-        <ul className="space-y-1.5 sm:space-y-2">
+        <ul className="space-y-2 sm:space-y-2.5">
           {stacqItems.slice(0, 3).map((listItem: Resource, i: number) => (
-            <li key={i} className="flex items-start gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 mt-0.5 text-primary/70" />
-
-              <span className="line-clamp-1">{listItem.title}</span>
+            <li key={i} className="flex items-start gap-2 min-w-0">
+              {/* Green dot */}
+              <span className="mt-1 w-2 h-2 rounded-full bg-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-foreground line-clamp-1 leading-snug">
+                  {listItem.title}
+                </p>
+                {listItem.url && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-primary/70 font-medium mt-0.5">
+                    <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                    {getDomain(listItem.url)}
+                  </span>
+                )}
+              </div>
             </li>
           ))}
 
@@ -63,7 +81,7 @@ export function StacqCard({ item }: { item: FeedItem }) {
           <Avatar className="w-5 h-5 sm:w-6 sm:h-6 border">
             <AvatarImage src={avatar} />
             <AvatarFallback className="text-[9px] sm:text-[10px] font-semibold">
-              {username.substring(0, 2).toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 

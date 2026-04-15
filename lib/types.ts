@@ -46,6 +46,7 @@ export interface FeedItem {
   stacqer: {
     username: string;
     avatar: string | null | undefined;
+    display_name?: string | null;
   };
   remixCount: number;
 }

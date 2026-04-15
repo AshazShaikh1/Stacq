@@ -12,8 +12,11 @@ export function GlobalFooter() {
   if (pathname === "/") return null;
 
   return (
-    <footer className="w-full py-4 sm:py-6 px-4 bg-surface border-t border-border/50 flex flex-col items-center justify-center gap-4 sm:gap-6 mt-auto">
-      <Link href="/" className="group transition-all duration-300">
+    <footer className="w-full py-4 sm:py-6 px-4 bg-surface border-t border-border/50 flex flex-col items-center justify-center gap-3 sm:gap-4 mt-auto">
+      <Link
+        href="/"
+        className="group transition-all duration-300 flex items-center justify-center"
+      >
         <Image
           src="/logo-text-dark.svg"
           alt="Stacq Logo"
@@ -24,7 +27,7 @@ export function GlobalFooter() {
         />
       </Link>
 
-      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-[10px] sm:text-xs font-bold text-muted-foreground/50">
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[10px] sm:text-xs font-bold text-muted-foreground/50 text-center">
         <p>© {new Date().getFullYear()} Stacq.in</p>
         <Link
           href="/about"

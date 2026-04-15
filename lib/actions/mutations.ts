@@ -270,3 +270,41 @@ export async function renameSection(
 
   return { success: true };
 }
+
+export async function deleteSection(stacqId: string, sectionName: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Unauthorized" };
+
+  // 1. Fetch current section_order
+  const { data: stacq, error: fetchError } = await supabase
+    .from("stacqs")
+    .select("section_order, slug")
+    .eq("id", stacqId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (fetchError || !stacq) return { error: "Failed to fetch stacq" };
+
+  // 2. Move all resources in this section → Default
+  await supabase
+    .from("resources")
+    .update({ section: "Default" })
+    .eq("stacq_id", stacqId)
+    .eq("section", sectionName);
+
+  // 3. Remove section from section_order
+  const nextOrder = ((stacq.section_order as string[]) || []).filter(
+    (s: string) => s !== sectionName,
+  );
+
+  await supabase
+    .from("stacqs")
+    .update({ section_order: nextOrder })
+    .eq("id", stacqId);
+
+  if (stacq.slug) revalidatePath(`/stacq/${stacq.slug}`);
+  return { success: true };
+}

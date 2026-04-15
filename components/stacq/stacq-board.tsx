@@ -26,6 +26,7 @@ import {
   updateStacq,
   updateResourceOrders,
   renameSection,
+  deleteSection,
 } from "@/lib/actions/mutations";
 import {
   Plus,
@@ -35,6 +36,7 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,6 +56,7 @@ interface SortableSectionProps {
   items: Resource[];
   isOwner: boolean;
   onRename: (oldName: string, newName: string) => void;
+  onDelete: (name: string) => void;
   isSectionDragging?: boolean;
   availableSections: string[];
   isCollapsed: boolean;
@@ -66,6 +69,7 @@ function SortableSection({
   items,
   isOwner,
   onRename,
+  onDelete,
   isSectionDragging,
   availableSections,
   isCollapsed,
@@ -73,6 +77,7 @@ function SortableSection({
 }: SortableSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(sectionName);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const {
     attributes,
@@ -128,13 +133,13 @@ function SortableSection({
               <div className="flex gap-1">
                 <button
                   onClick={handleSave}
-                  className="p-2 bg-primary/10 text-primary rounded-lg"
+                  className="p-2 bg-primary/10 text-primary rounded-lg cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="p-2 text-muted-foreground"
+                  className="p-2 text-muted-foreground cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -149,37 +154,63 @@ function SortableSection({
 
         <div className="flex items-center gap-1 shrink-0">
           {isOwner && !isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
+            <>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1.5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                title="Rename section"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
+              {sectionName !== "Default" && (
+                <button
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        `Remove section "${sectionName}"? Its resources will move to Default.`,
+                      )
+                    )
+                      return;
+                    setIsDeleting(true);
+                    onDelete(sectionName);
+                  }}
+                  disabled={isDeleting}
+                  className="p-1.5 text-muted-foreground hover:text-destructive transition-colors cursor-pointer disabled:opacity-40"
+                  title="Remove section"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </>
           )}
           <button
             onClick={onToggleCollapse}
-            className="p-1.5 text-muted-foreground hover:text-primary transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
           >
-            {isCollapsed ? (
-              <ChevronRight className="w-5 h-5" />
-            ) : (
-              <ChevronDown className="w-5 h-5" />
-            )}
+            <ChevronDown
+              className={`w-5 h-5 transition-transform duration-300 ${
+                isCollapsed ? "-rotate-90" : "rotate-0"
+              }`}
+            />
           </button>
         </div>
       </div>
 
-      {/* 3. Resources Container */}
-      {!isCollapsed && (
-        <div
-          className={`transition-all duration-300 ${isSectionDragging ? "opacity-0" : "opacity-100"}`}
-        >
+      {/* 3. Resources Container — CSS grid trick for smooth collapse animation */}
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${
+          isCollapsed
+            ? "grid-rows-[0fr] opacity-0"
+            : "grid-rows-[1fr] opacity-100"
+        } ${isSectionDragging ? "opacity-0" : ""}`}
+      >
+        <div className="overflow-hidden">
           <SortableContext
             id={id}
             items={items.map((i) => i.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-4 min-h-[40px] p-1 rounded-xl">
+            <div className="space-y-4 min-h-[40px] p-1 pt-2 rounded-xl">
               {items.map((item, idx) => (
                 <SortableResource
                   key={item.id}
@@ -192,7 +223,7 @@ function SortableSection({
             </div>
           </SortableContext>
         </div>
-      )}
+      </div>
     </section>
   );
 }
@@ -250,6 +281,91 @@ function SortableResource({
         availableSections={availableSections}
         priority={priority}
       />
+    </div>
+  );
+}
+
+// --- Read-only collapsible sections for non-owners ---
+
+function ReadonlySections({
+  sections,
+  items,
+}: {
+  sections: string[];
+  items: Record<string, Resource[]>;
+}) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const toggle = (sec: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(sec)) next.delete(sec);
+      else next.add(sec);
+      return next;
+    });
+  };
+
+  const visibleSections = sections.filter((s) => items[s]?.length > 0);
+
+  if (visibleSections.length === 0) return <EmptyState />;
+
+  return (
+    <div className="space-y-4 md:space-y-6 pt-2">
+      {visibleSections.map((section) => {
+        const isCollapsed = collapsed.has(section);
+        const isDefault = section === "Default";
+        return (
+          <section
+            key={section}
+            className="bg-surface/30 rounded-2xl md:rounded-3xl border border-border/50 overflow-hidden"
+          >
+            {/* Section header — only shown for named sections */}
+            {!isDefault && (
+              <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-border/40">
+                <h2 className="text-lg md:text-2xl font-black tracking-tight text-foreground leading-tight">
+                  {section}
+                </h2>
+                <button
+                  onClick={() => toggle(section)}
+                  className="p-1.5 text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                  aria-label={
+                    isCollapsed ? `Expand ${section}` : `Collapse ${section}`
+                  }
+                >
+                  <ChevronDown
+                    className={`w-5 h-5 transition-transform duration-300 ${
+                      isCollapsed ? "-rotate-90" : "rotate-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
+
+            {/* Resources — smooth CSS grid collapse */}
+            <div
+              className={`grid transition-all duration-300 ease-in-out ${
+                isCollapsed
+                  ? "grid-rows-[0fr] opacity-0"
+                  : "grid-rows-[1fr] opacity-100"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div
+                  className={`space-y-4 p-4 md:p-6 ${!isDefault ? "pt-4" : ""}`}
+                >
+                  {items[section].map((item: Resource) => (
+                    <ResourceCard
+                      key={item.id}
+                      resource={item}
+                      isOwner={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -323,6 +439,29 @@ export function StacqBoard({
     setItems((prev) => ({ ...prev, [name]: [] }));
     setNewSectionName("");
     await updateStacq(initialStacq.id, { section_order: nextSections });
+  };
+
+  const handleDeleteSection = async (sectionName: string) => {
+    const nextSections = sections.filter((s) => s !== sectionName);
+    // Move resources locally to Default
+    setItems((prev) => {
+      const moved = [...(prev[sectionName] || [])].map((r) => ({
+        ...r,
+        section: "Default",
+      }));
+      const newItems = { ...prev };
+      newItems["Default"] = [...(newItems["Default"] || []), ...moved];
+      delete newItems[sectionName];
+      return newItems;
+    });
+    setSections(nextSections);
+    const res = await deleteSection(initialStacq.id, sectionName);
+    if (res.error) {
+      toast.error(res.error);
+    } else {
+      toast.success(`Section "${sectionName}" removed`);
+      router.refresh();
+    }
   };
 
   const handleRenameSection = async (oldName: string, newName: string) => {
@@ -472,33 +611,7 @@ export function StacqBoard({
   return (
     <div className="space-y-6 md:space-y-8 px-2 md:px-0">
       {!isOwner ? (
-        <div className="space-y-8 md:space-y-10 pt-2">
-          {sections.length > 0 && items ? (
-            sections.map((section) => {
-              if (items[section]?.length === 0) return null;
-              return (
-                <div key={section} className="space-y-4 md:space-y-6">
-                  {section !== "Default" && (
-                    <h2 className="text-xl md:text-2xl font-black tracking-tight text-foreground border-b border-border pb-1.5 md:pb-2 inline-block pr-6">
-                      {section}
-                    </h2>
-                  )}
-                  <div className="space-y-4 md:space-y-6">
-                    {items[section].map((item: Resource) => (
-                      <ResourceCard
-                        key={item.id}
-                        resource={item}
-                        isOwner={false}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <EmptyState />
-          )}
-        </div>
+        <ReadonlySections sections={sections} items={items} />
       ) : (
         <DndContext
           sensors={sensors}
@@ -543,6 +656,7 @@ export function StacqBoard({
                     items={items[section] || []}
                     isOwner={isOwner}
                     onRename={handleRenameSection}
+                    onDelete={handleDeleteSection}
                     isSectionDragging={activeType === "Section"}
                     availableSections={sections}
                     isCollapsed={isDndMode || collapsedSections.has(section)}

@@ -205,7 +205,14 @@ export function Navbar() {
                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border-2 border-background ring-1 ring-border hover:ring-primary transition-all cursor-pointer">
                     <AvatarImage src={session.user.user_metadata.avatar_url} />
                     <AvatarFallback className="bg-primary/10 text-primary font-black text-sm">
-                      {session.user.email?.charAt(0).toUpperCase()}
+                      {(
+                        session.user.user_metadata.full_name ||
+                        session.user.user_metadata.display_name ||
+                        session.user.email ||
+                        "U"
+                      )
+                        .charAt(0)
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
