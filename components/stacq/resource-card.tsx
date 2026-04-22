@@ -24,7 +24,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { toast } from "sonner";
-import Image from "next/image";
+// NOTE: plain <img> is intentional here — next/image runs every external
+// thumbnail through its server-side optimization pipeline which adds
+// 60-90s of latency for arbitrary external URLs. These are tiny OG images;
+// browser-native lazy loading is sufficient.
 import {
   Select,
   SelectContent,
@@ -132,15 +135,14 @@ export function ResourceCard({
   return (
     <article className="relative group bg-background hover:bg-surface border border-border hover:border-primary/30 rounded-2xl md:rounded-3xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md flex flex-col sm:flex-row active:scale-[0.99] sm:active:scale-100">
       <div className="w-full sm:w-36 md:w-44 shrink-0 aspect-video sm:aspect-square bg-surface border-b sm:border-b-0 sm:border-r border-border overflow-hidden relative">
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={imgSrc}
           alt={title ? `Cover image for ${title}` : "Resource thumbnail"}
-          fill
-          sizes="(max-width: 639px) 100vw, (max-width: 767px) 176px, 176px"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-          priority={priority}
-          loading={priority ? undefined : "lazy"}
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
           onError={() => setImgError(true)}
+          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
         />
       </div>
 

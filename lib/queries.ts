@@ -9,12 +9,17 @@
  *   - The result is stored in the Next.js Data Cache and revalidated every 60 s,
  *     matching the ISR `revalidate = 60` set on each page.
  *
- * ⚠️  These functions are SERVER-ONLY (they import `@/lib/supabase/server`).
+ * ⚠️  IMPORTANT: all functions here use `createPublicClient()` (no cookies),
+ *     NOT `createClient()`. This is required because `unstable_cache` forbids
+ *     accessing dynamic request-time data (cookies) inside the cache scope.
+ *     Public stacq/profile rows are readable via the anon key through RLS.
+ *
+ * ⚠️  These functions are SERVER-ONLY.
  *     Never import them from a Client Component.
  */
 
 import { unstable_cache } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/server";
 import { Profile, Resource, Stacq } from "@/lib/types";
 
 // ─── Internal select strings ─────────────────────────────────────────────────
@@ -61,7 +66,8 @@ export type ProfileMeta = Pick<Profile, "username" | "display_name" | "bio">;
  */
 export const fetchStacqBySlug = unstable_cache(
   async (slug: string): Promise<StacqWithRelations | null> => {
-    const supabase = await createClient();
+    // createPublicClient() — no cookies(), safe inside unstable_cache
+    const supabase = createPublicClient();
 
     // Primary: look up by slug
     const { data: bySlug } = await supabase
@@ -98,7 +104,7 @@ export const fetchStacqBySlug = unstable_cache(
  */
 export const fetchStacqMetaBySlug = unstable_cache(
   async (slug: string): Promise<StacqMeta | null> => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("stacqs")
       .select(STACQ_META_SELECT)
@@ -118,7 +124,7 @@ export const fetchStacqMetaBySlug = unstable_cache(
  */
 export const fetchProfileByUsername = unstable_cache(
   async (username: string): Promise<Profile | null> => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("profiles")
       .select(PROFILE_FULL_SELECT)
@@ -135,7 +141,7 @@ export const fetchProfileByUsername = unstable_cache(
  */
 export const fetchProfileMetaByUsername = unstable_cache(
   async (username: string): Promise<ProfileMeta | null> => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("profiles")
       .select(PROFILE_META_SELECT)
@@ -153,7 +159,7 @@ export const fetchProfileMetaByUsername = unstable_cache(
  */
 export const fetchStacqsByUserId = unstable_cache(
   async (userId: string) => {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data } = await supabase
       .from("stacqs")
       .select(

@@ -1,7 +1,6 @@
 import { Metadata, ResolvingMetadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, permanentRedirect } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { StacqBoard } from "@/components/stacq/stacq-board";
 import { CollectionHeader } from "@/components/stacq/collection-header";
@@ -214,20 +213,11 @@ export default async function StacqDetailPage({ params }: Props) {
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center text-primary font-bold border-2 border-background shadow-sm shrink-0 group-hover:ring-2 group-hover:ring-primary/20 transition-all">
             {profile?.avatar_url ? (
               <div className="relative w-full h-full">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={profile.avatar_url}
                   alt={profile.username || "avatar"}
-                  fill
-                  sizes="(max-width: 640px) 40px, 48px"
-                  className="object-cover"
-                  priority
-                  unoptimized={
-                    profile.avatar_url.includes(".svg") ||
-                    profile.avatar_url.includes("dicebear")
-                  }
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
+                  className="object-cover w-full h-full"
                 />
               </div>
             ) : (
