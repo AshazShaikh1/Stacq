@@ -5,8 +5,12 @@ import { CreateStacqModal } from "@/components/stacq/create-stacq-modal";
 import { PlusSquare, Compass } from "lucide-react";
 import { ProfileHeaderClient } from "@/components/profile/profile-header-client";
 import { Stacq, Profile, FeedItem } from "@/lib/types";
-
 import { Metadata, ResolvingMetadata } from "next";
+import {
+  fetchProfileByUsername,
+  fetchProfileMetaByUsername,
+  fetchStacqsByUserId,
+} from "@/lib/queries";
 
 type Props = {
   params: Promise<{ username: string }>;
@@ -14,26 +18,22 @@ type Props = {
 
 export async function generateMetadata(
   { params }: Props,
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { username } = await params;
-  const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, display_name, bio")
-    .ilike("username", username)
-    .maybeSingle();
+  // ✅ Cached fetch — no extra DB call when page body also calls fetchProfileByUsername
+  const profile = await fetchProfileMetaByUsername(username);
 
   if (!profile) {
     return { title: "User Not Found | Stacq" };
   }
 
   const name = profile.display_name || profile.username;
-  const title = `${name} (@${profile.username}) | Stacqer Profile`;
+  const title = `${name} (@${profile.username}) | Stacq`;
   const description =
     profile.bio ||
-    `Explore the curated collections and resource stacqs by ${name} on Stacq.`;
+    `Browse ${name}'s curated resource lists on Stacq — tools, articles, and links handpicked by a practitioner.`;
 
   return {
     title,
@@ -53,46 +53,24 @@ export default async function UserProfilePage({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  const supabase = await createClient();
 
-  const { data: profile } = (await supabase
-    .from("profiles")
-    .select(
-      "id, username, display_name, avatar_url, bio, social_links, followers_count",
-    )
-    .ilike("username", username)
-    .maybeSingle()) as { data: Profile | null };
-
+  // ─── Step 1: Fetch profile (cached — shared with generateMetadata) ────────
+  const profile = await fetchProfileByUsername(username);
   if (!profile) notFound();
 
-  // Dynamic follower count — also available via profile.followers_count once DB trigger is live
-  const { count: liveFollowersCount } = await supabase
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("following_id", profile.id);
+  // ─── Step 2: Parallel — auth + stacqs feed (don't block each other) ──────
+  const supabase = await createClient();
 
-  const followersCount = liveFollowersCount ?? profile.followers_count ?? 0;
+  const [authResult, stacqs] = await Promise.all([
+    supabase.auth.getUser(),
+    fetchStacqsByUserId(profile.id), // cached per user_id
+  ]);
 
-  const { data: stacqs } = await supabase
-    .from("stacqs")
-    .select(
-      `
-            id,
-            slug,
-            title,
-            category,
-            profiles(username, avatar_url),
-            resources(id, thumbnail)
-        `,
-    )
-    .eq("user_id", profile.id)
-    .order("created_at", { ascending: false });
-
-  const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser();
+  const currentUser = authResult.data.user;
   const isOwnProfile = currentUser?.id === profile.id;
 
+  // ─── Step 3: Conditional follow check (only for logged-in visitors) ───────
+  // Runs after auth is resolved; skipped entirely for anonymous traffic.
   let isFollowing = false;
   if (currentUser && !isOwnProfile) {
     const { data: followRecord } = await supabase
@@ -104,12 +82,18 @@ export default async function UserProfilePage({
     isFollowing = !!followRecord;
   }
 
-  const collectionCount = stacqs?.length || 0;
+  // ─── Derived counts ───────────────────────────────────────────────────────
+  // Use denormalized followers_count from the profile row (kept in sync by DB trigger).
+  // Falls back to 0 if the trigger hasn't run yet.
+  const followersCount = profile.followers_count ?? 0;
+
+  const collectionCount = stacqs.length;
   const resourceCount = ((stacqs as unknown as Stacq[]) || []).reduce(
     (acc: number, stacq: Stacq) => acc + (stacq.resources?.length || 0),
     0,
   );
 
+  // ─── Format for MasonryFeed ───────────────────────────────────────────────
   const formattedItems: FeedItem[] = ((stacqs as unknown as Stacq[]) || []).map(
     (s, idx) => {
       const profiles = s.profiles as Profile | Profile[];
@@ -117,9 +101,8 @@ export default async function UserProfilePage({
 
       return {
         id: s.id,
-        slug: s.slug || s.id, // fallback to id for old stacqs with null slug
+        slug: s.slug || s.id,
         title: s.title,
-
         category: s.category,
         aspectRatio: (() => {
           const ratios = [
@@ -128,12 +111,9 @@ export default async function UserProfilePage({
             "aspect-[3/4]",
             "aspect-[2/3]",
           ];
-          // Use a deterministic choice based on the index to keep it pure
-          // We'll just cycle through the ratios to ensure variety without randomness
           return ratios[idx % ratios.length];
         })(),
         thumbnail: s.resources?.[0]?.thumbnail,
-
         items: s.resources || [],
         stacqer: {
           username: profileData?.username || "anonymous",
@@ -159,7 +139,7 @@ export default async function UserProfilePage({
       {/* Masonry Feed */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-12 md:py-16">
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-6 sm:mb-8 text-foreground">
-          Curated Stacqs
+          Resource Lists
         </h2>
 
         {formattedItems.length > 0 ? (
@@ -171,13 +151,13 @@ export default async function UserProfilePage({
             </div>
 
             <h3 className="text-xl sm:text-2xl font-black text-foreground mb-3 tracking-tight">
-              No stacqs yet
+              No lists yet
             </h3>
 
             <p className="text-muted-foreground text-center max-w-md mb-6 sm:mb-8 text-sm sm:text-lg leading-relaxed">
               {isOwnProfile
-                ? "You haven't started curating yet. Build your first stacq to compile and share your favorite internet resources!"
-                : "This stacqer hasn't published any stacqs to their profile yet."}
+                ? "You haven't started curating yet. Build your first list to compile and share your favorite resources!"
+                : "This curator hasn't published any resource lists yet. Check back soon."}
             </p>
 
             {isOwnProfile && (

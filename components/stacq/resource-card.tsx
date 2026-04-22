@@ -25,7 +25,6 @@ import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { toast } from "sonner";
 import Image from "next/image";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -167,7 +166,7 @@ export function ResourceCard({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center h-11 sm:h-12 px-8 sm:px-10 text-sm sm:text-base font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer"
+            className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-[44px] h-11 sm:h-12 px-8 sm:px-10 text-sm sm:text-base font-bold bg-background hover:bg-primary border border-border text-foreground hover:text-primary-foreground hover:border-primary shadow-sm transition-all rounded-full cursor-pointer active:scale-95"
             aria-label={`Visit external link for ${title}`}
           >
             Visit Link
@@ -225,7 +224,7 @@ export function ResourceCard({
                       </div>
                       <div>
                         <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">
-                          Stacqer&apos;s Note
+                          Curator&apos;s Note
                         </label>
                         <Textarea
                           value={formData.note}
@@ -233,7 +232,7 @@ export function ResourceCard({
                             setFormData({ ...formData, note: e.target.value })
                           }
                           className="h-24 sm:h-28 bg-background resize-none rounded-xl text-sm"
-                          placeholder="Why is this resource high-signal?"
+                          placeholder="Why is this resource worth saving?"
                         />
                       </div>
 

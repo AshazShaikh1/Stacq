@@ -6,9 +6,9 @@ import { Stacq, FeedItem, Profile } from "@/lib/types";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Explore Curated Collections | Stacq",
+  title: "Find Curated Resource Lists | Stacq",
   description:
-    "Discover high-signal collections of resources curated by the community. Search for frontend, design, productivity, and more.",
+    "Find curated resource lists for developers, designers, and builders. Hand-picked tools, articles, and links — no AI-generated noise.",
   alternates: {
     canonical: "https://stacq.in/explore",
   },
@@ -88,7 +88,7 @@ export default async function ExplorePage({
           <div className="flex items-center gap-3 text-primary mb-3">
             <Compass className="w-5 h-5" />
             <span className="text-xs font-black uppercase tracking-widest">
-              Global Search
+              Community Lists
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight leading-tight">
@@ -98,13 +98,13 @@ export default async function ExplorePage({
                 <span className="text-primary">&quot;{q}&quot;</span>
               </>
             ) : (
-              "Explore All Collections"
+              "Browse curated resource lists"
             )}
           </h1>
           <p className="text-muted-foreground mt-2 font-bold text-sm md:text-base">
             {fetchError
               ? "Database signal lost. Showing maintenance state."
-              : `Found ${formattedResults.length} high-signal collections matching your interests.`}
+              : `Found ${formattedResults.length} curated lists. Each one hand-picked by a real person.`}
           </p>
         </div>
 

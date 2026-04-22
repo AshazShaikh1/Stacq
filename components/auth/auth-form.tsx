@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,7 +16,6 @@ import {
 import {
   Chrome,
   Mail,
-  ArrowRight,
   ArrowLeft,
   KeyRound,
   Eye,
@@ -47,14 +48,21 @@ export default function AuthForm({
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setType(initialType);
     setStep("initial");
     setError(null);
-  }, [initialType]);
+    // Pre-fill username from landing handle checker
+    const handle = searchParams?.get("handle");
+    if (handle && initialType === "signup") {
+      setUsername(handle.toLowerCase().replace(/\s+/g, ""));
+    }
+  }, [initialType, searchParams]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +108,14 @@ export default function AuthForm({
     try {
       const { error: verifyError } = await verifySignupOTP(email, otp);
       if (verifyError) throw verifyError;
+
+      // 🎯 Funnel event: user completed email registration
+      if (posthog.__loaded) {
+        posthog.capture("registration_completed", {
+          method: "email",
+          username,
+        });
+      }
 
       toast.success("Account verified! Welcome to Stacq.");
       window.location.href = "/feed";
@@ -370,7 +386,13 @@ export default function AuthForm({
 
           <Button
             type="button"
-            onClick={() => signInWithGoogle()}
+            onClick={() => {
+              // 🎯 Funnel event: user chose Google (redirect happens immediately)
+              if (posthog.__loaded) {
+                posthog.capture("registration_started", { method: "google" });
+              }
+              signInWithGoogle();
+            }}
             variant="outline"
             className="w-full h-11 border-2 border-border hover:bg-surface text-foreground font-bold rounded-xl gap-3 transition-all hover:scale-[1.01] active:scale-[0.99]"
           >

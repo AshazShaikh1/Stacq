@@ -101,7 +101,7 @@ export function CollectionHeader({
             </div>
             <div>
               <label className="text-xs font-bold text-primary uppercase tracking-widest mb-1.5 block">
-                Stacqer&apos;s Description
+                Curator&apos;s Description
               </label>
               <Textarea
                 value={formData.description}
@@ -109,7 +109,7 @@ export function CollectionHeader({
                   setFormData({ ...formData, description: e.target.value })
                 }
                 className="bg-background resize-none h-28 rounded-xl"
-                placeholder="Why did you curate this stacq?"
+                placeholder="Why did you curate this list?"
               />
             </div>
           </div>

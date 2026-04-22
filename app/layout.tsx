@@ -7,8 +7,11 @@ import { AuthProvider } from "@/components/auth/auth-provider";
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { GlobalFooter } from "@/components/layout/global-footer";
+import { MobileCTABar } from "@/components/layout/mobile-cta-bar";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { PostHogProvider } from "@/components/analytics/posthog-provider";
+import { WebVitalsLogger } from "@/components/analytics/web-vitals-logger";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,24 +28,25 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://stacq.in"),
   title: {
-    default: "Stacq — The Expert Filter for the Digital Age",
+    default:
+      "Stacq — Expert-curated resource lists, built by people not algorithms",
     template: "%s | Stacq",
   },
   description:
-    "Stop searching and start finding. Stacq helps you curate the high-signal resources that Google and AI often miss.",
+    "Stacq is a tool for saving and sharing curated resource lists. Find expert-picked tools, articles, and links — built by practitioners, not algorithms.",
   openGraph: {
     type: "website",
     url: "https://stacq.in",
-    title: "Stacq",
+    title: "Stacq — Expert-curated resource lists",
     description:
-      "Stop searching and start finding. Stacq helps you curate the high-signal resources that Google and AI often miss.",
+      "Find curated resource lists built by real people. Save and share the tools, articles, and links that actually work.",
     siteName: "Stacq",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Stacq",
+    title: "Stacq — Expert-curated resource lists",
     description:
-      "Stop searching and start finding. Stacq helps you curate the high-signal resources that Google and AI often miss.",
+      "Find curated resource lists built by real people. Save and share the tools, articles, and links that actually work.",
   },
   icons: {
     icon: [
@@ -85,25 +89,29 @@ export default function RootLayout({
             }),
           }}
         />
-        <AuthProvider initialSession={null}>
-          <Toaster
-            position="bottom-center"
-            toastOptions={{
-              className:
-                "rounded-2xl shadow-xl border border-border bg-surface text-foreground font-bold px-4 py-3 scale-95 md:scale-100",
-            }}
-          />
-          <Navbar />
-          <Sidebar />
-          <AppShell>
-            <div className="flex flex-col min-h-dvh">
-              <main className="flex-1">{children}</main>
-              <GlobalFooter />
-            </div>
-          </AppShell>
-          <Analytics />
-          <SpeedInsights />
-        </AuthProvider>
+        <PostHogProvider>
+          <AuthProvider initialSession={null}>
+            <Toaster
+              position="bottom-center"
+              toastOptions={{
+                className:
+                  "rounded-2xl shadow-xl border border-border bg-surface text-foreground font-bold px-4 py-3 scale-95 md:scale-100",
+              }}
+            />
+            <Navbar />
+            <Sidebar />
+            <AppShell>
+              <div className="flex flex-col min-h-dvh pb-[60px] md:pb-0">
+                <main className="flex-1">{children}</main>
+                <GlobalFooter />
+              </div>
+            </AppShell>
+            <MobileCTABar />
+            <WebVitalsLogger />
+            <Analytics />
+            <SpeedInsights />
+          </AuthProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

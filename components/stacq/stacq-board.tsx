@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-
+import { useAuth } from "@/components/auth/auth-provider";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -35,8 +35,8 @@ import {
   Check,
   X,
   ChevronDown,
-  ChevronRight,
   Trash2,
+  Bookmark,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -310,20 +310,26 @@ function ReadonlySections({
   if (visibleSections.length === 0) return <EmptyState />;
 
   return (
-    <div className="space-y-4 md:space-y-6 pt-2">
-      {visibleSections.map((section) => {
-        const isCollapsed = collapsed.has(section);
-        const isDefault = section === "Default";
-        return (
-          <section
-            key={section}
-            className="bg-surface/30 rounded-2xl md:rounded-3xl border border-border/50 overflow-hidden"
-          >
-            {/* Section header — only shown for named sections */}
-            {!isDefault && (
+    <GhostCardWrapper>
+      <div className="space-y-4 md:space-y-6 pt-2">
+        {visibleSections.map((section) => {
+          const isCollapsed = collapsed.has(section);
+          const isDefault = section === "Default";
+          return (
+            <section
+              key={section}
+              className="bg-surface/30 rounded-2xl md:rounded-3xl border border-border/50 overflow-hidden"
+            >
+              {/* Section header — shown for ALL sections; Default gets a subtle label */}
               <div className="flex items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-border/40">
-                <h2 className="text-lg md:text-2xl font-black tracking-tight text-foreground leading-tight">
-                  {section}
+                <h2
+                  className={`font-black tracking-tight text-foreground leading-tight ${
+                    isDefault
+                      ? "text-xs uppercase tracking-widest text-muted-foreground"
+                      : "text-lg md:text-2xl"
+                  }`}
+                >
+                  {isDefault ? "Resources" : section}
                 </h2>
                 <button
                   onClick={() => toggle(section)}
@@ -339,34 +345,59 @@ function ReadonlySections({
                   />
                 </button>
               </div>
-            )}
 
-            {/* Resources — smooth CSS grid collapse */}
-            <div
-              className={`grid transition-all duration-300 ease-in-out ${
-                isCollapsed
-                  ? "grid-rows-[0fr] opacity-0"
-                  : "grid-rows-[1fr] opacity-100"
-              }`}
-            >
-              <div className="overflow-hidden">
-                <div
-                  className={`space-y-4 p-4 md:p-6 ${!isDefault ? "pt-4" : ""}`}
-                >
-                  {items[section].map((item: Resource) => (
-                    <ResourceCard
-                      key={item.id}
-                      resource={item}
-                      isOwner={false}
-                    />
-                  ))}
+              {/* Resources — smooth CSS grid collapse */}
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isCollapsed
+                    ? "grid-rows-[0fr] opacity-0"
+                    : "grid-rows-[1fr] opacity-100"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-4 p-4 md:p-6">
+                    {items[section].map((item: Resource) => (
+                      <ResourceCard
+                        key={item.id}
+                        resource={item}
+                        isOwner={false}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        );
-      })}
-    </div>
+            </section>
+          );
+        })}
+      </div>
+    </GhostCardWrapper>
+  );
+}
+
+// --- Ghost Card wrapper (non-owner view) ---
+function GhostCardWrapper({ children }: { children: React.ReactNode }) {
+  const { session, openAuthModal } = useAuth();
+  return (
+    <>
+      {children}
+      {!session && (
+        <button
+          id="ghost-card-cta"
+          onClick={() => openAuthModal("signup")}
+          className="w-full mt-4 border-2 border-dashed border-primary/30 hover:border-primary/60 rounded-2xl md:rounded-3xl p-6 flex flex-col items-center justify-center gap-2 text-center transition-all group active:scale-[0.99] cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+            <Bookmark className="w-5 h-5 text-primary" />
+          </div>
+          <p className="font-black text-sm text-foreground">
+            + Add your first link. Start your vault.
+          </p>
+          <p className="text-xs text-muted-foreground font-medium">
+            Free to join · No credit card required
+          </p>
+        </button>
+      )}
+    </>
   );
 }
 

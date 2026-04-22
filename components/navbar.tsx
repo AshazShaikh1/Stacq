@@ -35,7 +35,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 export function Navbar() {
@@ -98,25 +97,24 @@ export function Navbar() {
           href="/"
           className="hover:scale-105 transition-all cursor-pointer shrink-0"
         >
-          {session ? (
-            <Image
-              src="/favicon.svg"
-              alt="Stacq Logo"
-              width={32}
-              height={32}
-              priority
-              className="w-8 h-8 sm:w-10 sm:h-10"
-            />
-          ) : (
-            <Image
-              src="/logo-text-dark.svg"
-              alt="Stacq Logo"
-              width={100}
-              height={32}
-              priority
-              className="h-8 w-auto sm:h-10"
-            />
-          )}
+          {/* Mobile: square icon; Desktop: full text logo */}
+          <Image
+            src="/logo.svg"
+            alt="Stacq"
+            width={36}
+            height={36}
+            priority
+            className="sm:hidden w-9 h-9"
+          />
+          <Image
+            src={session ? "/favicon.svg" : "/logo-text-dark.svg"}
+            alt="Stacq Logo"
+            width={session ? 36 : 100}
+            height={36}
+            priority
+            style={{ width: "auto", height: session ? "36px" : "32px" }}
+            className="hidden sm:block"
+          />
         </Link>
 
         {/* Search Bar */}
@@ -283,7 +281,8 @@ export function Navbar() {
                 onClick={() => openAuthModal("signup")}
                 className="bg-primary hover:bg-primary-dark text-primary-foreground rounded-full font-black px-4 sm:px-6 text-xs sm:text-sm shadow-emerald/20 hover:shadow-lg transition-all active:scale-95"
               >
-                Join Stacq
+                <span className="sm:hidden">Claim</span>
+                <span className="hidden sm:inline">Save your links free</span>
               </Button>
             </div>
           )}

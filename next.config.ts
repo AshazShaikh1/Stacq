@@ -33,6 +33,25 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+
+  // ─── PostHog reverse proxy ────────────────────────────────────────────────
+  // Routes PostHog traffic through stacq.in/ingest/* so ad blockers
+  // (uBlock, Brave, etc.) cannot block it — they only block posthog.com directly.
+  // Official guide: https://posthog.com/docs/advanced/proxy/nextjs
+  async rewrites() {
+    return [
+      {
+        // JS bundle — loaded once on first visit
+        source: "/ingest/static/:path*",
+        destination: "https://us-assets.posthog.com/static/:path*",
+      },
+      {
+        // Event ingestion endpoint (captures, session recordings, etc.)
+        source: "/ingest/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

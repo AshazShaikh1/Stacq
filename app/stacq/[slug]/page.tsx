@@ -7,6 +7,7 @@ import { StacqBoard } from "@/components/stacq/stacq-board";
 import { CollectionHeader } from "@/components/stacq/collection-header";
 import dynamic from "next/dynamic";
 import { Profile, Resource, Stacq } from "@/lib/types";
+import { fetchStacqBySlug, fetchStacqMetaBySlug } from "@/lib/queries";
 
 // Dynamic imports — client-only components
 const ShareButton = dynamic(() =>
@@ -23,6 +24,11 @@ const AddResourceDialog = dynamic(() =>
     (mod) => mod.AddResourceDialog,
   ),
 );
+const StacqConversionBanner = dynamic(() =>
+  import("@/components/stacq/stacq-conversion-banner").then(
+    (mod) => mod.StacqConversionBanner,
+  ),
+);
 
 // ISR: Re-generate this page at most once every 60 seconds
 export const revalidate = 60;
@@ -33,21 +39,12 @@ type Props = {
 
 export async function generateMetadata(
   { params }: Props,
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
 
-  const { data: stacq } = await supabase
-    .from("stacqs")
-    .select(
-      `
-            title, description,
-            profiles(display_name, username)
-        `,
-    )
-    .ilike("slug", slug)
-    .maybeSingle();
+  // ✅ Uses shared cached fetch — no extra DB call if page body already fetched this
+  const stacq = await fetchStacqMetaBySlug(slug);
 
   if (!stacq) {
     return { title: "Not Found | Stacq" };
@@ -55,17 +52,17 @@ export async function generateMetadata(
 
   const profiles = stacq.profiles as unknown as Profile | Profile[];
   const profile = Array.isArray(profiles) ? profiles[0] : profiles;
-  const creatorName = profile?.display_name || profile?.username || "a Stacqer";
+  const creatorName = profile?.display_name || profile?.username || "a curator";
 
   const title = `${stacq.title} | Curated by ${creatorName} on Stacq`;
   const description =
     stacq.description && stacq.description.length > 0
       ? stacq.description.substring(0, 160)
-      : "Explore this curated collection of high-signal resources on Stacq.";
+      : "Explore this curated collection of resources on Stacq.";
 
   const ogUrl = new URL("https://stacq.in/api/og");
   ogUrl.searchParams.set("title", stacq.title);
-  ogUrl.searchParams.set("username", profile?.username || "stacqer");
+  ogUrl.searchParams.set("username", profile?.username || "curator");
 
   return {
     title,
@@ -96,88 +93,48 @@ export default async function StacqDetailPage({ params }: Props) {
     notFound();
   }
 
-  const supabase = await createClient();
-
-  // SEO REDIRECT: If the slug is a UUID, find the actual slug and redirect 301.
+  // SEO REDIRECT: If slug is a UUID, find the actual slug and redirect 301.
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       slug,
     );
   if (isUuid) {
+    const supabase = await createClient();
     const { data: found } = await supabase
       .from("stacqs")
       .select("slug")
       .eq("id", slug)
       .single();
-
     if (found?.slug) {
       permanentRedirect(`/stacq/${found.slug}`);
     }
   }
 
-  const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser();
+  // ─── Parallel: auth check + main content fetch ────────────────────────────
+  // fetchStacqBySlug is cached — this is the same request as generateMetadata,
+  // so it returns from the in-process cache (0 extra DB calls).
+  const supabase = await createClient();
 
-  const STACQ_SELECT = `
-        id, title, description, category, user_id, section_order,
-        profiles(id, username, display_name, avatar_url),
-        resources(id, title, url, thumbnail, note, section, order_index, user_id, stacq_id)
-    `;
+  const [stacqResult, authResult] = await Promise.all([
+    fetchStacqBySlug(slug),
+    supabase.auth.getUser(),
+  ]);
 
-  // Primary lookup: by slug (works for all new stacqs)
-  let { data: stacq, error } = await supabase
-    .from("stacqs")
-    .select(STACQ_SELECT)
-    .ilike("slug", slug)
-    .maybeSingle();
+  const stacq = stacqResult;
+  const currentUser = authResult.data.user;
 
-  // Fallback: by ID (covers old stacqs whose slug is null / not yet backfilled)
-  if (!stacq && !error) {
-    const { data: byId, error: idError } = await supabase
-      .from("stacqs")
-      .select(STACQ_SELECT)
-      .eq("id", slug)
-      .maybeSingle();
-    if (byId) {
-      stacq = byId;
-      error = null;
-      // Auto-backfill: generate and save slug so next visit uses the clean URL
-      const { generateSlug } = await import("@/lib/actions/stacq");
-      const newSlug = await generateSlug((byId as { title: string }).title);
-      await supabase.from("stacqs").update({ slug: newSlug }).eq("id", slug);
-    } else {
-      error = idError;
-    }
+  if (!stacq) {
+    notFound();
   }
-
-  if (error) {
-    return (
-      <div className="p-6 sm:p-12 max-w-4xl mx-auto space-y-4 mt-12 bg-background rounded-2xl border-2 border-destructive/20 shadow-sm">
-        <h1 className="text-xl sm:text-2xl font-bold text-destructive">
-          Database Error
-        </h1>
-        <div className="p-4 bg-destructive/5 text-foreground font-mono text-xs sm:text-sm rounded-lg border border-destructive/10 space-y-2 overflow-x-auto">
-          <p>
-            <strong>Message:</strong> {error.message}
-          </p>
-          <p>
-            <strong>Code:</strong> {error.code}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!stacq) notFound();
 
   const castedStacq = stacq as unknown as Stacq;
   const profiles = castedStacq.profiles as Profile | Profile[];
   const profile = Array.isArray(profiles) ? profiles[0] : profiles;
   const isOwner = currentUser?.id === castedStacq.user_id;
-
   const resources = castedStacq.resources || [];
 
+  // ─── Parallel: user-specific relationship checks ──────────────────────────
+  // Only fires for logged-in non-owners; skipped entirely for public visitors.
   const [followResult, saveResult] = await Promise.all([
     currentUser && !isOwner
       ? supabase
@@ -244,6 +201,8 @@ export default async function StacqDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {/* Conversion banner: contextualises the platform for cold visitors */}
+      <StacqConversionBanner />
       <CollectionHeader stacq={castedStacq} isOwner={isOwner} />
 
       {/* Creator row + Action buttons */}
@@ -262,6 +221,13 @@ export default async function StacqDetailPage({ params }: Props) {
                   sizes="(max-width: 640px) 40px, 48px"
                   className="object-cover"
                   priority
+                  unoptimized={
+                    profile.avatar_url.includes(".svg") ||
+                    profile.avatar_url.includes("dicebear")
+                  }
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
               </div>
             ) : (
@@ -273,12 +239,12 @@ export default async function StacqDetailPage({ params }: Props) {
               @{profile?.username}
             </p>
             <p className="text-[9px] sm:text-xs text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-              Stacqer
+              Curator
             </p>
           </div>
         </Link>
 
-        {/* Action buttons — rendered directly (no Suspense on server async fn) */}
+        {/* Action buttons */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <div className="flex items-center gap-2 flex-1 sm:flex-none min-w-fit">
             <ShareButton title={castedStacq.title} stacqId={slug} />
@@ -305,8 +271,7 @@ export default async function StacqDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Resource Board — key changes on ANY resource add/delete/section-change,
-                forcing a remount so StacqBoard picks up fresh server data immediately */}
+      {/* Resource Board */}
       {(() => {
         const boardKey = (castedStacq.resources || [])
           .map(

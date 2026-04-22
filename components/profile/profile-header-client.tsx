@@ -46,6 +46,13 @@ export function ProfileHeaderClient({
                   sizes="128px"
                   className="object-cover"
                   priority
+                  unoptimized={
+                    profile.avatar_url.includes(".svg") ||
+                    profile.avatar_url.includes("dicebear")
+                  }
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
               </div>
             ) : (
