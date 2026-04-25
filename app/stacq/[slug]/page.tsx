@@ -130,6 +130,15 @@ export default async function StacqDetailPage({ params }: Props) {
   const profiles = castedStacq.profiles as Profile | Profile[];
   const profile = Array.isArray(profiles) ? profiles[0] : profiles;
   const isOwner = currentUser?.id === castedStacq.user_id;
+
+  // ─── Visibility gate ──────────────────────────────────────────────────────
+  // Private stacqs (is_public = false) are invisible to non-owners.
+  // We use notFound() rather than 403 to avoid leaking existence of the stacq.
+  const isPublic = castedStacq.is_public ?? true; // legacy rows default to true
+  if (!isPublic && !isOwner) {
+    notFound();
+  }
+
   const resources = castedStacq.resources || [];
 
   // ─── Parallel: user-specific relationship checks ──────────────────────────

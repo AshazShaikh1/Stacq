@@ -35,11 +35,32 @@ export async function generateMetadata(
     profile.bio ||
     `Browse ${name}'s curated resource lists on Stacq — tools, articles, and links handpicked by a practitioner.`;
 
+  const canonicalUrl = `https://stacq.in/${username}`;
+
+  // Dynamic OG image via the existing /api/og route
+  const ogUrl = new URL("https://stacq.in/api/og");
+  ogUrl.searchParams.set("title", `${name}’s Resource Lists`);
+  ogUrl.searchParams.set("username", username);
+
   return {
     title,
     description,
     alternates: {
-      canonical: `https://stacq.in/${username}`,
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      type: "profile",
+      url: canonicalUrl,
+      title,
+      description,
+      siteName: "Stacq",
+      images: [{ url: ogUrl.toString(), width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogUrl.toString()],
     },
   };
 }
@@ -87,45 +108,72 @@ export default async function UserProfilePage({
   // Falls back to 0 if the trigger hasn't run yet.
   const followersCount = profile.followers_count ?? 0;
 
-  const collectionCount = stacqs.length;
-  const resourceCount = ((stacqs as unknown as Stacq[]) || []).reduce(
+  // Owners see all their stacqs (public + private).
+  // Visitors only see public stacqs.
+  const visibleStacqs = isOwnProfile
+    ? stacqs
+    : (stacqs as unknown as Stacq[]).filter((s) => s.is_public ?? true);
+
+  const collectionCount = visibleStacqs.length;
+  const resourceCount = ((visibleStacqs as unknown as Stacq[]) || []).reduce(
     (acc: number, stacq: Stacq) => acc + (stacq.resources?.length || 0),
     0,
   );
 
   // ─── Format for MasonryFeed ───────────────────────────────────────────────
-  const formattedItems: FeedItem[] = ((stacqs as unknown as Stacq[]) || []).map(
-    (s, idx) => {
-      const profiles = s.profiles as Profile | Profile[];
-      const profileData = Array.isArray(profiles) ? profiles[0] : profiles;
+  const formattedItems: FeedItem[] = (
+    (visibleStacqs as unknown as Stacq[]) || []
+  ).map((s, idx) => {
+    const profiles = s.profiles as Profile | Profile[];
+    const profileData = Array.isArray(profiles) ? profiles[0] : profiles;
 
-      return {
-        id: s.id,
-        slug: s.slug || s.id,
-        title: s.title,
-        category: s.category,
-        aspectRatio: (() => {
-          const ratios = [
-            "aspect-square",
-            "aspect-[4/5]",
-            "aspect-[3/4]",
-            "aspect-[2/3]",
-          ];
-          return ratios[idx % ratios.length];
-        })(),
-        thumbnail: s.resources?.[0]?.thumbnail,
-        items: s.resources || [],
-        stacqer: {
-          username: profileData?.username || "anonymous",
-          avatar: profileData?.avatar_url,
-        },
-        remixCount: 0,
-      };
-    },
-  );
+    return {
+      id: s.id,
+      slug: s.slug || s.id,
+      title: s.title,
+      category: s.category,
+      aspectRatio: (() => {
+        const ratios = [
+          "aspect-square",
+          "aspect-[4/5]",
+          "aspect-[3/4]",
+          "aspect-[2/3]",
+        ];
+        return ratios[idx % ratios.length];
+      })(),
+      thumbnail: s.resources?.[0]?.thumbnail,
+      items: s.resources || [],
+      stacqer: {
+        username: profileData?.username || "anonymous",
+        avatar: profileData?.avatar_url,
+      },
+      remixCount: 0,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-surface pb-24 sm:pb-20">
+      {/* ProfilePage JSON-LD — Google uses this for author/person knowledge panels */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            url: `https://stacq.in/${profile.username}`,
+            mainEntity: {
+              "@type": "Person",
+              name: profile.display_name || profile.username,
+              identifier: `@${profile.username}`,
+              description:
+                profile.bio ||
+                `Curator on Stacq — curated resource lists for practitioners.`,
+              url: `https://stacq.in/${profile.username}`,
+              image: profile.avatar_url || undefined,
+            },
+          }),
+        }}
+      />
       {/* Header */}
       <ProfileHeaderClient
         profile={profile}

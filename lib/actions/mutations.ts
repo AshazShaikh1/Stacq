@@ -54,6 +54,7 @@ export interface StacqUpdateUpdates {
   category?: string;
   thumbnail?: string;
   section_order?: string[];
+  is_public?: boolean;
 }
 
 export async function updateStacq(id: string, updates: StacqUpdateUpdates) {

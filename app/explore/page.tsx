@@ -44,6 +44,7 @@ export default async function ExplorePage({
             `,
       )
       .ilike("title", `%${q || ""}%`)
+      .eq("is_public", true)
       .order("created_at", { ascending: false });
 
     if (error) throw error;

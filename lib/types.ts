@@ -32,6 +32,7 @@ export interface Stacq {
   thumbnail: string | null;
   user_id: string;
   section_order: string[] | null;
+  is_public: boolean; // true = visible to everyone, false = owner-only
   profiles?: Profile | Profile[]; // Supabase returns differently based on .single() or .select()
   resources?: Resource[];
 }

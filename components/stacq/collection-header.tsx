@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Loader2, Edit2, Check, X, Trash2 } from "lucide-react";
+import { Loader2, Edit2, Check, X, Trash2, Globe, Lock } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -40,7 +40,21 @@ export function CollectionHeader({
   });
   const [deleting, setDeleting] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [togglingVisibility, setTogglingVisibility] = useState(false);
   const isLongDescription = stacq.description && stacq.description.length > 200;
+
+  const handleToggleVisibility = async () => {
+    setTogglingVisibility(true);
+    const newValue = !(stacq.is_public ?? true);
+    const res = await updateStacq(stacq.id, { is_public: newValue });
+    setTogglingVisibility(false);
+    if (res.error) {
+      toast.error(res.error);
+    } else {
+      toast.success(newValue ? "Stacq is now public" : "Stacq is now private");
+      router.refresh();
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -158,6 +172,34 @@ export function CollectionHeader({
         >
           # {stacq.category || "Uncategorized"}
         </Badge>
+
+        {/* Visibility badge — always visible, clickable for owners */}
+        {isOwner ? (
+          <button
+            type="button"
+            onClick={handleToggleVisibility}
+            disabled={togglingVisibility}
+            title={
+              (stacq.is_public ?? true)
+                ? "Click to make private"
+                : "Click to make public"
+            }
+            className={`inline-flex items-center gap-1.5 mb-4 ml-2 px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
+              (stacq.is_public ?? true)
+                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"
+                : "bg-muted text-muted-foreground border-border hover:bg-surface-hover"
+            }`}
+          >
+            {togglingVisibility ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (stacq.is_public ?? true) ? (
+              <Globe className="w-3 h-3" />
+            ) : (
+              <Lock className="w-3 h-3" />
+            )}
+            {(stacq.is_public ?? true) ? "Public" : "Private"}
+          </button>
+        ) : null}
 
         <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-5 text-foreground leading-tight">
           {stacq.title}

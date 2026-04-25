@@ -15,7 +15,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createStacq } from "@/lib/actions/stacq";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { Loader2, PlusSquare, Hash, AlignLeft, Layout } from "lucide-react";
+import {
+  Loader2,
+  PlusSquare,
+  Hash,
+  AlignLeft,
+  Layout,
+  Globe,
+  Lock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { stacqSchema } from "@/lib/validations/schemas";
 import { ZodIssue } from "zod";
@@ -34,6 +42,7 @@ export function CreateStacqModal({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [thumbnail, setThumbnail] = useState("");
+  const [isPublic, setIsPublic] = useState(true); // default: public
 
   const validate = () => {
     const result = stacqSchema.safeParse({
@@ -60,7 +69,13 @@ export function CreateStacqModal({
     if (!validate()) return;
 
     setLoading(true);
-    const res = await createStacq(title, description, category, thumbnail);
+    const res = await createStacq(
+      title,
+      description,
+      category,
+      thumbnail,
+      isPublic,
+    );
     if (res.error) {
       toast.error(res.error);
       setLoading(false);
@@ -160,6 +175,44 @@ export function CreateStacqModal({
                 {errors.description}
               </p>
             )}
+          </div>
+
+          {/* ── Visibility Toggle ──────────────────────────────────────────────── */}
+          <div className="space-y-2">
+            <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
+              Visibility
+            </label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-surface rounded-xl border border-border">
+              <button
+                type="button"
+                onClick={() => setIsPublic(true)}
+                className={`flex items-center justify-center gap-2 h-10 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+                  isPublic
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background"
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                Public
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPublic(false)}
+                className={`flex items-center justify-center gap-2 h-10 rounded-lg text-sm font-bold transition-all cursor-pointer ${
+                  !isPublic
+                    ? "bg-foreground text-background shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background"
+                }`}
+              >
+                <Lock className="w-4 h-4" />
+                Private
+              </button>
+            </div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+              {isPublic
+                ? "Anyone can discover and view this stacq."
+                : "Only you can see this stacq. You can make it public later."}
+            </p>
           </div>
 
           <div className="pt-2 sm:pt-4">

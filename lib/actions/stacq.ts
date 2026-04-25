@@ -28,6 +28,7 @@ export async function createStacq(
   description: string,
   category: string,
   thumbnail?: string,
+  is_public: boolean = true,
 ): Promise<StacqCreateResponse> {
   const supabase = await createClient();
 
@@ -62,6 +63,7 @@ export async function createStacq(
         category,
         thumbnail,
         slug,
+        is_public,
       },
     ])
     .select("id, slug");

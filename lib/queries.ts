@@ -25,7 +25,7 @@ import { Profile, Resource, Stacq } from "@/lib/types";
 // ─── Internal select strings ─────────────────────────────────────────────────
 
 const STACQ_FULL_SELECT = `
-  id, title, description, category, slug, user_id, section_order,
+  id, title, description, category, slug, user_id, section_order, is_public,
   profiles(id, username, display_name, avatar_url),
   resources(id, title, url, thumbnail, note, section, order_index, user_id, stacq_id)
 ` as const;
@@ -164,7 +164,7 @@ export const fetchStacqsByUserId = unstable_cache(
       .from("stacqs")
       .select(
         `
-        id, slug, title, category,
+        id, slug, title, category, is_public,
         profiles(username, avatar_url),
         resources(id, thumbnail)
       `,
