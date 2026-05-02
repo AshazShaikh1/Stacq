@@ -9,6 +9,7 @@ export interface Profile {
   website?: string | null;
   social_links?: { platform: string; url: string }[] | null;
   followers_count?: number;
+  has_completed_tour?: boolean;
 }
 
 export interface Resource {

@@ -56,9 +56,11 @@ export default function Sidebar() {
               return (
                 <div key={item.label} className="mt-5 lg:mt-6 mb-2">
                   <CreateStacqModal>
-                    <button className="flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-6 lg:h-14 rounded-xl lg:rounded-full group cursor-pointer w-full text-left bg-primary text-primary-foreground shadow-emerald/20 hover:shadow-lg hover:bg-primary-dark active:scale-95 transition-all outline-none border-none">
+                    <button
+                      data-tour="sidebar-create"
+                      className="flex items-center justify-center lg:justify-start gap-4 p-3 lg:px-6 lg:h-14 rounded-xl lg:rounded-full group cursor-pointer w-full text-left bg-primary text-primary-foreground shadow-emerald/20 hover:shadow-lg hover:bg-primary-dark active:scale-95 transition-all outline-none border-none"
+                    >
                       <item.icon className="h-6 w-6 shrink-0" />
-
                       <span className="hidden lg:block font-black text-base">
                         {item.label}
                       </span>
@@ -75,6 +77,7 @@ export default function Sidebar() {
                 className="block outline-none"
               >
                 <div
+                  data-tour={`sidebar-${item.label.toLowerCase()}`}
                   className={cn(
                     "flex items-center gap-4 p-3 rounded-xl transition-all group cursor-pointer w-full text-left",
                     isActive
@@ -113,7 +116,10 @@ export default function Sidebar() {
             if (item.isCreate) {
               return (
                 <CreateStacqModal key={item.label}>
-                  <button className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 bg-primary text-primary-foreground rounded-xl sm:rounded-2xl shadow-lg shadow-emerald/20 active:scale-90 transition-all hover:bg-primary-dark border-none outline-none">
+                  <button
+                    data-tour="sidebar-create"
+                    className="flex items-center justify-center w-11 h-11 sm:w-12 sm:h-12 bg-primary text-primary-foreground rounded-xl sm:rounded-2xl shadow-lg shadow-emerald/20 active:scale-90 transition-all hover:bg-primary-dark border-none outline-none"
+                  >
                     <item.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </button>
                 </CreateStacqModal>
@@ -124,6 +130,7 @@ export default function Sidebar() {
               <Link
                 key={item.label}
                 href={item.href}
+                data-tour={`sidebar-${item.label.toLowerCase()}`}
                 className={cn(
                   "flex flex-col items-center justify-center min-w-12 sm:min-w-14 h-11 sm:h-12 rounded-xl sm:rounded-2xl transition-all active:scale-95",
                   isActive

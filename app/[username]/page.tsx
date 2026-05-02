@@ -5,7 +5,7 @@ import { CreateStacqModal } from "@/components/stacq/create-stacq-modal";
 import { PlusSquare, Compass } from "lucide-react";
 import { ProfileHeaderClient } from "@/components/profile/profile-header-client";
 import { Stacq, Profile, FeedItem } from "@/lib/types";
-import { Metadata, ResolvingMetadata } from "next";
+import { Metadata } from "next";
 import {
   fetchProfileByUsername,
   fetchProfileMetaByUsername,
@@ -16,10 +16,7 @@ type Props = {
   params: Promise<{ username: string }>;
 };
 
-export async function generateMetadata(
-  { params }: Props,
-  _parent: ResolvingMetadata,
-): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
 
   // ✅ Cached fetch — no extra DB call when page body also calls fetchProfileByUsername
@@ -210,7 +207,10 @@ export default async function UserProfilePage({
 
             {isOwnProfile && (
               <CreateStacqModal>
-                <button className="inline-flex items-center justify-center whitespace-nowrap text-sm sm:text-base bg-primary hover:bg-primary-dark text-white rounded-full px-6 sm:px-8 h-12 sm:h-14 font-bold shadow-emerald shadow-md cursor-pointer transition-transform hover:scale-105 active:scale-95 outline-none border-none">
+                <button
+                  data-tour="create-vault"
+                  className="inline-flex items-center justify-center whitespace-nowrap text-sm sm:text-base bg-primary hover:bg-primary-dark text-white rounded-full px-6 sm:px-8 h-12 sm:h-14 font-bold shadow-emerald shadow-md cursor-pointer transition-transform hover:scale-105 active:scale-95 outline-none border-none"
+                >
                   <PlusSquare className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
                   Start Curating
                 </button>

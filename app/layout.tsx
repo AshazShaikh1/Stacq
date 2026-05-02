@@ -12,6 +12,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PostHogProvider } from "@/components/analytics/posthog-provider";
 import { WebVitalsLogger } from "@/components/analytics/web-vitals-logger";
+import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
+import { CreateModalTour } from "@/components/onboarding/create-modal-tour";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -107,6 +109,10 @@ export default function RootLayout({
               </div>
             </AppShell>
             <MobileCTABar />
+            {/* Global onboarding tour — shows once per new user, any page */}
+            <OnboardingTour />
+            {/* Create modal form guide — triggers first time Create is opened */}
+            <CreateModalTour />
             <WebVitalsLogger />
             <Analytics />
             <SpeedInsights />

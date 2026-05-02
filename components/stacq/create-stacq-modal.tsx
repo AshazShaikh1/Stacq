@@ -37,6 +37,16 @@ export function CreateStacqModal({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Signal the globally-mounted CreateModalTour when the dialog opens/closes
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    window.dispatchEvent(
+      new CustomEvent(
+        next ? "stacq:create-modal-open" : "stacq:create-modal-close",
+      ),
+    );
+  };
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -88,7 +98,7 @@ export function CreateStacqModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={children} />
 
       <DialogContent className="w-[95%] sm:max-w-2xl border-border p-5 sm:p-7 rounded-3xl sm:rounded-4xl">
@@ -115,6 +125,7 @@ export function CreateStacqModal({
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Next.js Mastery"
                     data-testid="create-stacq-title"
+                    data-tour="modal-title"
                     className={`h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold ${errors.title ? "border-destructive focus-visible:ring-destructive/20" : ""}`}
                   />
                 </div>
@@ -136,6 +147,7 @@ export function CreateStacqModal({
                     onChange={(e) => setCategory(e.target.value)}
                     placeholder="e.g. Tech, Productivity"
                     data-testid="create-stacq-category"
+                    data-tour="modal-category"
                     className={`h-12 pl-10 bg-surface rounded-xl border-border text-sm font-semibold ${errors.category ? "border-destructive focus-visible:ring-destructive/20" : ""}`}
                   />
                 </div>
@@ -160,7 +172,7 @@ export function CreateStacqModal({
               The &quot;Why&quot; (Description)
             </label>
 
-            <div className="relative">
+            <div className="relative" data-tour="modal-description">
               <AlignLeft className="absolute left-3 top-4 h-4 w-4 text-muted-foreground" />
               <Textarea
                 value={description}
@@ -178,7 +190,7 @@ export function CreateStacqModal({
           </div>
 
           {/* ── Visibility Toggle ──────────────────────────────────────────────── */}
-          <div className="space-y-2">
+          <div className="space-y-2" data-tour="modal-visibility">
             <label className="text-[10px] sm:text-xs font-bold text-primary uppercase tracking-widest block">
               Visibility
             </label>

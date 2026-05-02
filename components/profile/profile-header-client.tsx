@@ -32,7 +32,10 @@ export function ProfileHeaderClient({
   };
 
   return (
-    <div className="bg-background border-b border-border">
+    <div
+      className="bg-background border-b border-border"
+      data-tour="profile-header"
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-12 md:py-16">
         <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-start md:items-center">
           {/* Avatar */}

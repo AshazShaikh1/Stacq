@@ -36,7 +36,7 @@ const STACQ_META_SELECT = `
 ` as const;
 
 const PROFILE_FULL_SELECT =
-  "id, username, display_name, avatar_url, bio, social_links, followers_count" as const;
+  "id, username, display_name, avatar_url, bio, social_links, followers_count, has_completed_tour" as const;
 
 const PROFILE_META_SELECT = "username, display_name, bio" as const;
 

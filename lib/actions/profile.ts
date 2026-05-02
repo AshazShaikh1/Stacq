@@ -92,3 +92,49 @@ export async function updateProfile(
 
   return { success: true, newUsername };
 }
+
+export async function completeTour(userId: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || user.id !== userId) {
+    return { error: "Unauthorized" };
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ has_completed_tour: true })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("completeTour error:", error);
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function completeModalTour(userId: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || user.id !== userId) return { error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ has_completed_modal_tour: true })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("completeModalTour error:", error);
+    return { error: error.message };
+  }
+
+  return { success: true };
+}

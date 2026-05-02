@@ -23,6 +23,7 @@ export function GlobalFooter() {
           width={80}
           height={26}
           loading="lazy"
+          style={{ height: "auto" }}
           className="h-[26px] w-auto grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
         />
       </Link>
