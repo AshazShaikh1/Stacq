@@ -20,11 +20,10 @@ export function GlobalFooter() {
         <Image
           src="/logo-text-dark.svg"
           alt="Stacq Logo"
-          width={80}
-          height={26}
+          width={100}
+          height={32}
           loading="lazy"
-          style={{ height: "auto" }}
-          className="h-[26px] w-auto grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
+          className="h-6 w-auto grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
         />
       </Link>
 
